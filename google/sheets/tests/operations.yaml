@@ -1,0 +1,489 @@
+kind: Telo.Application
+metadata:
+  name: google-sheets-operations-test
+  version: 1.0.0
+# Exercises the Google Sheets operations end-to-end against a stub HTTP server
+# that echoes back the request each operation built (path, method, query, body,
+# auth header) plus canned Sheets-shaped responses. This verifies: the
+# GoogleSheetsClient bakes the Bearer token + base URL, each operation builds the
+# right method/path/query, request bodies are shaped correctly, and raw JSON
+# responses pass through as { status, headers, body }.
+imports:
+  Gs: ../
+  Server: std/http-server@0.17.1
+  Run: std/run@0.12.0
+  Assert: std/assert@0.9.2
+ports:
+  http:
+    env: TEST_PORT
+    default: 34823
+variables:
+  baseUrl:
+    env: TEST_BASE_URL
+    type: string
+    default: http://localhost:34823
+targets:
+  - !ref StubServer
+  - !ref TestOperations
+---
+# The friendly client, pointed at the local stub via the baseUrl override. Every
+# request carries `Authorization: Bearer test-token`.
+kind: Gs.GoogleSheetsClient
+metadata: { name: Stub }
+accessToken: test-token
+baseUrl: !cel "variables.baseUrl"
+---
+kind: Gs.GetSpreadsheet
+metadata: { name: getSpreadsheet }
+client: !ref Stub
+---
+kind: Gs.CreateSpreadsheet
+metadata: { name: createSpreadsheet }
+client: !ref Stub
+---
+kind: Gs.GetValues
+metadata: { name: getValues }
+client: !ref Stub
+---
+kind: Gs.BatchGetValues
+metadata: { name: batchGetValues }
+client: !ref Stub
+---
+kind: Gs.UpdateValues
+metadata: { name: updateValues }
+client: !ref Stub
+---
+kind: Gs.AppendValues
+metadata: { name: appendValues }
+client: !ref Stub
+---
+kind: Gs.ClearValues
+metadata: { name: clearValues }
+client: !ref Stub
+---
+kind: Gs.BatchUpdateValues
+metadata: { name: batchUpdateValues }
+client: !ref Stub
+---
+kind: Gs.BatchClearValues
+metadata: { name: batchClearValues }
+client: !ref Stub
+---
+kind: Gs.BatchUpdateSpreadsheet
+metadata: { name: batchUpdateSpreadsheet }
+client: !ref Stub
+---
+# Generic echo handler: returns the request context it is fed, so a route can
+# reflect what the operation actually sent back into the response body.
+kind: Run.Value
+metadata: { name: Echo }
+inputs:
+  path: {}
+  method: {}
+  query: {}
+  body: {}
+  headers: {}
+  params: {}
+value:
+  path: !cel "inputs.?path.orValue('')"
+  method: !cel "inputs.?method.orValue('')"
+  query: !cel "inputs.?query.orValue({})"
+  body: !cel "inputs.?body.orValue({})"
+  headers: !cel "inputs.?headers.orValue({})"
+  params: !cel "inputs.?params.orValue({})"
+---
+# Stub Google Sheets REST surface. Routes are grouped by path shape so that all
+# operations map cleanly onto a handful of echo routes.
+kind: Server.Api
+metadata: { name: StubApi }
+routes:
+  # POST /spreadsheets — create
+  - request: { method: POST, path: /spreadsheets }
+    inputs:
+      path: !cel "request.path"
+      method: !cel "request.method"
+      body: !cel "request.body"
+      headers: !cel "request.headers"
+    handler: !ref Echo
+    returns:
+      - status: 200
+        content:
+          application/json:
+            body:
+              spreadsheetId: new-sheet-1
+              received:
+                path: !cel "result.path"
+                method: !cel "result.method"
+                body: !cel "result.body"
+                auth: !cel "result.headers.authorization"
+
+  # GET /spreadsheets/:seg1 — getSpreadsheet ; POST — batchUpdateSpreadsheet
+  - request: { method: GET, path: /spreadsheets/:seg1 }
+    inputs:
+      path: !cel "request.path"
+      method: !cel "request.method"
+      query: !cel "request.query"
+      headers: !cel "request.headers"
+    handler: !ref Echo
+    returns:
+      - status: 200
+        content:
+          application/json:
+            body:
+              spreadsheetId: sheet-1
+              sheets:
+                - properties: { sheetId: 0, title: Sheet1 }
+              received:
+                path: !cel "result.path"
+                method: !cel "result.method"
+                query: !cel "result.query"
+                auth: !cel "result.headers.authorization"
+
+  - request: { method: POST, path: /spreadsheets/:seg1 }
+    inputs:
+      method: !cel "request.method"
+      body: !cel "request.body"
+    handler: !ref Echo
+    returns:
+      - status: 200
+        content:
+          application/json:
+            body:
+              spreadsheetId: sheet-1
+              replies: [{}]
+              received:
+                method: !cel "result.method"
+                body: !cel "result.body"
+
+  # GET /spreadsheets/:id/:seg2 — batchGet ; POST — batchUpdateValues / batchClear
+  - request: { method: GET, path: /spreadsheets/:id/:seg2 }
+    inputs:
+      method: !cel "request.method"
+      query: !cel "request.query"
+    handler: !ref Echo
+    returns:
+      - status: 200
+        content:
+          application/json:
+            body:
+              spreadsheetId: sheet-1
+              valueRanges:
+                - { range: "Sheet1!A1:B1", values: [["a", "b"]] }
+              received:
+                method: !cel "result.method"
+                query: !cel "result.query"
+
+  - request: { method: POST, path: /spreadsheets/:id/:seg2 }
+    inputs:
+      method: !cel "request.method"
+      body: !cel "request.body"
+    handler: !ref Echo
+    returns:
+      - status: 200
+        content:
+          application/json:
+            body:
+              spreadsheetId: sheet-1
+              received:
+                method: !cel "result.method"
+                body: !cel "result.body"
+
+  # GET / PUT / POST /spreadsheets/:id/values/:seg3 — get / update / append+clear
+  - request: { method: GET, path: /spreadsheets/:id/values/:seg3 }
+    inputs:
+      method: !cel "request.method"
+      query: !cel "request.query"
+      headers: !cel "request.headers"
+    handler: !ref Echo
+    returns:
+      - status: 200
+        content:
+          application/json:
+            body:
+              range: "Sheet1!A1:B2"
+              majorDimension: ROWS
+              values: [["1", "2"], ["3", "4"]]
+              received:
+                method: !cel "result.method"
+                query: !cel "result.query"
+                auth: !cel "result.headers.authorization"
+
+  - request: { method: PUT, path: /spreadsheets/:id/values/:seg3 }
+    inputs:
+      method: !cel "request.method"
+      query: !cel "request.query"
+      body: !cel "request.body"
+    handler: !ref Echo
+    returns:
+      - status: 200
+        content:
+          application/json:
+            body:
+              updatedCells: 4
+              received:
+                method: !cel "result.method"
+                query: !cel "result.query"
+                body: !cel "result.body"
+
+  - request: { method: POST, path: /spreadsheets/:id/values/:seg3 }
+    inputs:
+      method: !cel "request.method"
+      query: !cel "request.query"
+      body: !cel "request.body"
+    handler: !ref Echo
+    returns:
+      - status: 200
+        content:
+          application/json:
+            body:
+              received:
+                method: !cel "result.method"
+                query: !cel "result.query"
+                body: !cel "result.body"
+---
+kind: Server.Server
+metadata: { name: StubServer }
+port: !cel "ports.http"
+mounts:
+  - path: /
+    mount: !ref StubApi
+---
+kind: Run.Sequence
+metadata: { name: TestOperations }
+steps:
+  # --- GetSpreadsheet: GET, auth header baked, canned metadata ---
+  - name: GetSpreadsheet
+    invoke: !ref getSpreadsheet
+    inputs:
+      spreadsheetId: sheet-1
+
+  - name: AssertGetSpreadsheetStatus
+    invoke: !ref Assert.equals
+    inputs:
+      actual: !cel "steps.GetSpreadsheet.result.status"
+      expected: 200
+
+  - name: AssertGetSpreadsheetMethod
+    invoke: !ref Assert.equals
+    inputs:
+      actual: !cel "steps.GetSpreadsheet.result.body.received.method"
+      expected: GET
+
+  - name: AssertGetSpreadsheetAuth
+    invoke: !ref Assert.equals
+    inputs:
+      actual: !cel "steps.GetSpreadsheet.result.body.received.auth"
+      expected: "Bearer test-token"
+
+  - name: AssertGetSpreadsheetId
+    invoke: !ref Assert.equals
+    inputs:
+      actual: !cel "steps.GetSpreadsheet.result.body.spreadsheetId"
+      expected: sheet-1
+
+  # --- CreateSpreadsheet: POST, body forwarded ---
+  - name: CreateSpreadsheet
+    invoke: !ref createSpreadsheet
+    inputs:
+      body:
+        properties: { title: Q3 report }
+
+  - name: AssertCreateMethod
+    invoke: !ref Assert.equals
+    inputs:
+      actual: !cel "steps.CreateSpreadsheet.result.body.received.method"
+      expected: POST
+
+  - name: AssertCreateBody
+    invoke: !ref Assert.equals
+    inputs:
+      actual: !cel "steps.CreateSpreadsheet.result.body.received.body.properties.title"
+      expected: Q3 report
+
+  - name: AssertCreateResult
+    invoke: !ref Assert.equals
+    inputs:
+      actual: !cel "steps.CreateSpreadsheet.result.body.spreadsheetId"
+      expected: new-sheet-1
+
+  # --- GetValues: GET, render option forwarded, values parsed ---
+  - name: GetValues
+    invoke: !ref getValues
+    inputs:
+      spreadsheetId: sheet-1
+      range: "Sheet1!A1:B2"
+      valueRenderOption: UNFORMATTED_VALUE
+
+  - name: AssertGetValuesMethod
+    invoke: !ref Assert.equals
+    inputs:
+      actual: !cel "steps.GetValues.result.body.received.method"
+      expected: GET
+
+  - name: AssertGetValuesRenderOption
+    invoke: !ref Assert.equals
+    inputs:
+      actual: !cel "steps.GetValues.result.body.received.query.valueRenderOption"
+      expected: UNFORMATTED_VALUE
+
+  - name: AssertGetValuesCell
+    invoke: !ref Assert.equals
+    inputs:
+      actual: !cel "steps.GetValues.result.body.values[1][0]"
+      expected: "3"
+
+  # --- BatchGetValues: GET values:batchGet ---
+  - name: BatchGetValues
+    invoke: !ref batchGetValues
+    inputs:
+      spreadsheetId: sheet-1
+      ranges: ["Sheet1!A1:B1", "Sheet1!A2:B2"]
+
+  - name: AssertBatchGetMethod
+    invoke: !ref Assert.equals
+    inputs:
+      actual: !cel "steps.BatchGetValues.result.body.received.method"
+      expected: GET
+
+  - name: AssertBatchGetResult
+    invoke: !ref Assert.equals
+    inputs:
+      actual: !cel "steps.BatchGetValues.result.body.valueRanges[0].values[0][0]"
+      expected: a
+
+  # --- UpdateValues: PUT, default valueInputOption, body.values ---
+  - name: UpdateValues
+    invoke: !ref updateValues
+    inputs:
+      spreadsheetId: sheet-1
+      range: "Sheet1!A1"
+      values: [["x", "y"]]
+
+  - name: AssertUpdateMethod
+    invoke: !ref Assert.equals
+    inputs:
+      actual: !cel "steps.UpdateValues.result.body.received.method"
+      expected: PUT
+
+  - name: AssertUpdateValueInputOption
+    invoke: !ref Assert.equals
+    inputs:
+      actual: !cel "steps.UpdateValues.result.body.received.query.valueInputOption"
+      expected: USER_ENTERED
+
+  - name: AssertUpdateBodyValues
+    invoke: !ref Assert.equals
+    inputs:
+      actual: !cel "steps.UpdateValues.result.body.received.body.values[0][1]"
+      expected: y
+
+  - name: AssertUpdateBodyMajorDimension
+    invoke: !ref Assert.equals
+    inputs:
+      actual: !cel "steps.UpdateValues.result.body.received.body.majorDimension"
+      expected: ROWS
+
+  # --- AppendValues: POST :append, RAW input option forwarded ---
+  - name: AppendValues
+    invoke: !ref appendValues
+    inputs:
+      spreadsheetId: sheet-1
+      range: "Sheet1!A1"
+      values: [["z"]]
+      valueInputOption: RAW
+
+  - name: AssertAppendMethod
+    invoke: !ref Assert.equals
+    inputs:
+      actual: !cel "steps.AppendValues.result.body.received.method"
+      expected: POST
+
+  - name: AssertAppendValueInputOption
+    invoke: !ref Assert.equals
+    inputs:
+      actual: !cel "steps.AppendValues.result.body.received.query.valueInputOption"
+      expected: RAW
+
+  - name: AssertAppendBody
+    invoke: !ref Assert.equals
+    inputs:
+      actual: !cel "steps.AppendValues.result.body.received.body.values[0][0]"
+      expected: z
+
+  # --- ClearValues: POST :clear ---
+  - name: ClearValues
+    invoke: !ref clearValues
+    inputs:
+      spreadsheetId: sheet-1
+      range: "Sheet1!A1:C10"
+
+  - name: AssertClearMethod
+    invoke: !ref Assert.equals
+    inputs:
+      actual: !cel "steps.ClearValues.result.body.received.method"
+      expected: POST
+
+  # --- BatchUpdateValues: POST values:batchUpdate, body.data ---
+  - name: BatchUpdateValues
+    invoke: !ref batchUpdateValues
+    inputs:
+      spreadsheetId: sheet-1
+      data:
+        - { range: "Sheet1!A1", values: [["1"]] }
+
+  - name: AssertBatchUpdateMethod
+    invoke: !ref Assert.equals
+    inputs:
+      actual: !cel "steps.BatchUpdateValues.result.body.received.method"
+      expected: POST
+
+  - name: AssertBatchUpdateBody
+    invoke: !ref Assert.equals
+    inputs:
+      actual: !cel "steps.BatchUpdateValues.result.body.received.body.valueInputOption"
+      expected: USER_ENTERED
+
+  - name: AssertBatchUpdateData
+    invoke: !ref Assert.equals
+    inputs:
+      actual: !cel "steps.BatchUpdateValues.result.body.received.body.data[0].range"
+      expected: "Sheet1!A1"
+
+  # --- BatchClearValues: POST values:batchClear, body.ranges ---
+  - name: BatchClearValues
+    invoke: !ref batchClearValues
+    inputs:
+      spreadsheetId: sheet-1
+      ranges: ["Sheet1!A1:C10", "Sheet2!A:A"]
+
+  - name: AssertBatchClearMethod
+    invoke: !ref Assert.equals
+    inputs:
+      actual: !cel "steps.BatchClearValues.result.body.received.method"
+      expected: POST
+
+  - name: AssertBatchClearRanges
+    invoke: !ref Assert.equals
+    inputs:
+      actual: !cel "steps.BatchClearValues.result.body.received.body.ranges[1]"
+      expected: "Sheet2!A:A"
+
+  # --- BatchUpdateSpreadsheet: POST :batchUpdate, body.requests ---
+  - name: BatchUpdateSpreadsheet
+    invoke: !ref batchUpdateSpreadsheet
+    inputs:
+      spreadsheetId: sheet-1
+      requests:
+        - addSheet: { properties: { title: New Tab } }
+
+  - name: AssertBatchUpdateSpreadsheetMethod
+    invoke: !ref Assert.equals
+    inputs:
+      actual: !cel "steps.BatchUpdateSpreadsheet.result.body.received.method"
+      expected: POST
+
+  - name: AssertBatchUpdateSpreadsheetRequests
+    invoke: !ref Assert.equals
+    inputs:
+      actual: !cel "steps.BatchUpdateSpreadsheet.result.body.received.body.requests[0].addSheet.properties.title"
+      expected: New Tab

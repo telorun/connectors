@@ -1,4 +1,4 @@
-# Claude — building Telo integrations
+# Claude — building Telo connectors
 
 This repo contains **Telo integration libraries**: pure-manifest `Telo.Library`
 modules that wrap an external service (an issue tracker, a SaaS API, a database,
@@ -15,7 +15,7 @@ together with **references** (`!ref`) and **CEL expressions** (`!cel`). The kern
 resolves dependencies through a multi-pass init loop, evaluates CEL, and drives
 each resource through its capability lifecycle.
 
-Integrations in this repo are almost always **pure manifest** (no controller
+Connectors in this repo are almost always **pure manifest** (no controller
 code): they specialize and compose kinds from the standard library (chiefly
 `std/http-client`) rather than shipping a runtime. Reach for a TypeScript
 controller only when the standard library genuinely can't express the behavior.
@@ -56,10 +56,10 @@ Capabilities a kind can have (the lifecycle role):
 
 `metadata.name` is kebab-case and becomes the module's **kind prefix**.
 `metadata.version` is a semver string, required on the root doc.
-`metadata.namespace` groups modules (this repo uses `jetbrains`, etc.).
+`metadata.repository` points to this repository url `https://github.com/telorun/connectors`.
 
 - `imports:` — a NAME-KEYED MAP: PascalCase alias → source. The source is a
-  **registry ref** `namespace/name@VERSION` (the version is EXACT — never
+  **registry ref** `oci://ghcr.io/telorun/<vendor-org>/<name>@VERSION` (the version is EXACT — never
   `@latest` or a range). Object form `{ source, variables?, secrets? }` forwards
   values into the imported library. Reference an imported kind as
   `kind: <Alias>.<KindName>`, and an imported instance as `!ref <Alias>.<name>`.
@@ -210,17 +210,17 @@ Use **inheritance** for the client and for fixed/config-driven operations; use
 Either way, an operation's `client` slot is typed `std/http-client#Client`, so a
 specialized client (a `GithubClient`) drops straight in.
 
-## Discover modules with the registry — DO NOT GUESS FIELDS OR VERSIONS
+## Discover modules with telo CLI — DO NOT GUESS FIELDS OR VERSIONS
 
-You have two MCP tools onto the LIVE Telo registry (`https://telo.run`). Use them
+You have telo CLI at your disposal. Use it
 before writing any resource from a module you did not author:
 
-- `search_modules` — find modules by description ("http client", "sql", "cron").
-- `get_module_manifest(namespace, name, version?)` — fetch a module's `telo.yaml`.
+- `telo module search "some phrase"` — performs semantic search to find appropriate module.
+- `telo module manifest <ref>` — fetch a module's `telo.yaml`.
   Its `Telo.Definition` docs ARE JSON Schemas: the EXACT field names, types, and
   required fields. Read `schema` / `inputType` / `outputType` — never invent a
   field from a kind name, and never guess a version. Record the exact
-  `namespace/name` and `metadata.version` for the `imports:` entry.
+  `name` and `metadata.version` for the `imports:` entry.
 
 Also useful: `https://telo.run/llms.txt` (guide + kind reference),
 `https://telo.run/examples.md` (working manifests), `https://telo.run/cel.md`

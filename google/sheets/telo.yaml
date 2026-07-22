@@ -1,0 +1,733 @@
+kind: Telo.Library
+metadata:
+  name: GoogleSheets
+  version: 0.1.0
+  description: >-
+    Typed Google Sheets (API v4) operations for Telo manifests. A friendly
+    Http.Client (GoogleSheetsClient) preconfigured with an OAuth2 Bearer access
+    token, plus Invocable operations covering the full read/write surface:
+    read values (single range, batch, whole spreadsheet), write values
+    (update, append, batch update), clear (single, batch), and structural
+    changes (create spreadsheet, batchUpdate requests). A RefreshAccessToken
+    helper exchanges an OAuth2 refresh token for a fresh access token. Built
+    purely on std/http-client — no controller code.
+  repository: https://github.com/telorun/connectors
+  license: MIT
+imports:
+  Http: oci://ghcr.io/telorun/http-client@0.11.0#sha256-hvEr8my6HlvdeD1SZADM_XvItITEq04wzj9ZVb8bIf8
+exports:
+  kinds:
+    - GoogleSheetsClient
+    - GetSpreadsheet
+    - CreateSpreadsheet
+    - GetValues
+    - BatchGetValues
+    - UpdateValues
+    - AppendValues
+    - ClearValues
+    - BatchUpdateValues
+    - BatchClearValues
+    - BatchUpdateSpreadsheet
+    - RefreshAccessToken
+---
+# The service client. Inherits the std/http-client#Client controller (and its
+# Provider capability), so a GoogleSheetsClient IS an Http.Client at runtime and
+# drops into any `x-telo-ref: "std/http-client#Client"` slot. Provide an OAuth2
+# access token once, then `!ref` it everywhere. Any valid token works — from a
+# service account, `gcloud auth print-access-token`, a user OAuth flow, or the
+# RefreshAccessToken operation below. The token must carry the
+# https://www.googleapis.com/auth/spreadsheets scope for writes (…/spreadsheets.readonly
+# is enough for reads).
+kind: Telo.Definition
+metadata:
+  name: GoogleSheetsClient
+  description: Preconfigured Google Sheets Http.Client — Bearer OAuth2 token, baseUrl https://sheets.googleapis.com/v4.
+extends: Http.Client
+schema:
+  type: object
+  required: [accessToken]
+  properties:
+    accessToken:
+      type: string
+      description: >-
+        OAuth2 access token (the bare token, no "Bearer " prefix). Sent as
+        `Authorization: Bearer <accessToken>` on every request. Google access
+        tokens expire ~1h after issue; refresh with RefreshAccessToken.
+    baseUrl:
+      type: string
+      description: >-
+        Override the Sheets API base URL (no trailing slash). Defaults to
+        https://sheets.googleapis.com/v4. Point it at a proxy or a stub server
+        for testing.
+base:
+  baseUrl: !cel "self.?baseUrl.orValue('https://sheets.googleapis.com/v4')"
+  headers:
+    Authorization: !cel "'Bearer ' + self.accessToken"
+    Accept: application/json
+---
+# GET /spreadsheets/{id} — read spreadsheet metadata (sheet list, properties,
+# and optionally grid data). Pass `ranges` to scope grid data and `fields` to
+# trim the projection (e.g. "sheets.properties" for just the tab list).
+kind: Telo.Definition
+metadata:
+  name: GetSpreadsheet
+  description: Read a spreadsheet's metadata (and optionally grid data) by id.
+capability: Telo.Invocable
+schema:
+  type: object
+  required: [client]
+  properties:
+    client:
+      x-telo-ref: "std/http-client#Client"
+      description: A GoogleSheetsClient (or any Http.Client) to run the request against.
+inputType:
+  kind: Type.JsonSchema
+  schema:
+    type: object
+    required: [spreadsheetId]
+    properties:
+      spreadsheetId:
+        type: string
+        description: The spreadsheet id (the long token in the sheet URL).
+      ranges:
+        type: array
+        items: { type: string }
+        description: A1 ranges to limit returned grid data (e.g. ["Sheet1!A1:C10"]).
+      includeGridData:
+        type: boolean
+        description: If true, include cell-level grid data (large). Defaults to false.
+      fields:
+        type: string
+        description: 'Field mask to trim the response (e.g. "spreadsheetId,sheets.properties").'
+outputType:
+  kind: Type.JsonSchema
+  schema:
+    type: object
+    required: [status, headers, body]
+    properties:
+      status: { type: integer }
+      headers: { type: object, additionalProperties: { type: string } }
+      body:
+        description: Parsed JSON Spreadsheet resource (raw response body).
+resources:
+  - kind: Http.Request
+    metadata:
+      name: !cel "self.name + '-req'"
+    client: !cel "self.client"
+    throwOnHttpError: true
+invoke:
+  kind: Http.Request
+  name: !cel "self.name + '-req'"
+inputs:
+  method: GET
+  url: !cel >-
+    '/spreadsheets/' + inputs.spreadsheetId + '?' + join(
+      inputs.?ranges.orValue([]).map(r, 'ranges=' + urlEncode(r)) + [
+        {'k': 'includeGridData', 'v': inputs.?includeGridData.orValue(false) ? 'true' : ''},
+        {'k': 'fields', 'v': inputs.?fields.orValue('')}
+      ].filter(p, p.v != '').map(p, p.k + '=' + urlEncode(p.v)), '&')
+---
+# POST /spreadsheets — create a new spreadsheet. `body` is a Spreadsheet
+# resource, e.g. { properties: { title: "..." }, sheets: [...] }.
+kind: Telo.Definition
+metadata:
+  name: CreateSpreadsheet
+  description: Create a new Google spreadsheet from a Spreadsheet resource.
+capability: Telo.Invocable
+schema:
+  type: object
+  required: [client]
+  properties:
+    client:
+      x-telo-ref: "std/http-client#Client"
+      description: A GoogleSheetsClient (or any Http.Client) to run the request against.
+inputType:
+  kind: Type.JsonSchema
+  schema:
+    type: object
+    required: [body]
+    properties:
+      body:
+        type: object
+        additionalProperties: true
+        description: 'Spreadsheet resource, e.g. { properties: { title: "Q3 report" } }.'
+outputType:
+  kind: Type.JsonSchema
+  schema:
+    type: object
+    required: [status, headers, body]
+    properties:
+      status: { type: integer }
+      headers: { type: object, additionalProperties: { type: string } }
+      body:
+        description: Parsed JSON of the created Spreadsheet (includes spreadsheetId).
+resources:
+  - kind: Http.Request
+    metadata:
+      name: !cel "self.name + '-req'"
+    client: !cel "self.client"
+    throwOnHttpError: true
+invoke:
+  kind: Http.Request
+  name: !cel "self.name + '-req'"
+inputs:
+  method: POST
+  body: !cel "inputs.body"
+  url: /spreadsheets
+---
+# GET /spreadsheets/{id}/values/{range} — read one A1 range. Returns a
+# ValueRange in body.values (a 2-D array of cell values).
+kind: Telo.Definition
+metadata:
+  name: GetValues
+  description: Read cell values for a single A1 range.
+capability: Telo.Invocable
+schema:
+  type: object
+  required: [client]
+  properties:
+    client:
+      x-telo-ref: "std/http-client#Client"
+      description: A GoogleSheetsClient (or any Http.Client) to run the request against.
+inputType:
+  kind: Type.JsonSchema
+  schema:
+    type: object
+    required: [spreadsheetId, range]
+    properties:
+      spreadsheetId:
+        type: string
+        description: The spreadsheet id.
+      range:
+        type: string
+        description: An A1 range (e.g. "Sheet1!A1:C10" or "Sheet1").
+      majorDimension:
+        type: string
+        enum: [ROWS, COLUMNS]
+        description: Whether the outer array is rows (default) or columns.
+      valueRenderOption:
+        type: string
+        enum: [FORMATTED_VALUE, UNFORMATTED_VALUE, FORMULA]
+        description: How values are rendered. Defaults to FORMATTED_VALUE.
+      dateTimeRenderOption:
+        type: string
+        enum: [SERIAL_NUMBER, FORMATTED_STRING]
+        description: How dates/times are rendered.
+outputType:
+  kind: Type.JsonSchema
+  schema:
+    type: object
+    required: [status, headers, body]
+    properties:
+      status: { type: integer }
+      headers: { type: object, additionalProperties: { type: string } }
+      body:
+        description: Parsed JSON ValueRange — { range, majorDimension, values }.
+resources:
+  - kind: Http.Request
+    metadata:
+      name: !cel "self.name + '-req'"
+    client: !cel "self.client"
+    throwOnHttpError: true
+invoke:
+  kind: Http.Request
+  name: !cel "self.name + '-req'"
+inputs:
+  method: GET
+  url: !cel >-
+    '/spreadsheets/' + inputs.spreadsheetId + '/values/' + urlEncode(inputs.range) + '?' + join([
+      {'k': 'majorDimension', 'v': inputs.?majorDimension.orValue('')},
+      {'k': 'valueRenderOption', 'v': inputs.?valueRenderOption.orValue('')},
+      {'k': 'dateTimeRenderOption', 'v': inputs.?dateTimeRenderOption.orValue('')}
+    ].filter(p, p.v != '').map(p, p.k + '=' + urlEncode(p.v)), '&')
+---
+# GET /spreadsheets/{id}/values:batchGet — read several ranges in one call.
+kind: Telo.Definition
+metadata:
+  name: BatchGetValues
+  description: Read cell values for several A1 ranges in one request.
+capability: Telo.Invocable
+schema:
+  type: object
+  required: [client]
+  properties:
+    client:
+      x-telo-ref: "std/http-client#Client"
+      description: A GoogleSheetsClient (or any Http.Client) to run the request against.
+inputType:
+  kind: Type.JsonSchema
+  schema:
+    type: object
+    required: [spreadsheetId, ranges]
+    properties:
+      spreadsheetId:
+        type: string
+        description: The spreadsheet id.
+      ranges:
+        type: array
+        items: { type: string }
+        description: A1 ranges to read (e.g. ["Sheet1!A1:B2", "Sheet2!A1"]).
+      majorDimension:
+        type: string
+        enum: [ROWS, COLUMNS]
+        description: Whether outer arrays are rows (default) or columns.
+      valueRenderOption:
+        type: string
+        enum: [FORMATTED_VALUE, UNFORMATTED_VALUE, FORMULA]
+        description: How values are rendered. Defaults to FORMATTED_VALUE.
+      dateTimeRenderOption:
+        type: string
+        enum: [SERIAL_NUMBER, FORMATTED_STRING]
+        description: How dates/times are rendered.
+outputType:
+  kind: Type.JsonSchema
+  schema:
+    type: object
+    required: [status, headers, body]
+    properties:
+      status: { type: integer }
+      headers: { type: object, additionalProperties: { type: string } }
+      body:
+        description: "Parsed JSON — { spreadsheetId, valueRanges: [ValueRange] }."
+resources:
+  - kind: Http.Request
+    metadata:
+      name: !cel "self.name + '-req'"
+    client: !cel "self.client"
+    throwOnHttpError: true
+invoke:
+  kind: Http.Request
+  name: !cel "self.name + '-req'"
+inputs:
+  method: GET
+  url: !cel >-
+    '/spreadsheets/' + inputs.spreadsheetId + '/values:batchGet?' + join(
+      inputs.ranges.map(r, 'ranges=' + urlEncode(r)) + [
+        {'k': 'majorDimension', 'v': inputs.?majorDimension.orValue('')},
+        {'k': 'valueRenderOption', 'v': inputs.?valueRenderOption.orValue('')},
+        {'k': 'dateTimeRenderOption', 'v': inputs.?dateTimeRenderOption.orValue('')}
+      ].filter(p, p.v != '').map(p, p.k + '=' + urlEncode(p.v)), '&')
+---
+# PUT /spreadsheets/{id}/values/{range} — overwrite a range with `values`
+# (a 2-D array). valueInputOption defaults to USER_ENTERED (formulas/formatting
+# are parsed as if typed by a user); pass RAW to store values verbatim.
+kind: Telo.Definition
+metadata:
+  name: UpdateValues
+  description: Overwrite a single A1 range with a 2-D array of values.
+capability: Telo.Invocable
+schema:
+  type: object
+  required: [client]
+  properties:
+    client:
+      x-telo-ref: "std/http-client#Client"
+      description: A GoogleSheetsClient (or any Http.Client) to run the request against.
+inputType:
+  kind: Type.JsonSchema
+  schema:
+    type: object
+    required: [spreadsheetId, range, values]
+    properties:
+      spreadsheetId:
+        type: string
+        description: The spreadsheet id.
+      range:
+        type: string
+        description: The A1 range to write (e.g. "Sheet1!A1").
+      values:
+        type: array
+        items: { type: array }
+        description: 2-D array of cell values (outer = majorDimension).
+      majorDimension:
+        type: string
+        enum: [ROWS, COLUMNS]
+        description: Whether the outer array is rows (default) or columns.
+      valueInputOption:
+        type: string
+        enum: [RAW, USER_ENTERED]
+        description: How input is interpreted. Defaults to USER_ENTERED.
+outputType:
+  kind: Type.JsonSchema
+  schema:
+    type: object
+    required: [status, headers, body]
+    properties:
+      status: { type: integer }
+      headers: { type: object, additionalProperties: { type: string } }
+      body:
+        description: Parsed JSON UpdateValuesResponse — { updatedRange, updatedCells, ... }.
+resources:
+  - kind: Http.Request
+    metadata:
+      name: !cel "self.name + '-req'"
+    client: !cel "self.client"
+    throwOnHttpError: true
+invoke:
+  kind: Http.Request
+  name: !cel "self.name + '-req'"
+inputs:
+  method: PUT
+  body:
+    values: !cel "inputs.values"
+    majorDimension: !cel "inputs.?majorDimension.orValue('ROWS')"
+  url: !cel >-
+    '/spreadsheets/' + inputs.spreadsheetId + '/values/' + urlEncode(inputs.range) +
+    '?valueInputOption=' + urlEncode(inputs.?valueInputOption.orValue('USER_ENTERED'))
+---
+# POST /spreadsheets/{id}/values/{range}:append — append rows after the last
+# row of the table that overlaps `range`.
+kind: Telo.Definition
+metadata:
+  name: AppendValues
+  description: Append rows of values after the existing table in a range.
+capability: Telo.Invocable
+schema:
+  type: object
+  required: [client]
+  properties:
+    client:
+      x-telo-ref: "std/http-client#Client"
+      description: A GoogleSheetsClient (or any Http.Client) to run the request against.
+inputType:
+  kind: Type.JsonSchema
+  schema:
+    type: object
+    required: [spreadsheetId, range, values]
+    properties:
+      spreadsheetId:
+        type: string
+        description: The spreadsheet id.
+      range:
+        type: string
+        description: A1 range identifying the table to append to (e.g. "Sheet1!A1").
+      values:
+        type: array
+        items: { type: array }
+        description: 2-D array of rows to append.
+      majorDimension:
+        type: string
+        enum: [ROWS, COLUMNS]
+        description: Whether the outer array is rows (default) or columns.
+      valueInputOption:
+        type: string
+        enum: [RAW, USER_ENTERED]
+        description: How input is interpreted. Defaults to USER_ENTERED.
+      insertDataOption:
+        type: string
+        enum: [OVERWRITE, INSERT_ROWS]
+        description: Whether to overwrite existing cells or insert new rows.
+outputType:
+  kind: Type.JsonSchema
+  schema:
+    type: object
+    required: [status, headers, body]
+    properties:
+      status: { type: integer }
+      headers: { type: object, additionalProperties: { type: string } }
+      body:
+        description: "Parsed JSON AppendValuesResponse — { updates: { updatedRange, ... } }."
+resources:
+  - kind: Http.Request
+    metadata:
+      name: !cel "self.name + '-req'"
+    client: !cel "self.client"
+    throwOnHttpError: true
+invoke:
+  kind: Http.Request
+  name: !cel "self.name + '-req'"
+inputs:
+  method: POST
+  body:
+    values: !cel "inputs.values"
+    majorDimension: !cel "inputs.?majorDimension.orValue('ROWS')"
+  url: !cel >-
+    '/spreadsheets/' + inputs.spreadsheetId + '/values/' + urlEncode(inputs.range) + ':append?' + join([
+      {'k': 'valueInputOption', 'v': inputs.?valueInputOption.orValue('USER_ENTERED')},
+      {'k': 'insertDataOption', 'v': inputs.?insertDataOption.orValue('')}
+    ].filter(p, p.v != '').map(p, p.k + '=' + urlEncode(p.v)), '&')
+---
+# POST /spreadsheets/{id}/values/{range}:clear — clear values from a range
+# (formatting and other cell properties are preserved).
+kind: Telo.Definition
+metadata:
+  name: ClearValues
+  description: Clear the values of a single A1 range (keeps formatting).
+capability: Telo.Invocable
+schema:
+  type: object
+  required: [client]
+  properties:
+    client:
+      x-telo-ref: "std/http-client#Client"
+      description: A GoogleSheetsClient (or any Http.Client) to run the request against.
+inputType:
+  kind: Type.JsonSchema
+  schema:
+    type: object
+    required: [spreadsheetId, range]
+    properties:
+      spreadsheetId:
+        type: string
+        description: The spreadsheet id.
+      range:
+        type: string
+        description: The A1 range to clear (e.g. "Sheet1!A1:C10").
+outputType:
+  kind: Type.JsonSchema
+  schema:
+    type: object
+    required: [status, headers, body]
+    properties:
+      status: { type: integer }
+      headers: { type: object, additionalProperties: { type: string } }
+      body:
+        description: Parsed JSON — { spreadsheetId, clearedRange }.
+resources:
+  - kind: Http.Request
+    metadata:
+      name: !cel "self.name + '-req'"
+    client: !cel "self.client"
+    throwOnHttpError: true
+invoke:
+  kind: Http.Request
+  name: !cel "self.name + '-req'"
+inputs:
+  method: POST
+  body: {}
+  url: !cel >-
+    '/spreadsheets/' + inputs.spreadsheetId + '/values/' + urlEncode(inputs.range) + ':clear'
+---
+# POST /spreadsheets/{id}/values:batchUpdate — write several ValueRanges in one
+# call. `data` is a list of { range, values, majorDimension? }.
+kind: Telo.Definition
+metadata:
+  name: BatchUpdateValues
+  description: Write several ranges of values in one request.
+capability: Telo.Invocable
+schema:
+  type: object
+  required: [client]
+  properties:
+    client:
+      x-telo-ref: "std/http-client#Client"
+      description: A GoogleSheetsClient (or any Http.Client) to run the request against.
+inputType:
+  kind: Type.JsonSchema
+  schema:
+    type: object
+    required: [spreadsheetId, data]
+    properties:
+      spreadsheetId:
+        type: string
+        description: The spreadsheet id.
+      data:
+        type: array
+        items:
+          type: object
+          additionalProperties: true
+        description: 'List of ValueRanges, e.g. [{ range: "Sheet1!A1", values: [[1]] }].'
+      valueInputOption:
+        type: string
+        enum: [RAW, USER_ENTERED]
+        description: How input is interpreted. Defaults to USER_ENTERED.
+      includeValuesInResponse:
+        type: boolean
+        description: If true, echo the updated values back in the response.
+outputType:
+  kind: Type.JsonSchema
+  schema:
+    type: object
+    required: [status, headers, body]
+    properties:
+      status: { type: integer }
+      headers: { type: object, additionalProperties: { type: string } }
+      body:
+        description: Parsed JSON BatchUpdateValuesResponse — { totalUpdatedCells, responses, ... }.
+resources:
+  - kind: Http.Request
+    metadata:
+      name: !cel "self.name + '-req'"
+    client: !cel "self.client"
+    throwOnHttpError: true
+invoke:
+  kind: Http.Request
+  name: !cel "self.name + '-req'"
+inputs:
+  method: POST
+  body:
+    data: !cel "inputs.data"
+    valueInputOption: !cel "inputs.?valueInputOption.orValue('USER_ENTERED')"
+    includeValuesInResponse: !cel "inputs.?includeValuesInResponse.orValue(false)"
+  url: !cel "'/spreadsheets/' + inputs.spreadsheetId + '/values:batchUpdate'"
+---
+# POST /spreadsheets/{id}/values:batchClear — clear several ranges at once.
+kind: Telo.Definition
+metadata:
+  name: BatchClearValues
+  description: Clear the values of several A1 ranges in one request.
+capability: Telo.Invocable
+schema:
+  type: object
+  required: [client]
+  properties:
+    client:
+      x-telo-ref: "std/http-client#Client"
+      description: A GoogleSheetsClient (or any Http.Client) to run the request against.
+inputType:
+  kind: Type.JsonSchema
+  schema:
+    type: object
+    required: [spreadsheetId, ranges]
+    properties:
+      spreadsheetId:
+        type: string
+        description: The spreadsheet id.
+      ranges:
+        type: array
+        items: { type: string }
+        description: A1 ranges to clear (e.g. ["Sheet1!A1:C10", "Sheet2!A:A"]).
+outputType:
+  kind: Type.JsonSchema
+  schema:
+    type: object
+    required: [status, headers, body]
+    properties:
+      status: { type: integer }
+      headers: { type: object, additionalProperties: { type: string } }
+      body:
+        description: Parsed JSON — { spreadsheetId, clearedRanges }.
+resources:
+  - kind: Http.Request
+    metadata:
+      name: !cel "self.name + '-req'"
+    client: !cel "self.client"
+    throwOnHttpError: true
+invoke:
+  kind: Http.Request
+  name: !cel "self.name + '-req'"
+inputs:
+  method: POST
+  body:
+    ranges: !cel "inputs.ranges"
+  url: !cel "'/spreadsheets/' + inputs.spreadsheetId + '/values:batchClear'"
+---
+# POST /spreadsheets/{id}:batchUpdate — the structural workhorse. `requests` is a
+# list of Request objects that add/delete/rename sheets, format cells, set data
+# validation, merge cells, freeze rows, and much more (see the Sheets API
+# "Request" reference). Applied atomically.
+kind: Telo.Definition
+metadata:
+  name: BatchUpdateSpreadsheet
+  description: Apply structural changes (add/delete/format sheets, etc.) via batchUpdate requests.
+capability: Telo.Invocable
+schema:
+  type: object
+  required: [client]
+  properties:
+    client:
+      x-telo-ref: "std/http-client#Client"
+      description: A GoogleSheetsClient (or any Http.Client) to run the request against.
+inputType:
+  kind: Type.JsonSchema
+  schema:
+    type: object
+    required: [spreadsheetId, requests]
+    properties:
+      spreadsheetId:
+        type: string
+        description: The spreadsheet id.
+      requests:
+        type: array
+        items:
+          type: object
+          additionalProperties: true
+        description: 'List of Sheets API Request objects, e.g. [{ addSheet: { properties: { title: "New" } } }].'
+      includeSpreadsheetInResponse:
+        type: boolean
+        description: If true, return the updated Spreadsheet in the response.
+      responseIncludeGridData:
+        type: boolean
+        description: With includeSpreadsheetInResponse, whether to include grid data.
+outputType:
+  kind: Type.JsonSchema
+  schema:
+    type: object
+    required: [status, headers, body]
+    properties:
+      status: { type: integer }
+      headers: { type: object, additionalProperties: { type: string } }
+      body:
+        description: Parsed JSON BatchUpdateSpreadsheetResponse — { replies, updatedSpreadsheet? }.
+resources:
+  - kind: Http.Request
+    metadata:
+      name: !cel "self.name + '-req'"
+    client: !cel "self.client"
+    throwOnHttpError: true
+invoke:
+  kind: Http.Request
+  name: !cel "self.name + '-req'"
+inputs:
+  method: POST
+  body:
+    requests: !cel "inputs.requests"
+    includeSpreadsheetInResponse: !cel "inputs.?includeSpreadsheetInResponse.orValue(false)"
+    responseIncludeGridData: !cel "inputs.?responseIncludeGridData.orValue(false)"
+  url: !cel "'/spreadsheets/' + inputs.spreadsheetId + ':batchUpdate'"
+---
+# POST https://oauth2.googleapis.com/token — exchange an OAuth2 refresh token for
+# a fresh access token. Pure HTTP (no signing), so it needs no client: it posts a
+# form-encoded body to Google's token endpoint. Feed body.access_token into a
+# GoogleSheetsClient. Obtain clientId/clientSecret/refreshToken from a Google
+# Cloud OAuth client + consent grant (or a service account's equivalent flow).
+kind: Telo.Definition
+metadata:
+  name: RefreshAccessToken
+  description: Exchange an OAuth2 refresh token for a fresh Google access token.
+capability: Telo.Invocable
+schema:
+  type: object
+inputType:
+  kind: Type.JsonSchema
+  schema:
+    type: object
+    required: [clientId, clientSecret, refreshToken]
+    properties:
+      clientId:
+        type: string
+        description: OAuth2 client id.
+      clientSecret:
+        type: string
+        description: OAuth2 client secret.
+      refreshToken:
+        type: string
+        description: OAuth2 refresh token previously granted for the Sheets scope.
+outputType:
+  kind: Type.JsonSchema
+  schema:
+    type: object
+    required: [status, headers, body]
+    properties:
+      status: { type: integer }
+      headers: { type: object, additionalProperties: { type: string } }
+      body:
+        description: Parsed JSON — { access_token, expires_in, scope, token_type }.
+resources:
+  - kind: Http.Request
+    metadata:
+      name: !cel "self.name + '-req'"
+    throwOnHttpError: true
+invoke:
+  kind: Http.Request
+  name: !cel "self.name + '-req'"
+inputs:
+  method: POST
+  url: https://oauth2.googleapis.com/token
+  headers:
+    Content-Type: application/x-www-form-urlencoded
+  body: !cel >-
+    'client_id=' + urlEncode(inputs.clientId) +
+    '&client_secret=' + urlEncode(inputs.clientSecret) +
+    '&refresh_token=' + urlEncode(inputs.refreshToken) +
+    '&grant_type=refresh_token'
