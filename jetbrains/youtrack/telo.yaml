@@ -1,0 +1,608 @@
+kind: Telo.Library
+metadata:
+  name: YouTrack
+  version: 0.1.0
+  description: >-
+    Typed YouTrack operations for Telo manifests. A friendly Http.Client
+    (YouTrackClient) preconfigured with instance URL + API token, plus a set of
+    Invocable operations (time tracking, issues, comments, projects, users)
+    built purely on std/http-client.
+  repository: https://github.com/telorun/connectors
+  license: MIT
+imports:
+  Http: oci://ghcr.io/telorun/http-client@0.11.0#sha256-hvEr8my6HlvdeD1SZADM_XvItITEq04wzj9ZVb8bIf8
+exports:
+  kinds:
+    - YouTrackClient
+    - GetWorkItems
+    - AddWorkItem
+    - SearchIssues
+    - GetIssue
+    - CreateIssue
+    - UpdateIssue
+    - AddComment
+    - ListComments
+    - ListProjects
+    - GetCurrentUser
+---
+# The service client. Inherits the std/http-client#Client controller (and its
+# Provider capability), so a YouTrackClient IS an Http.Client at runtime and
+# drops into any `x-telo-ref: "std/http-client#Client"` slot. Configure the
+# instance URL + permanent API token once, then `!ref` it everywhere.
+kind: Telo.Definition
+metadata:
+  name: YouTrackClient
+  description: Preconfigured YouTrack Http.Client — instance URL + Bearer API token, baseUrl <url>/api.
+extends: Http.Client
+schema:
+  type: object
+  required: [url, apiKey]
+  properties:
+    url:
+      type: string
+      description: >-
+        YouTrack instance base URL, no trailing slash — e.g.
+        https://acme.youtrack.cloud (cloud) or https://youtrack.acme.com
+        (self-hosted). The REST base `<url>/api` is derived from it.
+    apiKey:
+      type: string
+      description: >-
+        Permanent API token (the `perm:...` value). Sent as
+        `Authorization: Bearer <apiKey>` on every request.
+base:
+  baseUrl: !cel "self.url + '/api'"
+  headers:
+    Authorization: !cel "'Bearer ' + self.apiKey"
+    Accept: application/json
+---
+# GET /workItems — read logged work hours. Each item carries duration.minutes;
+# callers sum for totals. All filters are optional and omitted when absent.
+kind: Telo.Definition
+metadata:
+  name: GetWorkItems
+  description: Read logged work items (time tracking) from YouTrack, filtered by author/date/query.
+capability: Telo.Invocable
+schema:
+  type: object
+  required: [client]
+  properties:
+    client:
+      x-telo-ref: "std/http-client#Client"
+      description: A YouTrackClient (or any Http.Client) to run the request against.
+inputType:
+  kind: Type.JsonSchema
+  schema:
+    type: object
+    properties:
+      author:
+        type: string
+        description: Filter by author login (e.g. "me" or a specific login).
+      startDate:
+        type: string
+        description: Start of the range, epoch milliseconds as a string.
+      endDate:
+        type: string
+        description: End of the range, epoch milliseconds as a string.
+      query:
+        type: string
+        description: YouTrack work-items query filter.
+      fields:
+        type: string
+        description: Field selector; overrides the default projection.
+outputType:
+  kind: Type.JsonSchema
+  schema:
+    type: object
+    required: [status, headers, body]
+    properties:
+      status: { type: integer }
+      headers: { type: object, additionalProperties: { type: string } }
+      body:
+        description: Parsed JSON array of work items (raw response body).
+resources:
+  - kind: Http.Request
+    metadata:
+      name: !cel "self.name + '-req'"
+    client: !cel "self.client"
+    throwOnHttpError: true
+invoke:
+  kind: Http.Request
+  name: !cel "self.name + '-req'"
+inputs:
+  method: GET
+  url: !cel >-
+    '/workItems?' + join([
+      {'k': 'fields', 'v': inputs.?fields.orValue('duration(minutes),date,author(login),issue(idReadable)')},
+      {'k': 'author', 'v': inputs.?author.orValue('')},
+      {'k': 'startDate', 'v': inputs.?startDate.orValue('')},
+      {'k': 'endDate', 'v': inputs.?endDate.orValue('')},
+      {'k': 'query', 'v': inputs.?query.orValue('')}
+    ].filter(p, p.v != '').map(p, p.k + '=' + urlEncode(p.v)), '&')
+---
+# POST /issues/{issueId}/timeTracking/workItems — log time against an issue.
+kind: Telo.Definition
+metadata:
+  name: AddWorkItem
+  description: Log a work item (time spent) against a YouTrack issue.
+capability: Telo.Invocable
+schema:
+  type: object
+  required: [client]
+  properties:
+    client:
+      x-telo-ref: "std/http-client#Client"
+      description: A YouTrackClient (or any Http.Client) to run the request against.
+inputType:
+  kind: Type.JsonSchema
+  schema:
+    type: object
+    required: [issueId, body]
+    properties:
+      issueId:
+        type: string
+        description: Issue id or readable id (e.g. "2-15" or "ACME-42").
+      body:
+        type: object
+        additionalProperties: true
+        description: >-
+          Work item payload, e.g. { duration: { minutes: 90 }, date: 1719792000000,
+          text: "..." }.
+      fields:
+        type: string
+        description: Field selector for the created work item in the response.
+outputType:
+  kind: Type.JsonSchema
+  schema:
+    type: object
+    required: [status, headers, body]
+    properties:
+      status: { type: integer }
+      headers: { type: object, additionalProperties: { type: string } }
+      body:
+        description: Parsed JSON of the created work item (raw response body).
+resources:
+  - kind: Http.Request
+    metadata:
+      name: !cel "self.name + '-req'"
+    client: !cel "self.client"
+    throwOnHttpError: true
+invoke:
+  kind: Http.Request
+  name: !cel "self.name + '-req'"
+inputs:
+  method: POST
+  body: !cel "inputs.body"
+  url: !cel >-
+    '/issues/' + inputs.issueId + '/timeTracking/workItems?' + join([
+      {'k': 'fields', 'v': inputs.?fields.orValue('id,duration(minutes),date,author(login)')}
+    ].filter(p, p.v != '').map(p, p.k + '=' + urlEncode(p.v)), '&')
+---
+# GET /issues — search issues with a YouTrack query and pagination.
+kind: Telo.Definition
+metadata:
+  name: SearchIssues
+  description: Search YouTrack issues with a query, field selector, and pagination.
+capability: Telo.Invocable
+schema:
+  type: object
+  required: [client]
+  properties:
+    client:
+      x-telo-ref: "std/http-client#Client"
+      description: A YouTrackClient (or any Http.Client) to run the request against.
+inputType:
+  kind: Type.JsonSchema
+  schema:
+    type: object
+    properties:
+      query:
+        type: string
+        description: 'YouTrack issue query (e.g. "project: ACME #Unresolved").'
+      fields:
+        type: string
+        description: Field selector; overrides the default projection.
+      top:
+        type: string
+        description: Max number of issues to return (maps to $top).
+      skip:
+        type: string
+        description: Number of issues to skip (maps to $skip).
+outputType:
+  kind: Type.JsonSchema
+  schema:
+    type: object
+    required: [status, headers, body]
+    properties:
+      status: { type: integer }
+      headers: { type: object, additionalProperties: { type: string } }
+      body:
+        description: Parsed JSON array of issues (raw response body).
+resources:
+  - kind: Http.Request
+    metadata:
+      name: !cel "self.name + '-req'"
+    client: !cel "self.client"
+    throwOnHttpError: true
+invoke:
+  kind: Http.Request
+  name: !cel "self.name + '-req'"
+inputs:
+  method: GET
+  url: !cel >-
+    '/issues?' + join([
+      {'k': 'fields', 'v': inputs.?fields.orValue('idReadable,summary')},
+      {'k': 'query', 'v': inputs.?query.orValue('')},
+      {'k': '$top', 'v': inputs.?top.orValue('')},
+      {'k': '$skip', 'v': inputs.?skip.orValue('')}
+    ].filter(p, p.v != '').map(p, p.k + '=' + urlEncode(p.v)), '&')
+---
+# GET /issues/{issueId} — read one issue.
+kind: Telo.Definition
+metadata:
+  name: GetIssue
+  description: Read a single YouTrack issue by id or readable id.
+capability: Telo.Invocable
+schema:
+  type: object
+  required: [client]
+  properties:
+    client:
+      x-telo-ref: "std/http-client#Client"
+      description: A YouTrackClient (or any Http.Client) to run the request against.
+inputType:
+  kind: Type.JsonSchema
+  schema:
+    type: object
+    required: [issueId]
+    properties:
+      issueId:
+        type: string
+        description: Issue id or readable id (e.g. "2-15" or "ACME-42").
+      fields:
+        type: string
+        description: Field selector; overrides the default projection.
+outputType:
+  kind: Type.JsonSchema
+  schema:
+    type: object
+    required: [status, headers, body]
+    properties:
+      status: { type: integer }
+      headers: { type: object, additionalProperties: { type: string } }
+      body:
+        description: Parsed JSON of the issue (raw response body).
+resources:
+  - kind: Http.Request
+    metadata:
+      name: !cel "self.name + '-req'"
+    client: !cel "self.client"
+    throwOnHttpError: true
+invoke:
+  kind: Http.Request
+  name: !cel "self.name + '-req'"
+inputs:
+  method: GET
+  url: !cel >-
+    '/issues/' + inputs.issueId + '?' + join([
+      {'k': 'fields', 'v': inputs.?fields.orValue('idReadable,summary,description')}
+    ].filter(p, p.v != '').map(p, p.k + '=' + urlEncode(p.v)), '&')
+---
+# POST /issues — create an issue.
+kind: Telo.Definition
+metadata:
+  name: CreateIssue
+  description: Create a YouTrack issue (project, summary, description, custom fields).
+capability: Telo.Invocable
+schema:
+  type: object
+  required: [client]
+  properties:
+    client:
+      x-telo-ref: "std/http-client#Client"
+      description: A YouTrackClient (or any Http.Client) to run the request against.
+inputType:
+  kind: Type.JsonSchema
+  schema:
+    type: object
+    required: [body]
+    properties:
+      body:
+        type: object
+        additionalProperties: true
+        description: >-
+          Issue payload, e.g. { project: { id: "0-0" }, summary: "...",
+          description: "...", customFields: [...] }.
+      fields:
+        type: string
+        description: Field selector for the created issue in the response.
+outputType:
+  kind: Type.JsonSchema
+  schema:
+    type: object
+    required: [status, headers, body]
+    properties:
+      status: { type: integer }
+      headers: { type: object, additionalProperties: { type: string } }
+      body:
+        description: Parsed JSON of the created issue (raw response body).
+resources:
+  - kind: Http.Request
+    metadata:
+      name: !cel "self.name + '-req'"
+    client: !cel "self.client"
+    throwOnHttpError: true
+invoke:
+  kind: Http.Request
+  name: !cel "self.name + '-req'"
+inputs:
+  method: POST
+  body: !cel "inputs.body"
+  url: !cel >-
+    '/issues?' + join([
+      {'k': 'fields', 'v': inputs.?fields.orValue('idReadable,summary')}
+    ].filter(p, p.v != '').map(p, p.k + '=' + urlEncode(p.v)), '&')
+---
+# POST /issues/{issueId} — update an issue.
+kind: Telo.Definition
+metadata:
+  name: UpdateIssue
+  description: Update fields of an existing YouTrack issue.
+capability: Telo.Invocable
+schema:
+  type: object
+  required: [client]
+  properties:
+    client:
+      x-telo-ref: "std/http-client#Client"
+      description: A YouTrackClient (or any Http.Client) to run the request against.
+inputType:
+  kind: Type.JsonSchema
+  schema:
+    type: object
+    required: [issueId, body]
+    properties:
+      issueId:
+        type: string
+        description: Issue id or readable id (e.g. "2-15" or "ACME-42").
+      body:
+        type: object
+        additionalProperties: true
+        description: Partial issue payload with the fields to change.
+      fields:
+        type: string
+        description: Field selector for the updated issue in the response.
+outputType:
+  kind: Type.JsonSchema
+  schema:
+    type: object
+    required: [status, headers, body]
+    properties:
+      status: { type: integer }
+      headers: { type: object, additionalProperties: { type: string } }
+      body:
+        description: Parsed JSON of the updated issue (raw response body).
+resources:
+  - kind: Http.Request
+    metadata:
+      name: !cel "self.name + '-req'"
+    client: !cel "self.client"
+    throwOnHttpError: true
+invoke:
+  kind: Http.Request
+  name: !cel "self.name + '-req'"
+inputs:
+  method: POST
+  body: !cel "inputs.body"
+  url: !cel >-
+    '/issues/' + inputs.issueId + '?' + join([
+      {'k': 'fields', 'v': inputs.?fields.orValue('idReadable,summary')}
+    ].filter(p, p.v != '').map(p, p.k + '=' + urlEncode(p.v)), '&')
+---
+# POST /issues/{issueId}/comments — add a comment.
+kind: Telo.Definition
+metadata:
+  name: AddComment
+  description: Add a comment to a YouTrack issue.
+capability: Telo.Invocable
+schema:
+  type: object
+  required: [client]
+  properties:
+    client:
+      x-telo-ref: "std/http-client#Client"
+      description: A YouTrackClient (or any Http.Client) to run the request against.
+inputType:
+  kind: Type.JsonSchema
+  schema:
+    type: object
+    required: [issueId, body]
+    properties:
+      issueId:
+        type: string
+        description: Issue id or readable id (e.g. "2-15" or "ACME-42").
+      body:
+        type: object
+        additionalProperties: true
+        description: 'Comment payload, e.g. { text: "..." }.'
+      fields:
+        type: string
+        description: Field selector for the created comment in the response.
+outputType:
+  kind: Type.JsonSchema
+  schema:
+    type: object
+    required: [status, headers, body]
+    properties:
+      status: { type: integer }
+      headers: { type: object, additionalProperties: { type: string } }
+      body:
+        description: Parsed JSON of the created comment (raw response body).
+resources:
+  - kind: Http.Request
+    metadata:
+      name: !cel "self.name + '-req'"
+    client: !cel "self.client"
+    throwOnHttpError: true
+invoke:
+  kind: Http.Request
+  name: !cel "self.name + '-req'"
+inputs:
+  method: POST
+  body: !cel "inputs.body"
+  url: !cel >-
+    '/issues/' + inputs.issueId + '/comments?' + join([
+      {'k': 'fields', 'v': inputs.?fields.orValue('id,text,author(login),created')}
+    ].filter(p, p.v != '').map(p, p.k + '=' + urlEncode(p.v)), '&')
+---
+# GET /issues/{issueId}/comments — list comments.
+kind: Telo.Definition
+metadata:
+  name: ListComments
+  description: List comments on a YouTrack issue.
+capability: Telo.Invocable
+schema:
+  type: object
+  required: [client]
+  properties:
+    client:
+      x-telo-ref: "std/http-client#Client"
+      description: A YouTrackClient (or any Http.Client) to run the request against.
+inputType:
+  kind: Type.JsonSchema
+  schema:
+    type: object
+    required: [issueId]
+    properties:
+      issueId:
+        type: string
+        description: Issue id or readable id (e.g. "2-15" or "ACME-42").
+      fields:
+        type: string
+        description: Field selector; overrides the default projection.
+outputType:
+  kind: Type.JsonSchema
+  schema:
+    type: object
+    required: [status, headers, body]
+    properties:
+      status: { type: integer }
+      headers: { type: object, additionalProperties: { type: string } }
+      body:
+        description: Parsed JSON array of comments (raw response body).
+resources:
+  - kind: Http.Request
+    metadata:
+      name: !cel "self.name + '-req'"
+    client: !cel "self.client"
+    throwOnHttpError: true
+invoke:
+  kind: Http.Request
+  name: !cel "self.name + '-req'"
+inputs:
+  method: GET
+  url: !cel >-
+    '/issues/' + inputs.issueId + '/comments?' + join([
+      {'k': 'fields', 'v': inputs.?fields.orValue('id,text,author(login),created')}
+    ].filter(p, p.v != '').map(p, p.k + '=' + urlEncode(p.v)), '&')
+---
+# GET /admin/projects — list projects.
+kind: Telo.Definition
+metadata:
+  name: ListProjects
+  description: List YouTrack projects (admin/projects).
+capability: Telo.Invocable
+schema:
+  type: object
+  required: [client]
+  properties:
+    client:
+      x-telo-ref: "std/http-client#Client"
+      description: A YouTrackClient (or any Http.Client) to run the request against.
+inputType:
+  kind: Type.JsonSchema
+  schema:
+    type: object
+    properties:
+      fields:
+        type: string
+        description: Field selector; overrides the default projection.
+      top:
+        type: string
+        description: Max number of projects to return (maps to $top).
+      skip:
+        type: string
+        description: Number of projects to skip (maps to $skip).
+outputType:
+  kind: Type.JsonSchema
+  schema:
+    type: object
+    required: [status, headers, body]
+    properties:
+      status: { type: integer }
+      headers: { type: object, additionalProperties: { type: string } }
+      body:
+        description: Parsed JSON array of projects (raw response body).
+resources:
+  - kind: Http.Request
+    metadata:
+      name: !cel "self.name + '-req'"
+    client: !cel "self.client"
+    throwOnHttpError: true
+invoke:
+  kind: Http.Request
+  name: !cel "self.name + '-req'"
+inputs:
+  method: GET
+  url: !cel >-
+    '/admin/projects?' + join([
+      {'k': 'fields', 'v': inputs.?fields.orValue('id,name,shortName')},
+      {'k': '$top', 'v': inputs.?top.orValue('')},
+      {'k': '$skip', 'v': inputs.?skip.orValue('')}
+    ].filter(p, p.v != '').map(p, p.k + '=' + urlEncode(p.v)), '&')
+---
+# GET /users/me — the token owner.
+kind: Telo.Definition
+metadata:
+  name: GetCurrentUser
+  description: Read the current user (the API token owner) from YouTrack.
+capability: Telo.Invocable
+schema:
+  type: object
+  required: [client]
+  properties:
+    client:
+      x-telo-ref: "std/http-client#Client"
+      description: A YouTrackClient (or any Http.Client) to run the request against.
+inputType:
+  kind: Type.JsonSchema
+  schema:
+    type: object
+    properties:
+      fields:
+        type: string
+        description: Field selector; overrides the default projection.
+outputType:
+  kind: Type.JsonSchema
+  schema:
+    type: object
+    required: [status, headers, body]
+    properties:
+      status: { type: integer }
+      headers: { type: object, additionalProperties: { type: string } }
+      body:
+        description: Parsed JSON of the current user (raw response body).
+resources:
+  - kind: Http.Request
+    metadata:
+      name: !cel "self.name + '-req'"
+    client: !cel "self.client"
+    throwOnHttpError: true
+invoke:
+  kind: Http.Request
+  name: !cel "self.name + '-req'"
+inputs:
+  method: GET
+  url: !cel >-
+    '/users/me?' + join([
+      {'k': 'fields', 'v': inputs.?fields.orValue('login,name,email')}
+    ].filter(p, p.v != '').map(p, p.k + '=' + urlEncode(p.v)), '&')

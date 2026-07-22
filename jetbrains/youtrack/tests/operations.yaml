@@ -1,0 +1,335 @@
+kind: Telo.Application
+metadata:
+  name: youtrack-operations-test
+  version: 1.0.0
+# Exercises the YouTrack operations end-to-end against a stub HTTP server that
+# echoes back the request the operation built (path, query, body, auth header)
+# plus canned YouTrack-shaped responses. This verifies: the YouTrackClient bakes
+# the Bearer token + /api base path, each operation builds the right method/URL,
+# default `fields` selectors are applied, filters are forwarded, and raw JSON
+# responses pass through as { status, headers, body }.
+imports:
+  Yt: ../
+  Server: std/http-server@0.17.1
+  Run: std/run@0.12.0
+  Assert: std/assert@0.9.2
+targets:
+  - !ref TestOperations
+---
+# The friendly client, pointed at the local stub. baseUrl becomes
+# http://localhost:34817/api and every request carries the Bearer token.
+kind: Yt.YouTrackClient
+metadata: { name: Stub }
+url: http://localhost:34817
+apiKey: "perm:test-token"
+---
+kind: Yt.GetWorkItems
+metadata: { name: getWorkItems }
+client: !ref Stub
+---
+kind: Yt.GetCurrentUser
+metadata: { name: getCurrentUser }
+client: !ref Stub
+---
+kind: Yt.AddWorkItem
+metadata: { name: addWorkItem }
+client: !ref Stub
+---
+kind: Yt.SearchIssues
+metadata: { name: searchIssues }
+client: !ref Stub
+---
+kind: Yt.GetIssue
+metadata: { name: getIssue }
+client: !ref Stub
+---
+kind: Yt.CreateIssue
+metadata: { name: createIssue }
+client: !ref Stub
+---
+# Generic echo handler: returns the request context it is fed, so a route can
+# reflect what the operation actually sent back into the response body.
+kind: Run.Value
+metadata: { name: Echo }
+inputs:
+  path: {}
+  query: {}
+  body: {}
+  headers: {}
+  params: {}
+value:
+  path: !cel "inputs.path"
+  query: !cel "inputs.query"
+  body: !cel "inputs.body"
+  headers: !cel "inputs.headers"
+  params: !cel "inputs.params"
+---
+# Stub YouTrack REST surface, mounted at /api on the server below.
+kind: Server.Api
+metadata: { name: StubApi }
+routes:
+  - request: { method: GET, path: /workItems }
+    inputs:
+      path: !cel "request.path"
+      query: !cel "request.query"
+      headers: !cel "request.headers"
+    handler: !ref Echo
+    returns:
+      - status: 200
+        content:
+          application/json:
+            body:
+              workItems:
+                - duration: { minutes: 90 }
+                - duration: { minutes: 30 }
+              received:
+                path: !cel "result.path"
+                query: !cel "result.query"
+                auth: !cel "result.headers.authorization"
+
+  - request: { method: GET, path: /users/me }
+    inputs:
+      path: !cel "request.path"
+      query: !cel "request.query"
+      headers: !cel "request.headers"
+    handler: !ref Echo
+    returns:
+      - status: 200
+        content:
+          application/json:
+            body:
+              user: { login: jbuser, name: JB User, email: jb@example.com }
+              received:
+                path: !cel "result.path"
+                query: !cel "result.query"
+                auth: !cel "result.headers.authorization"
+
+  - request: { method: POST, path: /issues/:issueId/timeTracking/workItems }
+    inputs:
+      path: !cel "request.path"
+      params: !cel "request.params"
+      body: !cel "request.body"
+    handler: !ref Echo
+    returns:
+      - status: 200
+        content:
+          application/json:
+            body:
+              id: wi-1
+              received:
+                path: !cel "result.path"
+                params: !cel "result.params"
+                body: !cel "result.body"
+
+  - request: { method: GET, path: /issues }
+    inputs:
+      query: !cel "request.query"
+    handler: !ref Echo
+    returns:
+      - status: 200
+        content:
+          application/json:
+            body:
+              issues:
+                - { idReadable: ACME-1, summary: First }
+                - { idReadable: ACME-2, summary: Second }
+              received:
+                query: !cel "result.query"
+
+  - request: { method: GET, path: /issues/:issueId }
+    inputs:
+      params: !cel "request.params"
+      query: !cel "request.query"
+    handler: !ref Echo
+    returns:
+      - status: 200
+        content:
+          application/json:
+            body:
+              issue: { idReadable: ACME-42, summary: The issue }
+              received:
+                params: !cel "result.params"
+                query: !cel "result.query"
+
+  - request: { method: POST, path: /issues }
+    inputs:
+      body: !cel "request.body"
+    handler: !ref Echo
+    returns:
+      - status: 200
+        content:
+          application/json:
+            body:
+              idReadable: ACME-99
+              received:
+                body: !cel "result.body"
+---
+kind: Server.Server
+metadata: { name: StubServer }
+port: 34817
+mounts:
+  - path: /api
+    mount: !ref StubApi
+---
+kind: Run.Sequence
+metadata: { name: TestOperations }
+with:
+  - !ref StubServer
+targets:
+  - !ref StubServer
+steps:
+  # --- GetWorkItems: default fields applied, response parsed, hours summable ---
+  - name: GetWorkItems
+    invoke: !ref getWorkItems
+    inputs:
+      author: me
+
+  - name: AssertWorkItemsStatus
+    invoke: !ref Assert.equals
+    inputs:
+      actual: !cel "steps.GetWorkItems.result.status"
+      expected: 200
+
+  - name: AssertWorkItemsPath
+    invoke: !ref Assert.equals
+    inputs:
+      actual: !cel "steps.GetWorkItems.result.body.received.path"
+      expected: /api/workItems
+
+  - name: AssertWorkItemsAuth
+    invoke: !ref Assert.equals
+    inputs:
+      actual: !cel "steps.GetWorkItems.result.body.received.auth"
+      expected: "Bearer perm:test-token"
+
+  - name: AssertWorkItemsDefaultFields
+    invoke: !ref Assert.equals
+    inputs:
+      actual: !cel "steps.GetWorkItems.result.body.received.query.fields"
+      expected: "duration(minutes),date,author(login),issue(idReadable)"
+
+  - name: AssertWorkItemsAuthorFilter
+    invoke: !ref Assert.equals
+    inputs:
+      actual: !cel "steps.GetWorkItems.result.body.received.query.author"
+      expected: me
+
+  - name: AssertWorkHoursSum
+    invoke: !ref Assert.equals
+    inputs:
+      actual: !cel >-
+        steps.GetWorkItems.result.body.workItems[0].duration.minutes +
+        steps.GetWorkItems.result.body.workItems[1].duration.minutes
+      expected: 120
+
+  # --- GetCurrentUser: GET /users/me, auth header, default fields ---
+  - name: GetCurrentUser
+    invoke: !ref getCurrentUser
+
+  - name: AssertCurrentUserPath
+    invoke: !ref Assert.equals
+    inputs:
+      actual: !cel "steps.GetCurrentUser.result.body.received.path"
+      expected: /api/users/me
+
+  - name: AssertCurrentUserFields
+    invoke: !ref Assert.equals
+    inputs:
+      actual: !cel "steps.GetCurrentUser.result.body.received.query.fields"
+      expected: "login,name,email"
+
+  - name: AssertCurrentUserLogin
+    invoke: !ref Assert.equals
+    inputs:
+      actual: !cel "steps.GetCurrentUser.result.body.user.login"
+      expected: jbuser
+
+  # --- AddWorkItem: POST, issueId in path, body forwarded ---
+  - name: AddWorkItem
+    invoke: !ref addWorkItem
+    inputs:
+      issueId: "2-15"
+      body:
+        duration: { minutes: 45 }
+        text: worked
+
+  - name: AssertAddWorkItemPath
+    invoke: !ref Assert.equals
+    inputs:
+      actual: !cel "steps.AddWorkItem.result.body.received.path"
+      expected: /api/issues/2-15/timeTracking/workItems
+
+  - name: AssertAddWorkItemParam
+    invoke: !ref Assert.equals
+    inputs:
+      actual: !cel "steps.AddWorkItem.result.body.received.params.issueId"
+      expected: "2-15"
+
+  - name: AssertAddWorkItemBody
+    invoke: !ref Assert.equals
+    inputs:
+      actual: !cel "steps.AddWorkItem.result.body.received.body.duration.minutes"
+      expected: 45
+
+  # --- SearchIssues: query + $top pagination + default fields ---
+  - name: SearchIssues
+    invoke: !ref searchIssues
+    inputs:
+      query: "project: ACME"
+      top: "5"
+
+  - name: AssertSearchQuery
+    invoke: !ref Assert.equals
+    inputs:
+      actual: !cel "steps.SearchIssues.result.body.received.query.query"
+      expected: "project: ACME"
+
+  - name: AssertSearchTop
+    invoke: !ref Assert.equals
+    inputs:
+      actual: !cel "steps.SearchIssues.result.body.received.query['$top']"
+      expected: "5"
+
+  - name: AssertSearchResultCount
+    invoke: !ref Assert.equals
+    inputs:
+      actual: !cel "size(steps.SearchIssues.result.body.issues)"
+      expected: 2
+
+  # --- GetIssue: path param + default fields ---
+  - name: GetIssue
+    invoke: !ref getIssue
+    inputs:
+      issueId: ACME-42
+
+  - name: AssertGetIssueParam
+    invoke: !ref Assert.equals
+    inputs:
+      actual: !cel "steps.GetIssue.result.body.received.params.issueId"
+      expected: ACME-42
+
+  - name: AssertGetIssueFields
+    invoke: !ref Assert.equals
+    inputs:
+      actual: !cel "steps.GetIssue.result.body.received.query.fields"
+      expected: "idReadable,summary,description"
+
+  # --- CreateIssue: POST body forwarded ---
+  - name: CreateIssue
+    invoke: !ref createIssue
+    inputs:
+      body:
+        project: { id: "0-0" }
+        summary: New issue
+
+  - name: AssertCreateIssueBody
+    invoke: !ref Assert.equals
+    inputs:
+      actual: !cel "steps.CreateIssue.result.body.received.body.summary"
+      expected: New issue
+
+  - name: AssertCreateIssueResult
+    invoke: !ref Assert.equals
+    inputs:
+      actual: !cel "steps.CreateIssue.result.body.idReadable"
+      expected: ACME-99
