@@ -1,5 +1,7 @@
 # Changelog
-## 0.9.0 - 2026-07-19
+## 0.9.1 - 2026-07-24
+### Fixed
+* Update controller @telorun/lambda to 0.6.1.## 0.9.0 - 2026-07-19
 ### Added
 * Update controller @telorun/lambda to 0.6.0.## 0.8.0 - 2026-07-19
 ### Added

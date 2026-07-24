@@ -1,5 +1,7 @@
 # Changelog
-## 0.8.0 - 2026-07-19
+## 0.8.1 - 2026-07-24
+### Fixed
+* Update controller @telorun/s3 to 0.5.3.## 0.8.0 - 2026-07-19
 ### Added
 * Declare repository and license in module metadata, published as org.opencontainers.image.* annotations on OCI.
 ### Fixed
