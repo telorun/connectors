@@ -1,10 +1,7 @@
 # Claude — building Telo connectors
 
-This repo contains **Telo integration libraries**: pure-manifest `Telo.Library`
-modules that wrap an external service (an issue tracker, a SaaS API, a database,
-…) as typed Telo resource kinds, so a user's `Telo.Application` can compose them
-with `imports:` + `!ref`. This file is the authoritative guide for authoring Telo
-manifests here. Read it fully before writing any manifest.
+This repo contains **Telo connector libraries** that wrap an external service (an API) as typed Telo resource kinds, so a user's `Telo.Application` can compose them
+with `imports:` + `!ref`. This file is the authoritative guide for authoring Telo manifests here.
 
 ## What Telo is
 

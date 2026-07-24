@@ -23,7 +23,6 @@ variables:
     type: string
     default: http://localhost:34823
 targets:
-  - !ref StubServer
   - !ref TestOperations
 ---
 # The friendly client, pointed at the local stub via the baseUrl override. Every
@@ -241,15 +240,20 @@ routes:
                 query: !cel "result.query"
                 body: !cel "result.body"
 ---
-kind: Server.Server
-metadata: { name: StubServer }
-port: !cel "ports.http"
-mounts:
-  - path: /
-    mount: !ref StubApi
----
 kind: Run.Sequence
 metadata: { name: TestOperations }
+# The stub server is declared inline in the sequence scope so it starts before
+# the steps and is torn down when they finish — otherwise a long-lived server
+# holds the kernel open and the app never exits.
+with:
+  - kind: Server.Server
+    metadata: { name: StubServer }
+    port: !cel "ports.http"
+    mounts:
+      - path: /
+        mount: !ref StubApi
+targets:
+  - !ref StubServer
 steps:
   # --- GetSpreadsheet: GET, auth header baked, canned metadata ---
   - name: GetSpreadsheet

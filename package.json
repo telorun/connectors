@@ -1,0 +1,26 @@
+{
+  "name": "@telorun/connectors",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Telo integration libraries: typed connectors wrapping external services as Telo resource kinds.",
+  "author": "Bartosz Pasiński <bartosz.pasinski@codenet.pl>",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/telorun/connectors.git"
+  },
+  "packageManager": "pnpm@10.28.2",
+  "scripts": {
+    "build": "pnpm -r run build",
+    "check": "telo check",
+    "test": "telo ./test-suite.yaml",
+    "test:e2e:s3": "telo ./aws/s3/test-suite-e2e.yaml",
+    "test:e2e:lambda": "pnpm --filter @telorun/lambda test:e2e",
+    "gen-changie-config": "node scripts/gen-changie-config.mjs",
+    "version-packages": "node scripts/version-packages.mjs",
+    "release": "node scripts/publish-packages.mjs"
+  },
+  "devDependencies": {
+    "@changesets/cli": "^2.29.8"
+  }
+}

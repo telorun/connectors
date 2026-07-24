@@ -57,12 +57,10 @@ inputs:
   body: {}
   headers: {}
   params: {}
-value:
-  path: !cel "inputs.path"
-  query: !cel "inputs.query"
-  body: !cel "inputs.body"
-  headers: !cel "inputs.headers"
-  params: !cel "inputs.params"
+# Echo back exactly the inputs a route fed us — routes pass different subsets
+# (path/query/headers, or path/params/body), so map the whole `inputs` rather
+# than named keys, which would fault on any key a route didn't supply.
+value: !cel "inputs"
 ---
 # Stub YouTrack REST surface, mounted at /api on the server below.
 kind: Server.Api
@@ -70,7 +68,7 @@ metadata: { name: StubApi }
 routes:
   - request: { method: GET, path: /workItems }
     inputs:
-      path: !cel "request.path"
+      path: !cel "request.path.split('?')[0]"
       query: !cel "request.query"
       headers: !cel "request.headers"
     handler: !ref Echo
@@ -89,7 +87,7 @@ routes:
 
   - request: { method: GET, path: /users/me }
     inputs:
-      path: !cel "request.path"
+      path: !cel "request.path.split('?')[0]"
       query: !cel "request.query"
       headers: !cel "request.headers"
     handler: !ref Echo
@@ -106,7 +104,7 @@ routes:
 
   - request: { method: POST, path: /issues/:issueId/timeTracking/workItems }
     inputs:
-      path: !cel "request.path"
+      path: !cel "request.path.split('?')[0]"
       params: !cel "request.params"
       body: !cel "request.body"
     handler: !ref Echo
@@ -164,17 +162,18 @@ routes:
               received:
                 body: !cel "result.body"
 ---
-kind: Server.Server
-metadata: { name: StubServer }
-port: 34817
-mounts:
-  - path: /api
-    mount: !ref StubApi
----
 kind: Run.Sequence
 metadata: { name: TestOperations }
+# The stub server is declared inline in the sequence scope so it starts before
+# the steps and is torn down when they finish. Scope entries are inline resource
+# definitions, not `!ref`s to outer resources.
 with:
-  - !ref StubServer
+  - kind: Server.Server
+    metadata: { name: StubServer }
+    port: 34817
+    mounts:
+      - path: /api
+        mount: !ref StubApi
 targets:
   - !ref StubServer
 steps:
@@ -293,8 +292,10 @@ steps:
   - name: AssertSearchResultCount
     invoke: !ref Assert.equals
     inputs:
-      actual: !cel "size(steps.SearchIssues.result.body.issues)"
-      expected: 2
+      # Compare as a string: `size()` yields a CEL int (BigInt), which
+      # assert@0.9.2 fails to serialize when rendering the match.
+      actual: !cel "string(size(steps.SearchIssues.result.body.issues))"
+      expected: "2"
 
   # --- GetIssue: path param + default fields ---
   - name: GetIssue
