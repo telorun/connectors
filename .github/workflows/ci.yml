@@ -1,0 +1,75 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  check:
+    name: Check & manifest tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: 10.28.2
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      # Controllers resolve via `?local_path=./nodejs`; the published telo CLI
+      # loads the built `dist/`, so it must exist before check/test.
+      - name: Build controllers
+        run: pnpm -r run build
+
+      - name: Install telo CLI
+        run: npm install -g @telorun/cli
+
+      - name: Static check
+        run: telo check aws/*/telo.yaml
+
+      - name: Manifest tests
+        run: telo ./test-suite.yaml
+
+  release-hygiene:
+    name: Release hygiene
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: 10.28.2
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      # .changie.yaml is generated — fail if it drifts from the module tree.
+      - name: changie config is committed
+        run: |
+          node scripts/gen-changie-config.mjs
+          git diff --exit-code .changie.yaml
+
+      # Connectors are pre-1.0: reject a changie fragment that auto-bumps to 1.0.0.
+      - name: No major module bump
+        run: node scripts/check-no-major-module-bump.mjs
+
+      # Every published @telorun/* package changed vs main must ship a changeset.
+      - name: Changeset present
+        run: pnpm changeset status --since=origin/main

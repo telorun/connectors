@@ -1,0 +1,143 @@
+name: Publish
+
+on:
+  push:
+    branches: [main]
+
+concurrency:
+  group: publish-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    name: Version PR or publish
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+      id-token: write
+      packages: write
+    outputs:
+      published: ${{ steps.changesets.outputs.published }}
+      publishedPackages: ${{ steps.changesets.outputs.publishedPackages }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+          registry-url: https://registry.npmjs.org
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      # Controllers must be built so `changeset publish` packs `dist/` and
+      # `telo publish` can validate the `?local_path=./nodejs` PURLs.
+      - name: Build controllers
+        run: pnpm -r --if-present build
+
+      - name: Install telo CLI
+        run: npm install -g @telorun/cli
+
+      - name: Install changie
+        run: |
+          mkdir -p "$HOME/bin"
+          curl -sSL https://github.com/miniscruff/changie/releases/download/v1.24.0/changie_1.24.0_linux_amd64.tar.gz \
+            | tar xz -C "$HOME/bin" changie
+          echo "$HOME/bin" >> "$GITHUB_PATH"
+          "$HOME/bin/changie" --version
+
+      # Modules dual-publish to OCI. The transport reads the ambient Docker
+      # credential chain, so logging in here is what authorizes the OCI push
+      # pass; TELO_OCI_REGISTRY below is what enables it.
+      - name: Log in to GHCR
+        if: vars.TELO_OCI_REGISTRY != ''
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Create Release PR or publish
+        id: changesets
+        uses: changesets/action@v1
+        with:
+          version: pnpm run version-packages
+          publish: pnpm run release
+          commit: "chore(release): version packages"
+          title: "chore(release): version packages"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          # Unset skips the OCI pass entirely — set the repo variable to
+          # `oci://ghcr.io/telorun/aws` to enable module-manifest publishing.
+          TELO_OCI_REGISTRY: ${{ vars.TELO_OCI_REGISTRY }}
+
+  # Fallback for releases that touch zero npm packages (manifest-only modules, e.g.
+  # google/sheets, jetbrains/youtrack): changesets/action never opens a Version PR for them, so
+  # module changie fragments have no changesets PR to ride. This job batches those fragments into
+  # a dedicated Module Release PR. Releases that DO include an npm changeset are handled entirely
+  # by `release` above, whose version step runs changie inline — so this job no-ops whenever npm
+  # changesets are pending.
+  module-release:
+    name: Module Release PR
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: Decide whether to run
+        id: gate
+        run: |
+          changesets=$(find .changeset -maxdepth 1 -name '*.md' ! -name 'README.md' 2>/dev/null | wc -l)
+          fragments=$(find .changes/unreleased -maxdepth 1 \( -name '*.yaml' -o -name '*.yml' \) 2>/dev/null | wc -l)
+          if [ "$fragments" -gt 0 ] && [ "$changesets" -eq 0 ]; then
+            echo "proceed=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "proceed=false" >> "$GITHUB_OUTPUT"
+            echo "Nothing to do (fragments=$fragments, npm changesets=$changesets)."
+          fi
+
+      - name: Install changie
+        if: steps.gate.outputs.proceed == 'true'
+        run: |
+          mkdir -p "$HOME/bin"
+          curl -sSL https://github.com/miniscruff/changie/releases/download/v1.24.0/changie_1.24.0_linux_amd64.tar.gz \
+            | tar xz -C "$HOME/bin" changie
+          echo "$HOME/bin" >> "$GITHUB_PATH"
+
+      - name: Batch module fragments
+        if: steps.gate.outputs.proceed == 'true'
+        run: node scripts/changie-release.mjs
+
+      - name: Open Module Release PR
+        if: steps.gate.outputs.proceed == 'true'
+        uses: peter-evans/create-pull-request@v6
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          branch: module-release/main
+          base: main
+          title: "chore(release): version modules"
+          commit-message: "chore(release): version modules"
+          body: |
+            Module manifest versions bumped from pending changie fragments
+            (`metadata.version` + per-module CHANGELOG). Merging publishes the
+            changed manifests to the OCI registry.

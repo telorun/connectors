@@ -1,0 +1,24 @@
+name: Check release PR
+
+# Guards the changesets Version PR (`changeset-release/main`) against a 0.x → 1.0.0 bump.
+# Connectors are pre-1.0; a jump into 1.x is almost always a peer-dep cascade, not intent.
+
+on:
+  pull_request:
+    branches: [main]
+
+jobs:
+  no-major-bump:
+    if: github.head_ref == 'changeset-release/main'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: Validate no >=1.0.0 bump
+        run: node scripts/check-no-major-bump.mjs

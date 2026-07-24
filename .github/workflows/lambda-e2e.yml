@@ -1,0 +1,52 @@
+name: Lambda E2E (RIE)
+
+# Drives the real `managed.mjs` / `custom.mjs` bootstraps inside the AWS Lambda
+# runtime image (via testcontainers) against the AWS Lambda Runtime Interface
+# Emulator. Each handler kind (Direct / HttpApi / Sqs) runs in both modes.
+on:
+  push:
+    branches: [main]
+  pull_request:
+    paths:
+      - "aws/lambda/**"
+
+jobs:
+  lambda:
+    name: Lambda E2E (RIE)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: 10.28.2
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build controllers
+        run: pnpm -r run build
+
+      - name: Install telo CLI
+        run: npm install -g @telorun/cli
+
+      - name: Warm AWS Lambda runtime image
+        run: docker pull public.ecr.aws/lambda/nodejs:24
+
+      - name: Run Lambda E2E suite
+        run: pnpm --filter @telorun/lambda test:e2e
+
+      - name: Dump leftover container logs on failure
+        if: failure()
+        run: |
+          docker ps -a
+          for cid in $(docker ps -a --format '{{.ID}}'); do
+            echo "==== $cid ===="
+            docker logs "$cid" 2>&1 | tail -50 || true
+          done
