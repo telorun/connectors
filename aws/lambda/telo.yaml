@@ -12,7 +12,7 @@ metadata:
     SQS, and direct / SDK invocations.
 imports:
   # Shared HTTP outcome + matcher schemas for HTTP-shaped handler kinds.
-  HttpDispatch: oci://ghcr.io/telorun/http-dispatch@0.8.0#sha256-m1FESVzKRwwVyMGkN1NTv0RPlE_u-RlbAPSBko34UTg
+  HttpDispatch: oci://ghcr.io/telorun/http-dispatch@0.11.0#sha256-2QGDMUpEkxvGW0magWIXDSFwGBV8wKFSkajP9vzHPqY
 exports:
   kinds:
     - Handler
@@ -92,8 +92,8 @@ schema:
           handler:
             # Accept either capability so dual-mode kinds like Run.Sequence fit.
             anyOf:
-              - x-telo-ref: telo#Invocable
-              - x-telo-ref: telo#Runnable
+              - x-telo-ref: Telo.Invocable
+              - x-telo-ref: Telo.Runnable
             x-telo-context:
               type: object
               additionalProperties: false
@@ -211,8 +211,8 @@ schema:
       default: true
     handler:
       anyOf:
-        - x-telo-ref: telo#Invocable
-        - x-telo-ref: telo#Runnable
+        - x-telo-ref: Telo.Invocable
+        - x-telo-ref: Telo.Runnable
     inputs:
       type: object
       additionalProperties: true
@@ -256,8 +256,8 @@ schema:
   properties:
     handler:
       anyOf:
-        - x-telo-ref: telo#Invocable
-        - x-telo-ref: telo#Runnable
+        - x-telo-ref: Telo.Invocable
+        - x-telo-ref: Telo.Runnable
     inputs:
       type: object
       additionalProperties: true
@@ -303,5 +303,5 @@ schema:
       items:
         # x-telo-ref against the Lambda.Handler abstract; any concrete kind
         # extending it satisfies the ref structurally and by kind-check.
-        x-telo-ref: "aws/lambda#Handler"
+        x-telo-ref: Self.Handler
   required: [ handlers ]

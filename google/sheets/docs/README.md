@@ -3,7 +3,7 @@
 Typed [Google Sheets API v4](https://developers.google.com/sheets/api) operations
 for Telo manifests. A friendly `Http.Client` (`GoogleSheetsClient`) preconfigured
 with an OAuth2 Bearer access token, plus Invocable operations covering the full
-read/write surface. Built purely on `std/http-client` — no controller code.
+read/write surface. Built purely on the `http-client` module — no controller code.
 
 ## Import
 

@@ -10,7 +10,7 @@ metadata:
     network path. Bring the backend up with `docker compose up -d storage`
     (which now publishes 9000) and run via `pnpm run test:e2e:s3`.
 imports:
-  Test: oci://ghcr.io/telorun/test@0.6.4#sha256-9ceIxEZ_42MgJK1dbqSDodChSO3L51temncr9Wuy1g0
+  Test: oci://ghcr.io/telorun/test@0.10.0#sha256-I3lFBu1iEcrCn155RRNRrPX-U6AUBg59Q-dBUEw-ZtM
 targets:
   - !ref RunAll
 ---

@@ -10,11 +10,11 @@ metadata:
     (update, append, batch update), clear (single, batch), and structural
     changes (create spreadsheet, batchUpdate requests). A RefreshAccessToken
     helper exchanges an OAuth2 refresh token for a fresh access token. Built
-    purely on std/http-client — no controller code.
+    purely on the http-client module — no controller code.
   repository: https://github.com/telorun/connectors
   license: MIT
 imports:
-  Http: oci://ghcr.io/telorun/http-client@0.11.0#sha256-hvEr8my6HlvdeD1SZADM_XvItITEq04wzj9ZVb8bIf8
+  Http: oci://ghcr.io/telorun/http-client@0.19.0#sha256-rDyxrt23Z4u9H1_dwOgI3ajoMwEm6i9h-HbMmEQlRxg
 exports:
   kinds:
     - GoogleSheetsClient
@@ -30,9 +30,9 @@ exports:
     - BatchUpdateSpreadsheet
     - RefreshAccessToken
 ---
-# The service client. Inherits the std/http-client#Client controller (and its
+# The service client. Inherits the Http.Client controller (and its
 # Provider capability), so a GoogleSheetsClient IS an Http.Client at runtime and
-# drops into any `x-telo-ref: "std/http-client#Client"` slot. Provide an OAuth2
+# drops into any `x-telo-ref: Http.Client` slot. Provide an OAuth2
 # access token once, then `!ref` it everywhere. Any valid token works — from a
 # service account, `gcloud auth print-access-token`, a user OAuth flow, or the
 # RefreshAccessToken operation below. The token must carry the
@@ -78,7 +78,7 @@ schema:
   required: [client]
   properties:
     client:
-      x-telo-ref: "std/http-client#Client"
+      x-telo-ref: Http.Client
       description: A GoogleSheetsClient (or any Http.Client) to run the request against.
 inputType:
   kind: Type.JsonSchema
@@ -139,7 +139,7 @@ schema:
   required: [client]
   properties:
     client:
-      x-telo-ref: "std/http-client#Client"
+      x-telo-ref: Http.Client
       description: A GoogleSheetsClient (or any Http.Client) to run the request against.
 inputType:
   kind: Type.JsonSchema
@@ -187,7 +187,7 @@ schema:
   required: [client]
   properties:
     client:
-      x-telo-ref: "std/http-client#Client"
+      x-telo-ref: Http.Client
       description: A GoogleSheetsClient (or any Http.Client) to run the request against.
 inputType:
   kind: Type.JsonSchema
@@ -252,7 +252,7 @@ schema:
   required: [client]
   properties:
     client:
-      x-telo-ref: "std/http-client#Client"
+      x-telo-ref: Http.Client
       description: A GoogleSheetsClient (or any Http.Client) to run the request against.
 inputType:
   kind: Type.JsonSchema
@@ -321,7 +321,7 @@ schema:
   required: [client]
   properties:
     client:
-      x-telo-ref: "std/http-client#Client"
+      x-telo-ref: Http.Client
       description: A GoogleSheetsClient (or any Http.Client) to run the request against.
 inputType:
   kind: Type.JsonSchema
@@ -387,7 +387,7 @@ schema:
   required: [client]
   properties:
     client:
-      x-telo-ref: "std/http-client#Client"
+      x-telo-ref: Http.Client
       description: A GoogleSheetsClient (or any Http.Client) to run the request against.
 inputType:
   kind: Type.JsonSchema
@@ -459,7 +459,7 @@ schema:
   required: [client]
   properties:
     client:
-      x-telo-ref: "std/http-client#Client"
+      x-telo-ref: Http.Client
       description: A GoogleSheetsClient (or any Http.Client) to run the request against.
 inputType:
   kind: Type.JsonSchema
@@ -510,7 +510,7 @@ schema:
   required: [client]
   properties:
     client:
-      x-telo-ref: "std/http-client#Client"
+      x-telo-ref: Http.Client
       description: A GoogleSheetsClient (or any Http.Client) to run the request against.
 inputType:
   kind: Type.JsonSchema
@@ -572,7 +572,7 @@ schema:
   required: [client]
   properties:
     client:
-      x-telo-ref: "std/http-client#Client"
+      x-telo-ref: Http.Client
       description: A GoogleSheetsClient (or any Http.Client) to run the request against.
 inputType:
   kind: Type.JsonSchema
@@ -626,7 +626,7 @@ schema:
   required: [client]
   properties:
     client:
-      x-telo-ref: "std/http-client#Client"
+      x-telo-ref: Http.Client
       description: A GoogleSheetsClient (or any Http.Client) to run the request against.
 inputType:
   kind: Type.JsonSchema

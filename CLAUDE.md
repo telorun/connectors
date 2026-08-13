@@ -13,9 +13,10 @@ resolves dependencies through a multi-pass init loop, evaluates CEL, and drives
 each resource through its capability lifecycle.
 
 Connectors in this repo are almost always **pure manifest** (no controller
-code): they specialize and compose kinds from the standard library (chiefly
-`std/http-client`) rather than shipping a runtime. Reach for a TypeScript
-controller only when the standard library genuinely can't express the behavior.
+code): they specialize and compose kinds from the standard modules (chiefly
+`ghcr.io/telorun/http-client`) rather than shipping a runtime. Reach for a
+TypeScript controller only when the standard modules genuinely can't express the
+behavior.
 
 ## Manifest file structure
 
@@ -55,11 +56,22 @@ Capabilities a kind can have (the lifecycle role):
 `metadata.version` is a semver string, required on the root doc.
 `metadata.repository` points to this repository url `https://github.com/telorun/connectors`.
 
-- `imports:` — a NAME-KEYED MAP: PascalCase alias → source. The source is a
-  **registry ref** `oci://ghcr.io/telorun/<vendor-org>/<name>@VERSION` (the version is EXACT — never
-  `@latest` or a range). Object form `{ source, variables?, secrets? }` forwards
-  values into the imported library. Reference an imported kind as
-  `kind: <Alias>.<KindName>`, and an imported instance as `!ref <Alias>.<name>`.
+- `imports:` — a NAME-KEYED MAP: PascalCase alias → source. **OCI is the only
+  form**: `oci://ghcr.io/telorun/<name>@VERSION#<digest>` — an EXACT version
+  (never `@latest` or a range) pinned by a `sha256-…` integrity digest, e.g.
+
+  ```yaml
+  imports:
+    Http: oci://ghcr.io/telorun/http-client@0.19.0#sha256-rDyxrt23Z4u9H1_dwOgI3ajoMwEm6i9h-HbMmEQlRxg
+  ```
+
+  The bare `std/<name>@VERSION` shorthand is **gone** — never write it. A
+  relative path (`../`, `../../`) is still the way to import a sibling module in
+  this repo from its own tests. Get the exact ref + digest from
+  `telo module search` / `telo module manifest`; never hand-write a digest.
+  Object form `{ source, variables?, secrets? }` forwards values into the
+  imported library. Reference an imported kind as `kind: <Alias>.<KindName>`,
+  and an imported instance as `!ref <Alias>.<name>`.
 - `variables:` / `secrets:` — NAME-KEYED MAPS. Each entry binds an `env:` var name
   plus a JSON-Schema `type:` (`string|integer|number|boolean|object|array`) and
   optional `default:`. Read in CEL as `variables.X` / `secrets.X`. For a Library,
@@ -121,9 +133,17 @@ A `Telo.Definition` registers `<module-name>.<Name>`. It carries:
 
 Key `x-telo-*` annotations:
 
-- `x-telo-ref: "namespace/module#TypeName"` — the field must be a `!ref` to a
-  resource of that kind (or a subtype — see inheritance). E.g. an operation's
-  `client` field is `x-telo-ref: "std/http-client#Client"`.
+- `x-telo-ref: <Alias>.<Kind>` — the field must be a `!ref` to a resource of that
+  kind (or a subtype — see inheritance). Write the target as an
+  **alias-qualified kind**: `<Alias>.<Kind>` for a module in this file's
+  `imports:` map, `Self.<Kind>` for a kind declared in this same library, or
+  `Telo.<Kind>` for a built-in capability (`Telo.Invocable`, `Telo.Runnable`,
+  `Telo.Mount`, `Telo.Type`). E.g. an operation's `client` field is
+  `x-telo-ref: Http.Client`. The legacy `"<namespace>/<module>#<Kind>"` string
+  form (`"std/http-client#Client"`) is **deprecated** — the analyzer flags it as
+  `X_TELO_REF_LEGACY_IDENTITY`. Never use it. An object form
+  `{ kind: <Alias>.<Kind>, use: call|schema|dependency }` spells out how the
+  referenced resource is consumed.
 - `x-telo-eval: "compile" | "runtime"` — when `${{}}`/`!cel` in the field is
   evaluated. CEL-bearing fields MUST carry this (or sit under a context region).
 - `x-telo-context: <schema>` — declares the CEL variables in scope inside a
@@ -154,8 +174,8 @@ runtime and is accepted at every `!ref` slot the parent is (Liskov-substitutable
   `create()`-consuming kinds like `Http.Client`; overridable defaults for
   `invoke()`-layering kinds like `Http.Request`).
 
-This is the canonical way to build a **service client** — specialize
-`std/http-client#Client` into a friendly, preconfigured client:
+This is the canonical way to build a **service client** — specialize the
+http-client module's `Client` into a friendly, preconfigured client:
 
 ```yaml
 kind: Telo.Definition
@@ -190,7 +210,7 @@ schema:
   type: object
   required: [client]
   properties:
-    client: { x-telo-ref: "std/http-client#Client" }   # a GithubClient satisfies this
+    client: { x-telo-ref: Http.Client }   # a GithubClient satisfies this
 resources:
   - kind: Http.Request
     metadata: { name: !cel "self.name + '-req'" }
@@ -204,8 +224,9 @@ inputs:                              # dispatch-site inputs, from the caller's i
 
 Use **inheritance** for the client and for fixed/config-driven operations; use
 **composition** for operations whose URL/body depend on per-invocation inputs.
-Either way, an operation's `client` slot is typed `std/http-client#Client`, so a
-specialized client (a `GithubClient`) drops straight in.
+Either way, an operation's `client` slot is typed `Http.Client` (the alias this
+file imports http-client under), so a specialized client (a `GithubClient`)
+drops straight in.
 
 ## Discover modules with telo CLI — DO NOT GUESS FIELDS OR VERSIONS
 
@@ -216,8 +237,9 @@ before writing any resource from a module you did not author:
 - `telo module manifest <ref>` — fetch a module's `telo.yaml`.
   Its `Telo.Definition` docs ARE JSON Schemas: the EXACT field names, types, and
   required fields. Read `schema` / `inputType` / `outputType` — never invent a
-  field from a kind name, and never guess a version. Record the exact
-  `name` and `metadata.version` for the `imports:` entry.
+  field from a kind name, and never guess a version. Record the exact OCI
+  location ref, `metadata.version`, and integrity digest for the `imports:`
+  entry — the full `oci://…@VERSION#sha256-…` string, never a `std/` shorthand.
 
 Also useful: `https://telo.run/llms.txt` (guide + kind reference),
 `https://telo.run/examples.md` (working manifests), `https://telo.run/cel.md`
@@ -232,21 +254,68 @@ Also useful: `https://telo.run/llms.txt` (guide + kind reference),
 - **Tests** live in the module they test as `<module>/tests/*.yaml` — Telo
   Application manifests exercised via the kernel (run them with the `telo` CLI /
   the repo's test runner). Fixtures go under `__fixtures__/` (excluded from
-  discovery). A test asserts behavior with kinds from `std/assert` + `std/test`.
+  discovery). A test asserts behavior with kinds from the `assert` + `test`
+  modules (`oci://ghcr.io/telorun/assert@…`, `oci://ghcr.io/telorun/test@…`).
 
-## Versioning
+## Versioning — every module change needs a changie fragment
 
-A module's published version is `metadata.version` in its `telo.yaml`. Bump it by
-adding a **changie** fragment (`changie new --project <module>`) rather than
-hand-editing the version — `Added` for a feature (minor), `Fixed` for a patch.
-Modules are pre-1.0; breaking changes ship as **minor** on purpose. Confirm this
-repo's exact release wiring before releasing.
+A module's published version is `metadata.version` in its `telo.yaml`. **NEVER
+hand-edit it.** changie owns telo manifest versions (what ships to the OCI
+registry); changesets owns the npm controller packages.
+
+**Rule: any change to a published module file — `<vendor>/<module>/telo.yaml`,
+its `include:` partials, or its controller source — ships with a changie
+fragment in the SAME change.** A module edit with no fragment is incomplete: the
+manifest changes but its version never moves, so consumers pin a digest whose
+content silently drifted. Test-only, docs-only, and plan-only edits need no
+fragment (they are not published).
+
+Add one per affected module. `changie new --project <module>` is interactive, so
+in a non-interactive session write the file directly to
+`.changes/unreleased/<module>-<slug>.yaml`:
+
+```yaml
+project: youtrack          # the changie project key = the module directory name
+kind: Added
+body: "Short description. QUOTE the body — an unquoted ': ' breaks the YAML."
+```
+
+Picking `kind:` — the level comes from the `auto:` mapping in `.changie.yaml`:
+
+- `Added` → **minor**. Use for a new kind/field, and for a dependency bump or
+  behavior change that consumers could notice. Modules are pre-1.0, so breaking
+  changes ship as **minor** on purpose.
+- `Fixed` → **patch**. Use for a genuinely behavior-preserving fix.
+- `Changed` / `Removed` → major, and CI **rejects** them
+  (`scripts/check-no-major-module-bump.mjs`) because these modules are pre-1.0.
+  Going 1.0 must be a deliberate promotion, never a side effect of picking a
+  changelog category.
+
+Verify before finishing — neither check is optional:
+
+```bash
+node scripts/check-no-major-module-bump.mjs        # CI guard; regex-only, does NOT catch bad YAML
+changie batch auto -j <module> --dry-run           # parses the YAML; prints the resulting version
+```
+
+Run the dry-run for **each** module you added a fragment for: it is the only one
+of the two that actually parses the fragment, and it shows the version the
+fragment resolves to. `.changie.yaml` itself is **generated** — after adding or
+removing a module run `node scripts/gen-changie-config.mjs`; CI fails if it
+drifts from the module tree.
 
 ## Authoring rules (follow strictly)
 
 - Manifests MUST be type-safe. Wire refs with `!ref`, values with `!cel`, per the
   rules above.
 - ALWAYS write CEL with the `!cel "..."` tag — never the inline `${{ }}` form.
+- **OCI is the only import form.** Every external dependency is
+  `oci://ghcr.io/telorun/<name>@VERSION#sha256-…`, digest-pinned. The bare
+  `std/<name>@VERSION` shorthand is retired — never introduce one, and convert
+  any you find. Sibling modules in this repo are imported by relative path.
+- Write `x-telo-ref` as an alias-qualified kind (`Http.Client`, `Self.Bucket`,
+  `Telo.Invocable`). The `"<namespace>/<module>#<Kind>"` string form is
+  deprecated and flagged by `telo check`.
 - Prefer composing existing registry modules and specializing existing kinds over
   inventing new kinds or writing controllers. `JS.Script` / TS controllers are a
   last resort — first check whether a generic, reusable kind (composed from the
@@ -258,6 +327,8 @@ repo's exact release wiring before releasing.
   not JSON strings; only dynamic leaves are tagged `!cel`.
 - Every module change includes documentation. Keep module docs in
   `<module>/docs/` and in sync with the code.
+- Every change to a published module file ships a **changie fragment** in the
+  same change — see Versioning above. Never hand-edit `metadata.version`.
 - Design for breadth: when choosing between a generic primitive and a
   use-case-specific shortcut, default to the generic primitive.
 

@@ -83,5 +83,6 @@ the uploader must send exactly that header:
 
 | Code | When |
 |------|------|
-| `ERR_INVALID_INPUT` | `key` is empty; `expiresIn` is not an integer between 1 and 604800 seconds; or `contentType` is supplied for a `get` operation. |
+| `ERR_INPUT_INVALID` | `key` is empty, or `expiresIn` is not an integer between 1 and 604800 seconds. The kernel validates inputs against the declared `inputType` before dispatch, so these are rejected at the contract layer. |
+| `ERR_INVALID_INPUT` | `contentType` is supplied for a `get` operation — a semantic rule the input schema cannot express, so the controller raises it. |
 | `ERR_INVALID_REFERENCE` | `bucketRef` does not resolve to a live `S3.Bucket` resource. |

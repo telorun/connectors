@@ -1,0 +1,3 @@
+project: lambda
+kind: Added
+body: "Write `x-telo-ref` targets as alias-qualified kinds (`Telo.Invocable`, `Telo.Runnable`, `Self.Handler`) instead of the deprecated `<namespace>/<module>#<Kind>` form, and pin the http-dispatch import to the OCI ref `0.11.0`."

@@ -28,7 +28,7 @@ Invoke with an optional key prefix:
     kind: S3.List
     bucketRef: !ref ModuleStore
   inputs:
-    prefix: "${{ 'std/' + inputs.name + '/' }}"
+    prefix: !cel "'modules/' + inputs.name + '/'"
 ```
 
 ---

@@ -12,9 +12,21 @@ metadata:
     expiry, and contentType-on-get raise ERR_INVALID_INPUT.
 imports:
   S3: ../
-  JS: oci://ghcr.io/telorun/javascript@0.7.0#sha256-aKzlX_nloiYROA85sfZEidy4irQCugNk-MvtyDyqYoY
-  Run: oci://ghcr.io/telorun/run@0.13.0#sha256-s5raonayIOI78D9YjhAG_TB_KV7wILexhfEOpygFauc
-  Assert: oci://ghcr.io/telorun/assert@0.10.3#sha256-JaYcM9vZozSC6G-lzE7Z4ZFePilB_9d9eEGJYLX-QMk
+  JS: oci://ghcr.io/telorun/javascript@0.12.0#sha256-HG9Ydrm-jnzR6H1phgJy_PUKxAtSUEy76QxmMn1VcLY
+  Run: oci://ghcr.io/telorun/run@0.22.0#sha256-FeYAHs_krf06Dk68n5Mtjp0wLSfOvDLslREHP54BiJM
+  Assert: oci://ghcr.io/telorun/assert@0.16.0#sha256-0a8uEwCZG2ElZ7CxeDYfL3gbDFLj-92_jHEOeJbI6m0
+# The two negative cases feed their invalid values through variables: the
+# analyzer statically rejects an out-of-contract literal at a dispatch site, but
+# these tests exist to prove the RUNTIME raises ERR_INVALID_INPUT.
+variables:
+  badKey:
+    env: BAD_KEY
+    type: string
+    default: ""
+  badExpiry:
+    env: BAD_EXPIRY
+    type: integer
+    default: 604801
 targets:
   - !ref TestPresign
   - !ref TestPresignPut
@@ -155,18 +167,22 @@ steps:
     try:
       - name: Sign
         inputs:
-          key: ""
+          key: !cel "variables.badKey"
         invoke: !ref Share
     catch:
       - name: Caught
         inputs:
-          code: "${{ error.code }}"
+          code: !cel "error.code"
         invoke:
           kind: Assert.Schema
           schema:
             type: object
             properties:
-              code: { const: ERR_INVALID_INPUT }
+              # The kernel validates inputs against Share's declared inputType
+              # before the controller runs, so an empty key is rejected at the
+              # contract layer (ERR_INPUT_INVALID), not by the controller's own
+              # ERR_INVALID_INPUT guard.
+              code: { const: ERR_INPUT_INVALID }
             required: [ code ]
 ---
 kind: Run.Sequence
@@ -178,16 +194,17 @@ steps:
       - name: Sign
         inputs:
           key: reports/2026-06.pdf
-          expiresIn: 604801
+          expiresIn: !cel "variables.badExpiry"
         invoke: !ref Share
     catch:
       - name: Caught
         inputs:
-          code: "${{ error.code }}"
+          code: !cel "error.code"
         invoke:
           kind: Assert.Schema
           schema:
             type: object
             properties:
-              code: { const: ERR_INVALID_INPUT }
+              # Rejected at the contract layer — see TestEmptyKey.
+              code: { const: ERR_INPUT_INVALID }
             required: [ code ]

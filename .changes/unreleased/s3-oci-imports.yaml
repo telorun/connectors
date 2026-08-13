@@ -1,0 +1,3 @@
+project: s3
+kind: Fixed
+body: "Write the `bucketRef` slots as `x-telo-ref: Self.Bucket` instead of the deprecated `aws/s3#Bucket` form, clearing the `X_TELO_REF_LEGACY_IDENTITY` analyzer warning. No change to the accepted references."

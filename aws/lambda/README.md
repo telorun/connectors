@@ -27,7 +27,7 @@ kind: Telo.Application
 metadata: { name: my-lambda, version: 1.0.0 }
 imports:
   Lambda: oci://ghcr.io/telorun/aws/lambda@0.9.0
-  JS: std/javascript@<version>
+  JS: oci://ghcr.io/telorun/javascript@0.12.0#sha256-HG9Ydrm-jnzR6H1phgJy_PUKxAtSUEy76QxmMn1VcLY
 targets: [ !ref Main ]
 ---
 kind: JS.Script
@@ -39,14 +39,14 @@ code: |
 ---
 kind: Lambda.Direct
 metadata: { name: AdminTools }
-handler: { kind: JS.Script, name: Worker }
+handler: !ref Worker
 inputs:
-  payload: "${{ event }}"
+  payload: !cel "event"
 ---
 kind: Lambda.Function
 metadata: { name: Main }
 handlers:
-  - { kind: Lambda.Direct, name: AdminTools }
+  - !ref AdminTools
 ```
 
 ## Reference

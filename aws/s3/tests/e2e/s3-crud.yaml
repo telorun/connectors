@@ -10,9 +10,9 @@ metadata:
     docker-compose `storage` service; override via the `S3_*` env vars.
 imports:
   S3: ../../
-  Run: oci://ghcr.io/telorun/run@0.13.0#sha256-s5raonayIOI78D9YjhAG_TB_KV7wILexhfEOpygFauc
-  Assert: oci://ghcr.io/telorun/assert@0.10.3#sha256-JaYcM9vZozSC6G-lzE7Z4ZFePilB_9d9eEGJYLX-QMk
-  PlainText: oci://ghcr.io/telorun/plain-text-codec@0.6.0#sha256-br9h8QxAyZeEg5L0rYwHXMEzYkKnjd9eXen9EWRulyg
+  Run: oci://ghcr.io/telorun/run@0.22.0#sha256-FeYAHs_krf06Dk68n5Mtjp0wLSfOvDLslREHP54BiJM
+  Assert: oci://ghcr.io/telorun/assert@0.16.0#sha256-0a8uEwCZG2ElZ7CxeDYfL3gbDFLj-92_jHEOeJbI6m0
+  PlainText: oci://ghcr.io/telorun/plain-text-codec@0.10.0#sha256-XFk43aL3kJ13u9QMjWKGMRt6wEqojl6xhszxInqrbXY
 variables:
   s3Endpoint:
     env: S3_ENDPOINT
