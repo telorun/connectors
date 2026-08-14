@@ -78,7 +78,9 @@ schema:
   required: [client]
   properties:
     client:
-      x-telo-ref: Http.Client
+      x-telo-ref:
+        kind: Http.Client
+        use: dependency
       description: A GoogleSheetsClient (or any Http.Client) to run the request against.
 inputType:
   kind: Type.JsonSchema
@@ -139,7 +141,9 @@ schema:
   required: [client]
   properties:
     client:
-      x-telo-ref: Http.Client
+      x-telo-ref:
+        kind: Http.Client
+        use: dependency
       description: A GoogleSheetsClient (or any Http.Client) to run the request against.
 inputType:
   kind: Type.JsonSchema
@@ -187,7 +191,9 @@ schema:
   required: [client]
   properties:
     client:
-      x-telo-ref: Http.Client
+      x-telo-ref:
+        kind: Http.Client
+        use: dependency
       description: A GoogleSheetsClient (or any Http.Client) to run the request against.
 inputType:
   kind: Type.JsonSchema
@@ -252,7 +258,9 @@ schema:
   required: [client]
   properties:
     client:
-      x-telo-ref: Http.Client
+      x-telo-ref:
+        kind: Http.Client
+        use: dependency
       description: A GoogleSheetsClient (or any Http.Client) to run the request against.
 inputType:
   kind: Type.JsonSchema
@@ -321,7 +329,9 @@ schema:
   required: [client]
   properties:
     client:
-      x-telo-ref: Http.Client
+      x-telo-ref:
+        kind: Http.Client
+        use: dependency
       description: A GoogleSheetsClient (or any Http.Client) to run the request against.
 inputType:
   kind: Type.JsonSchema
@@ -387,7 +397,9 @@ schema:
   required: [client]
   properties:
     client:
-      x-telo-ref: Http.Client
+      x-telo-ref:
+        kind: Http.Client
+        use: dependency
       description: A GoogleSheetsClient (or any Http.Client) to run the request against.
 inputType:
   kind: Type.JsonSchema
@@ -459,7 +471,9 @@ schema:
   required: [client]
   properties:
     client:
-      x-telo-ref: Http.Client
+      x-telo-ref:
+        kind: Http.Client
+        use: dependency
       description: A GoogleSheetsClient (or any Http.Client) to run the request against.
 inputType:
   kind: Type.JsonSchema
@@ -510,7 +524,9 @@ schema:
   required: [client]
   properties:
     client:
-      x-telo-ref: Http.Client
+      x-telo-ref:
+        kind: Http.Client
+        use: dependency
       description: A GoogleSheetsClient (or any Http.Client) to run the request against.
 inputType:
   kind: Type.JsonSchema
@@ -572,7 +588,9 @@ schema:
   required: [client]
   properties:
     client:
-      x-telo-ref: Http.Client
+      x-telo-ref:
+        kind: Http.Client
+        use: dependency
       description: A GoogleSheetsClient (or any Http.Client) to run the request against.
 inputType:
   kind: Type.JsonSchema
@@ -626,7 +644,9 @@ schema:
   required: [client]
   properties:
     client:
-      x-telo-ref: Http.Client
+      x-telo-ref:
+        kind: Http.Client
+        use: dependency
       description: A GoogleSheetsClient (or any Http.Client) to run the request against.
 inputType:
   kind: Type.JsonSchema

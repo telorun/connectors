@@ -138,12 +138,30 @@ Key `x-telo-*` annotations:
   **alias-qualified kind**: `<Alias>.<Kind>` for a module in this file's
   `imports:` map, `Self.<Kind>` for a kind declared in this same library, or
   `Telo.<Kind>` for a built-in capability (`Telo.Invocable`, `Telo.Runnable`,
-  `Telo.Mount`, `Telo.Type`). E.g. an operation's `client` field is
-  `x-telo-ref: Http.Client`. The legacy `"<namespace>/<module>#<Kind>"` string
+  `Telo.Mount`, `Telo.Type`, `Telo.Executable`). E.g. an operation's `client`
+  field is `Http.Client`. The legacy `"<namespace>/<module>#<Kind>"` string
   form (`"std/http-client#Client"`) is **deprecated** — the analyzer flags it as
-  `X_TELO_REF_LEGACY_IDENTITY`. Never use it. An object form
-  `{ kind: <Alias>.<Kind>, use: call|schema|dependency }` spells out how the
-  referenced resource is consumed.
+  `X_TELO_REF_LEGACY_IDENTITY`. Never use it.
+
+  Write the **object form** `{ kind: <Alias>.<Kind>, use: <how> }` — the bare
+  string is shorthand that leaves `use` unstated. `use:` declares how this
+  resource consumes the reference, which is what lets the analyzer reason about
+  the topology:
+
+  | `use:` | Meaning | Example slot |
+  | --- | --- | --- |
+  | `dependency` | A live instance is injected and consumed — not called by you. | an operation's `client`, an S3 `bucketRef`, a server's `mounts[].mount` |
+  | `trigger.inbound` | An entry point an inbound event dispatches to. Pair with `x-telo-topology-role: handler`. | an HTTP route `handler`, a Lambda handler |
+  | `call` | You invoke it inline as part of your own execution. | a `Codec.Encoder` piped inline, a `Run.Sequence` step's `invoke` |
+  | `schema` | It supplies a type, not a runtime value. | `inputType:` / `outputType:` |
+  | `detached` | Dispatched in the background; you do not await it. | `Run`'s background `invoke` |
+
+  For a dispatch slot prefer `kind: Telo.Executable` over an
+  `anyOf: [Telo.Invocable, Telo.Runnable]` — one kind covers both capabilities,
+  so dual-mode kinds like `Run.Sequence` (a Runnable whose controller also
+  implements `invoke()`) fit and the kernel calls whichever is appropriate.
+  When in doubt, copy the slot from the standard module that does the same job
+  (`telo module manifest`) rather than guessing a `use`.
 - `x-telo-eval: "compile" | "runtime"` — when `${{}}`/`!cel` in the field is
   evaluated. CEL-bearing fields MUST carry this (or sit under a context region).
 - `x-telo-context: <schema>` — declares the CEL variables in scope inside a
@@ -210,7 +228,8 @@ schema:
   type: object
   required: [client]
   properties:
-    client: { x-telo-ref: Http.Client }   # a GithubClient satisfies this
+    client:                            # a GithubClient satisfies this
+      x-telo-ref: { kind: Http.Client, use: dependency }
 resources:
   - kind: Http.Request
     metadata: { name: !cel "self.name + '-req'" }
