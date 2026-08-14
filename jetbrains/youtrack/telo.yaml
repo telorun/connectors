@@ -6,11 +6,11 @@ metadata:
     Typed YouTrack operations for Telo manifests. A friendly Http.Client
     (YouTrackClient) preconfigured with instance URL + API token, plus a set of
     Invocable operations (time tracking, issues, comments, projects, users)
-    built purely on std/http-client.
+    built purely on the http-client module.
   repository: https://github.com/telorun/connectors
   license: MIT
 imports:
-  Http: oci://ghcr.io/telorun/http-client@0.11.0#sha256-hvEr8my6HlvdeD1SZADM_XvItITEq04wzj9ZVb8bIf8
+  Http: oci://ghcr.io/telorun/http-client@0.19.0#sha256-rDyxrt23Z4u9H1_dwOgI3ajoMwEm6i9h-HbMmEQlRxg
 exports:
   kinds:
     - YouTrackClient
@@ -25,9 +25,9 @@ exports:
     - ListProjects
     - GetCurrentUser
 ---
-# The service client. Inherits the std/http-client#Client controller (and its
+# The service client. Inherits the Http.Client controller (and its
 # Provider capability), so a YouTrackClient IS an Http.Client at runtime and
-# drops into any `x-telo-ref: "std/http-client#Client"` slot. Configure the
+# drops into any `x-telo-ref: Http.Client` slot. Configure the
 # instance URL + permanent API token once, then `!ref` it everywhere.
 kind: Telo.Definition
 metadata:
@@ -67,7 +67,9 @@ schema:
   required: [client]
   properties:
     client:
-      x-telo-ref: "std/http-client#Client"
+      x-telo-ref:
+        kind: Http.Client
+        use: dependency
       description: A YouTrackClient (or any Http.Client) to run the request against.
 inputType:
   kind: Type.JsonSchema
@@ -130,7 +132,9 @@ schema:
   required: [client]
   properties:
     client:
-      x-telo-ref: "std/http-client#Client"
+      x-telo-ref:
+        kind: Http.Client
+        use: dependency
       description: A YouTrackClient (or any Http.Client) to run the request against.
 inputType:
   kind: Type.JsonSchema
@@ -188,7 +192,9 @@ schema:
   required: [client]
   properties:
     client:
-      x-telo-ref: "std/http-client#Client"
+      x-telo-ref:
+        kind: Http.Client
+        use: dependency
       description: A YouTrackClient (or any Http.Client) to run the request against.
 inputType:
   kind: Type.JsonSchema
@@ -247,7 +253,9 @@ schema:
   required: [client]
   properties:
     client:
-      x-telo-ref: "std/http-client#Client"
+      x-telo-ref:
+        kind: Http.Client
+        use: dependency
       description: A YouTrackClient (or any Http.Client) to run the request against.
 inputType:
   kind: Type.JsonSchema
@@ -298,7 +306,9 @@ schema:
   required: [client]
   properties:
     client:
-      x-telo-ref: "std/http-client#Client"
+      x-telo-ref:
+        kind: Http.Client
+        use: dependency
       description: A YouTrackClient (or any Http.Client) to run the request against.
 inputType:
   kind: Type.JsonSchema
@@ -353,7 +363,9 @@ schema:
   required: [client]
   properties:
     client:
-      x-telo-ref: "std/http-client#Client"
+      x-telo-ref:
+        kind: Http.Client
+        use: dependency
       description: A YouTrackClient (or any Http.Client) to run the request against.
 inputType:
   kind: Type.JsonSchema
@@ -409,7 +421,9 @@ schema:
   required: [client]
   properties:
     client:
-      x-telo-ref: "std/http-client#Client"
+      x-telo-ref:
+        kind: Http.Client
+        use: dependency
       description: A YouTrackClient (or any Http.Client) to run the request against.
 inputType:
   kind: Type.JsonSchema
@@ -465,7 +479,9 @@ schema:
   required: [client]
   properties:
     client:
-      x-telo-ref: "std/http-client#Client"
+      x-telo-ref:
+        kind: Http.Client
+        use: dependency
       description: A YouTrackClient (or any Http.Client) to run the request against.
 inputType:
   kind: Type.JsonSchema
@@ -516,7 +532,9 @@ schema:
   required: [client]
   properties:
     client:
-      x-telo-ref: "std/http-client#Client"
+      x-telo-ref:
+        kind: Http.Client
+        use: dependency
       description: A YouTrackClient (or any Http.Client) to run the request against.
 inputType:
   kind: Type.JsonSchema
@@ -571,7 +589,9 @@ schema:
   required: [client]
   properties:
     client:
-      x-telo-ref: "std/http-client#Client"
+      x-telo-ref:
+        kind: Http.Client
+        use: dependency
       description: A YouTrackClient (or any Http.Client) to run the request against.
 inputType:
   kind: Type.JsonSchema

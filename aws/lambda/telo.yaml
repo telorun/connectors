@@ -12,7 +12,7 @@ metadata:
     SQS, and direct / SDK invocations.
 imports:
   # Shared HTTP outcome + matcher schemas for HTTP-shaped handler kinds.
-  HttpDispatch: oci://ghcr.io/telorun/http-dispatch@0.8.0#sha256-m1FESVzKRwwVyMGkN1NTv0RPlE_u-RlbAPSBko34UTg
+  HttpDispatch: oci://ghcr.io/telorun/http-dispatch@0.11.0#sha256-2QGDMUpEkxvGW0magWIXDSFwGBV8wKFSkajP9vzHPqY
 exports:
   kinds:
     - Handler
@@ -90,10 +90,13 @@ schema:
             x-telo-topology-role: matcher
             x-telo-schema-from: "HttpDispatch.Request/$defs/Matcher"
           handler:
-            # Accept either capability so dual-mode kinds like Run.Sequence fit.
-            anyOf:
-              - x-telo-ref: telo#Invocable
-              - x-telo-ref: telo#Runnable
+            x-telo-topology-role: handler
+            # Telo.Executable covers either capability, so dual-mode kinds like
+            # Run.Sequence (Runnable whose controller also implements invoke())
+            # fit — the kernel calls whichever is appropriate.
+            x-telo-ref:
+              kind: Telo.Executable
+              use: trigger.inbound
             x-telo-context:
               type: object
               additionalProperties: false
@@ -210,9 +213,10 @@ schema:
       type: boolean
       default: true
     handler:
-      anyOf:
-        - x-telo-ref: telo#Invocable
-        - x-telo-ref: telo#Runnable
+      x-telo-topology-role: handler
+      x-telo-ref:
+        kind: Telo.Executable
+        use: trigger.inbound
     inputs:
       type: object
       additionalProperties: true
@@ -255,9 +259,10 @@ schema:
   type: object
   properties:
     handler:
-      anyOf:
-        - x-telo-ref: telo#Invocable
-        - x-telo-ref: telo#Runnable
+      x-telo-topology-role: handler
+      x-telo-ref:
+        kind: Telo.Executable
+        use: trigger.inbound
     inputs:
       type: object
       additionalProperties: true
@@ -302,6 +307,10 @@ schema:
       minItems: 1
       items:
         # x-telo-ref against the Lambda.Handler abstract; any concrete kind
-        # extending it satisfies the ref structurally and by kind-check.
-        x-telo-ref: "aws/lambda#Handler"
+        # extending it satisfies the ref structurally and by kind-check. The
+        # handlers are attached to this transport, not invoked by it — the
+        # AWS event dispatches to them (cf. an Http.Server's mounts).
+        x-telo-ref:
+          kind: Self.Handler
+          use: dependency
   required: [ handlers ]

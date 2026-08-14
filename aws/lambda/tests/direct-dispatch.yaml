@@ -8,8 +8,8 @@ metadata:
   version: 1.0.0
 imports:
   Lambda: ..
-  Run: oci://ghcr.io/telorun/run@0.13.0#sha256-s5raonayIOI78D9YjhAG_TB_KV7wILexhfEOpygFauc
-  Assert: oci://ghcr.io/telorun/assert@0.10.3#sha256-JaYcM9vZozSC6G-lzE7Z4ZFePilB_9d9eEGJYLX-QMk
+  Run: oci://ghcr.io/telorun/run@0.22.0#sha256-FeYAHs_krf06Dk68n5Mtjp0wLSfOvDLslREHP54BiJM
+  Assert: oci://ghcr.io/telorun/assert@0.16.0#sha256-0a8uEwCZG2ElZ7CxeDYfL3gbDFLj-92_jHEOeJbI6m0
 targets:
   - !ref TestDirectDispatch
 ---
@@ -18,8 +18,13 @@ targets:
 kind: Run.Value
 metadata:
   name: Greet
-inputs:
-  name: { type: string }
+inputType:
+  kind: Telo.JsonSchema
+  schema:
+    type: object
+    required: [name]
+    properties:
+      name: { type: string }
 value:
   message: !cel "'Hello ' + inputs.name + '!'"
 ---

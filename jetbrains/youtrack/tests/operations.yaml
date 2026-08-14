@@ -10,9 +10,9 @@ metadata:
 # responses pass through as { status, headers, body }.
 imports:
   Yt: ../
-  Server: std/http-server@0.17.1
-  Run: std/run@0.12.0
-  Assert: std/assert@0.9.2
+  Server: oci://ghcr.io/telorun/http-server@0.25.0#sha256-k1n8gCdP8LEwtp1xcm_DcxGk85YLbb2RrPCl6B30TUQ
+  Run: oci://ghcr.io/telorun/run@0.22.0#sha256-FeYAHs_krf06Dk68n5Mtjp0wLSfOvDLslREHP54BiJM
+  Assert: oci://ghcr.io/telorun/assert@0.16.0#sha256-0a8uEwCZG2ElZ7CxeDYfL3gbDFLj-92_jHEOeJbI6m0
 targets:
   - !ref TestOperations
 ---
@@ -51,12 +51,16 @@ client: !ref Stub
 # reflect what the operation actually sent back into the response body.
 kind: Run.Value
 metadata: { name: Echo }
-inputs:
-  path: {}
-  query: {}
-  body: {}
-  headers: {}
-  params: {}
+inputType:
+  kind: Telo.JsonSchema
+  schema:
+    type: object
+    properties:
+      path: {}
+      query: {}
+      body: {}
+      headers: {}
+      params: {}
 # Echo back exactly the inputs a route fed us — routes pass different subsets
 # (path/query/headers, or path/params/body), so map the whole `inputs` rather
 # than named keys, which would fault on any key a route didn't supply.

@@ -23,42 +23,63 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const LAMBDA_PKG_DIR = resolve(__dirname, "..", "..");
 const LAMBDA_MODULE_DIR = resolve(LAMBDA_PKG_DIR, "..");
 
-/** Published npm packages installed into the fixture root. `@telorun/kernel`
- *  drags its own published dependency tree (`@telorun/sdk`, analyzer, glob,
- *  templating, cel-js, typebox, …) in transitively, so the bootstrap's
- *  `import { Kernel } from "@telorun/kernel"` resolves from the fixture-root
- *  `node_modules` without packing any workspace source. The sibling module
- *  controllers are pinned to the npm versions their published `telo.yaml`
- *  PURLs reference, so the kernel's registry fast path matches them offline. */
-const PUBLISHED_NPM: Record<string, string> = {
-  "@telorun/kernel": "0.52.0",
-  "@telorun/http-dispatch": "0.4.1",
-  "@telorun/javascript": "0.4.1",
-  "@telorun/type": "0.5.0",
-};
-
 /** Sibling module manifests fetched from the registry via the published `telo`
  *  CLI. Each is copied into `<root>/modules/<module>/telo.yaml` so fixtures
- *  import it by relative path; the controllers are the `PUBLISHED_NPM` installs
- *  above. `npmPackage` is the controller name staged for the registry fast
- *  path. */
+ *  import it by relative path. Whichever npm controller a manifest declares is
+ *  read off its own `pkg:npm/...` PURL (see `controllersFrom`) — nothing here
+ *  restates a version by hand. `http-dispatch` is pure `Telo.Type` schemas and
+ *  declares no controller at all, so it contributes no npm dependency. */
 const OCI_MODULES = [
   {
     module: "http-dispatch",
-    npmPackage: "@telorun/http-dispatch",
     ref: "oci://ghcr.io/telorun/http-dispatch@0.8.0#sha256-m1FESVzKRwwVyMGkN1NTv0RPlE_u-RlbAPSBko34UTg",
   },
   {
     module: "javascript",
-    npmPackage: "@telorun/javascript",
     ref: "oci://ghcr.io/telorun/javascript@0.7.0#sha256-aKzlX_nloiYROA85sfZEidy4irQCugNk-MvtyDyqYoY",
   },
   {
     module: "type",
-    npmPackage: "@telorun/type",
     ref: "oci://ghcr.io/telorun/type@0.8.0#sha256-z56gxs4HbdWHlUWWvLRFFHPy5wX52SU5A1Fo61s20-g",
   },
 ] as const;
+
+/** Every `pkg:npm/<name>@<version>` controller a fetched manifest declares.
+ *  This is the manifest's OWN statement of which controller build pairs with
+ *  it, so the fixture installs exactly that — matching the kernel's registry
+ *  fast path by version, offline, with no hand-maintained mirror to drift. */
+function controllersFrom(manifest: string): Record<string, string> {
+  const found: Record<string, string> = {};
+  for (const [, name, version] of manifest.matchAll(
+    /pkg:npm\/(@?[^/@\s]+(?:\/[^@\s]+)?)@([^?#\s"']+)/g,
+  )) {
+    found[name] = version;
+  }
+  return found;
+}
+
+/** The kernel that actually resolves our manifest inside the container. It is
+ *  read off the installed `telo` CLI's own `@telorun/kernel` dependency, so the
+ *  container runs precisely the kernel that CLI ships rather than a pin someone
+ *  has to remember to bump. That pin going stale is not a hypothetical: at
+ *  kernel 0.52.0 the object form `x-telo-ref: {kind, use}` was silently skipped,
+ *  so every handler arrived without an invoke/run method and all 12 E2E tests
+ *  failed against manifests the rest of the repo had already validated. */
+function resolveKernelVersion(): string {
+  const cli = execFileSync("telo", ["--version"], { encoding: "utf-8" }).trim();
+  const kernel = execFileSync(
+    "npm",
+    ["view", `@telorun/cli@${cli}`, "dependencies.@telorun/kernel"],
+    { encoding: "utf-8" },
+  ).trim();
+  if (!kernel) {
+    throw new Error(
+      `Could not resolve the @telorun/kernel version behind telo CLI ${cli}. ` +
+        `The E2E fixture needs it to install a kernel into the container.`,
+    );
+  }
+  return kernel;
+}
 
 /** Fixture-root-relative `source:` for each module's `Telo.Import`. Consumed by
  *  the manifest helpers so import paths and the copied tree stay in lockstep.
@@ -105,15 +126,22 @@ function fetchModuleManifest(ref: string): string {
 
 /** Writes a synthetic `package.json` that installs the packed local Lambda
  *  controller alongside the published runtime + sibling controllers, then runs
- *  `npm install` once to produce a fully-resolved, offline `node_modules`. */
+ *  `npm install` once to produce a fully-resolved, offline `node_modules`.
+ *
+ *  Manifests are fetched BEFORE the install because they are what says which
+ *  controller versions to install — every dependency below is derived, none is
+ *  restated by hand. */
 async function buildPreparedRoot(): Promise<string> {
   const packDir = mkdtempSync(join(tmpdir(), "telo-lambda-e2e-pack-"));
   const lambdaTarball = packLambda(packDir);
 
   const root = mkdtempSync(join(tmpdir(), "telo-lambda-e2e-root-"));
+  const siblingControllers = await copyModuleManifests(root);
+
   const deps: Record<string, string> = {
     "@telorun/lambda": `file:${lambdaTarball}`,
-    ...PUBLISHED_NPM,
+    "@telorun/kernel": resolveKernelVersion(),
+    ...siblingControllers,
   };
   writeFileSync(
     join(root, "package.json"),
@@ -129,8 +157,7 @@ async function buildPreparedRoot(): Promise<string> {
     stdio: ["ignore", "ignore", "inherit"],
   });
 
-  await copyModuleManifests(root);
-  await stageControllers(root);
+  await stageControllers(root, Object.keys(siblingControllers));
 
   return root;
 }
@@ -143,8 +170,12 @@ async function buildPreparedRoot(): Promise<string> {
  *  install. Lambda's own manifest is the local copy (rewriting its
  *  `HttpDispatch` OCI import to the co-copied `../http-dispatch` sibling so the
  *  offline container never reaches the network); the siblings are fetched from
- *  the registry. */
-async function copyModuleManifests(root: string): Promise<void> {
+ *  the registry.
+ *
+ *  Returns the npm controllers the fetched sibling manifests declare, as an
+ *  install-ready `{ name: version }` map. Lambda's own controller is excluded —
+ *  it is installed from the locally packed tarball, not the registry. */
+async function copyModuleManifests(root: string): Promise<Record<string, string>> {
   const stripLocalPath = (yaml: string) => yaml.replaceAll(/\?local_path=[^#"\s]+/g, "");
 
   const lambdaManifest = stripLocalPath(
@@ -154,12 +185,15 @@ async function copyModuleManifests(root: string): Promise<void> {
   mkdirSync(lambdaDest, { recursive: true });
   writeFileSync(join(lambdaDest, "telo.yaml"), lambdaManifest);
 
+  const controllers: Record<string, string> = {};
   for (const mod of OCI_MODULES) {
     const manifest = stripLocalPath(fetchModuleManifest(mod.ref));
     const dest = join(root, "modules", mod.module);
     mkdirSync(dest, { recursive: true });
     writeFileSync(join(dest, "telo.yaml"), manifest);
+    Object.assign(controllers, controllersFrom(manifest));
   }
+  return controllers;
 }
 
 /** Pre-places real copies of the module controllers (installed into the
@@ -167,9 +201,9 @@ async function copyModuleManifests(root: string): Promise<void> {
  *  kernel's registry fast path finds the right-version package already on disk
  *  and skips installing. `@telorun/sdk` is left to the kernel's realm-collapse
  *  bootstrap, which resolves it offline from the fixture-root `node_modules`. */
-async function stageControllers(root: string): Promise<void> {
+async function stageControllers(root: string, siblings: string[]): Promise<void> {
   const stageRoot = join(root, ".telo", "npm", "node_modules");
-  const controllers = ["@telorun/lambda", ...OCI_MODULES.map((m) => m.npmPackage)];
+  const controllers = ["@telorun/lambda", ...siblings];
   for (const pkg of controllers) {
     const installed = join(root, "node_modules", pkg);
     const version = JSON.parse(readFileSync(join(installed, "package.json"), "utf-8")).version;

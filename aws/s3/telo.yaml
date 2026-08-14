@@ -87,7 +87,9 @@ schema:
     bucketRef:
       title: Bucket
       description: Reference to an S3.Bucket resource (local, or imported via `!ref Alias.name`).
-      x-telo-ref: "aws/s3#Bucket"
+      x-telo-ref:
+        kind: Self.Bucket
+        use: dependency
   required:
     - bucketRef
 ---
@@ -112,7 +114,9 @@ schema:
     bucketRef:
       title: Bucket
       description: Reference to an S3.Bucket resource (local, or imported via `!ref Alias.name`).
-      x-telo-ref: "aws/s3#Bucket"
+      x-telo-ref:
+        kind: Self.Bucket
+        use: dependency
     inputs:
       title: Inputs
       description: Object key and content written to the bucket.
@@ -173,7 +177,9 @@ schema:
     bucketRef:
       title: Bucket
       description: Reference to an S3.Bucket resource (local, or imported via `!ref Alias.name`).
-      x-telo-ref: "aws/s3#Bucket"
+      x-telo-ref:
+        kind: Self.Bucket
+        use: dependency
   required:
     - bucketRef
   additionalProperties: false
@@ -229,7 +235,9 @@ schema:
     bucketRef:
       title: Bucket
       description: Reference to an S3.Bucket resource (local, or imported via `!ref Alias.name`).
-      x-telo-ref: "aws/s3#Bucket"
+      x-telo-ref:
+        kind: Self.Bucket
+        use: dependency
   required:
     - bucketRef
   additionalProperties: false
@@ -290,7 +298,9 @@ schema:
     bucketRef:
       title: Bucket
       description: Reference to an S3.Bucket resource (local, or imported via `!ref Alias.name`).
-      x-telo-ref: "aws/s3#Bucket"
+      x-telo-ref:
+        kind: Self.Bucket
+        use: dependency
     operation:
       title: Operation
       type: string
