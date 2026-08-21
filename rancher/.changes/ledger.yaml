@@ -2,4 +2,8 @@
 # A cache of the registry's answer, so a PR gate needs no credentials.
 # `telo release verify` reconciles it against the registry.
 registry: oci://ghcr.io/telorun/rancher
-modules: {}
+modules:
+  k3s:
+    version: 0.2.0
+    layers:
+      manifest: sha256-ipkiv73flZ68HdieQy_tzirptLvpHfAoBxlp1ZcWc80

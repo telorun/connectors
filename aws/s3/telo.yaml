@@ -1,7 +1,7 @@
 kind: Telo.Library
 metadata:
   name: S3
-  version: 0.8.1
+  version: 0.8.2
   repository: https://github.com/telorun/connectors
   license: MIT
   description: >-
@@ -24,7 +24,7 @@ metadata:
   description: Provides a configured handle to an S3-compatible bucket, with optional create-if-missing and public-read.
 capability: Telo.Provider
 controllers:
-  - pkg:npm/@telorun/s3@0.5.3?local_path=./nodejs#s3-bucket
+  - pkg:npm/@telorun/s3@0.8.2?local_path=./nodejs#s3-bucket
 schema:
   type: object
   examples:
@@ -77,7 +77,7 @@ metadata:
   description: Lists object keys in the referenced S3 bucket.
 capability: Telo.Invocable
 controllers:
-  - pkg:npm/@telorun/s3@0.5.3?local_path=./nodejs#s3-list
+  - pkg:npm/@telorun/s3@0.8.2?local_path=./nodejs#s3-list
 schema:
   type: object
   examples:
@@ -98,7 +98,7 @@ metadata:
   description: Uploads an object (string or binary body) under a key in the referenced S3 bucket.
 capability: Telo.Invocable
 controllers:
-  - pkg:npm/@telorun/s3@0.5.3?local_path=./nodejs#s3-put
+  - pkg:npm/@telorun/s3@0.8.2?local_path=./nodejs#s3-put
 throws:
   codes:
     ERR_INVALID_INPUT:
@@ -159,7 +159,7 @@ metadata:
   description: Streams an object's bytes from the referenced S3 bucket by key.
 capability: Telo.Invocable
 controllers:
-  - pkg:npm/@telorun/s3@0.5.3?local_path=./nodejs#s3-get
+  - pkg:npm/@telorun/s3@0.8.2?local_path=./nodejs#s3-get
 throws:
   codes:
     ERR_NOT_FOUND:
@@ -221,7 +221,7 @@ metadata:
   description: Deletes an object from the referenced S3 bucket by key (idempotent).
 capability: Telo.Invocable
 controllers:
-  - pkg:npm/@telorun/s3@0.5.3?local_path=./nodejs#s3-delete
+  - pkg:npm/@telorun/s3@0.8.2?local_path=./nodejs#s3-delete
 throws:
   codes:
     ERR_INVALID_REFERENCE:
@@ -279,7 +279,7 @@ metadata:
   description: Generates a time-limited SigV4 presigned URL for downloading or uploading an object.
 capability: Telo.Invocable
 controllers:
-  - pkg:npm/@telorun/s3@0.5.3?local_path=./nodejs#s3-presigned-url
+  - pkg:npm/@telorun/s3@0.8.2?local_path=./nodejs#s3-presigned-url
 throws:
   codes:
     ERR_INVALID_INPUT:

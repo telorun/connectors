@@ -1,4 +1,9 @@
 # Changelog
+
+## 0.8.2 - 2026-08-21
+### Fixed
+* Declare the `bucketRef` slots in object form as `kind: Self.Bucket, use: dependency`, replacing the deprecated `aws/s3#Bucket` form and clearing the `X_TELO_REF_LEGACY_IDENTITY` analyzer warning. No change to the accepted references.
+
 ## 0.8.1 - 2026-07-24
 ### Fixed
 * Update controller @telorun/s3 to 0.5.3.## 0.8.0 - 2026-07-19
