@@ -1,6 +1,6 @@
 kind: Telo.Application
 metadata:
-  name: youtrack-operations-test
+  name: YoutrackOperationsTest
   version: 1.0.0
 # Exercises the YouTrack operations end-to-end against a stub HTTP server that
 # echoes back the request the operation built (path, query, body, auth header)
@@ -14,43 +14,43 @@ imports:
   Run: oci://ghcr.io/telorun/run@0.22.0#sha256-FeYAHs_krf06Dk68n5Mtjp0wLSfOvDLslREHP54BiJM
   Assert: oci://ghcr.io/telorun/assert@0.16.0#sha256-0a8uEwCZG2ElZ7CxeDYfL3gbDFLj-92_jHEOeJbI6m0
 targets:
-  - !ref TestOperations
+  - !ref testOperations
 ---
 # The friendly client, pointed at the local stub. baseUrl becomes
 # http://localhost:34817/api and every request carries the Bearer token.
 kind: Yt.YouTrackClient
-metadata: { name: Stub }
+metadata: { name: stub }
 url: http://localhost:34817
 apiKey: "perm:test-token"
 ---
 kind: Yt.GetWorkItems
 metadata: { name: getWorkItems }
-client: !ref Stub
+client: !ref stub
 ---
 kind: Yt.GetCurrentUser
 metadata: { name: getCurrentUser }
-client: !ref Stub
+client: !ref stub
 ---
 kind: Yt.AddWorkItem
 metadata: { name: addWorkItem }
-client: !ref Stub
+client: !ref stub
 ---
 kind: Yt.SearchIssues
 metadata: { name: searchIssues }
-client: !ref Stub
+client: !ref stub
 ---
 kind: Yt.GetIssue
 metadata: { name: getIssue }
-client: !ref Stub
+client: !ref stub
 ---
 kind: Yt.CreateIssue
 metadata: { name: createIssue }
-client: !ref Stub
+client: !ref stub
 ---
 # Generic echo handler: returns the request context it is fed, so a route can
 # reflect what the operation actually sent back into the response body.
 kind: Run.Value
-metadata: { name: Echo }
+metadata: { name: echo }
 inputType:
   kind: Telo.JsonSchema
   schema:
@@ -68,14 +68,14 @@ value: !cel "inputs"
 ---
 # Stub YouTrack REST surface, mounted at /api on the server below.
 kind: Server.Api
-metadata: { name: StubApi }
+metadata: { name: stubApi }
 routes:
   - request: { method: GET, path: /workItems }
     inputs:
       path: !cel "request.path.split('?')[0]"
       query: !cel "request.query"
       headers: !cel "request.headers"
-    handler: !ref Echo
+    handler: !ref echo
     returns:
       - status: 200
         content:
@@ -94,7 +94,7 @@ routes:
       path: !cel "request.path.split('?')[0]"
       query: !cel "request.query"
       headers: !cel "request.headers"
-    handler: !ref Echo
+    handler: !ref echo
     returns:
       - status: 200
         content:
@@ -111,7 +111,7 @@ routes:
       path: !cel "request.path.split('?')[0]"
       params: !cel "request.params"
       body: !cel "request.body"
-    handler: !ref Echo
+    handler: !ref echo
     returns:
       - status: 200
         content:
@@ -126,7 +126,7 @@ routes:
   - request: { method: GET, path: /issues }
     inputs:
       query: !cel "request.query"
-    handler: !ref Echo
+    handler: !ref echo
     returns:
       - status: 200
         content:
@@ -142,7 +142,7 @@ routes:
     inputs:
       params: !cel "request.params"
       query: !cel "request.query"
-    handler: !ref Echo
+    handler: !ref echo
     returns:
       - status: 200
         content:
@@ -156,7 +156,7 @@ routes:
   - request: { method: POST, path: /issues }
     inputs:
       body: !cel "request.body"
-    handler: !ref Echo
+    handler: !ref echo
     returns:
       - status: 200
         content:
@@ -167,7 +167,7 @@ routes:
                 body: !cel "result.body"
 ---
 kind: Run.Sequence
-metadata: { name: TestOperations }
+metadata: { name: testOperations }
 # The stub server is declared inline in the sequence scope so it starts before
 # the steps and is torn down when they finish. Scope entries are inline resource
 # definitions, not `!ref`s to outer resources.
@@ -177,7 +177,7 @@ with:
     port: 34817
     mounts:
       - path: /api
-        mount: !ref StubApi
+        mount: !ref stubApi
 targets:
   - !ref StubServer
 steps:

@@ -1,6 +1,6 @@
 kind: Telo.Application
 metadata:
-  name: google-sheets-operations-test
+  name: GoogleSheetsOperationsTest
   version: 1.0.0
 # Exercises the Google Sheets operations end-to-end against a stub HTTP server
 # that echoes back the request each operation built (path, method, query, body,
@@ -23,59 +23,59 @@ variables:
     type: string
     default: http://localhost:34823
 targets:
-  - !ref TestOperations
+  - !ref testOperations
 ---
 # The friendly client, pointed at the local stub via the baseUrl override. Every
 # request carries `Authorization: Bearer test-token`.
 kind: Gs.GoogleSheetsClient
-metadata: { name: Stub }
+metadata: { name: stub }
 accessToken: test-token
 baseUrl: !cel "variables.baseUrl"
 ---
 kind: Gs.GetSpreadsheet
 metadata: { name: getSpreadsheet }
-client: !ref Stub
+client: !ref stub
 ---
 kind: Gs.CreateSpreadsheet
 metadata: { name: createSpreadsheet }
-client: !ref Stub
+client: !ref stub
 ---
 kind: Gs.GetValues
 metadata: { name: getValues }
-client: !ref Stub
+client: !ref stub
 ---
 kind: Gs.BatchGetValues
 metadata: { name: batchGetValues }
-client: !ref Stub
+client: !ref stub
 ---
 kind: Gs.UpdateValues
 metadata: { name: updateValues }
-client: !ref Stub
+client: !ref stub
 ---
 kind: Gs.AppendValues
 metadata: { name: appendValues }
-client: !ref Stub
+client: !ref stub
 ---
 kind: Gs.ClearValues
 metadata: { name: clearValues }
-client: !ref Stub
+client: !ref stub
 ---
 kind: Gs.BatchUpdateValues
 metadata: { name: batchUpdateValues }
-client: !ref Stub
+client: !ref stub
 ---
 kind: Gs.BatchClearValues
 metadata: { name: batchClearValues }
-client: !ref Stub
+client: !ref stub
 ---
 kind: Gs.BatchUpdateSpreadsheet
 metadata: { name: batchUpdateSpreadsheet }
-client: !ref Stub
+client: !ref stub
 ---
 # Generic echo handler: returns the request context it is fed, so a route can
 # reflect what the operation actually sent back into the response body.
 kind: Run.Value
-metadata: { name: Echo }
+metadata: { name: echo }
 inputType:
   kind: Telo.JsonSchema
   schema:
@@ -98,7 +98,7 @@ value:
 # Stub Google Sheets REST surface. Routes are grouped by path shape so that all
 # operations map cleanly onto a handful of echo routes.
 kind: Server.Api
-metadata: { name: StubApi }
+metadata: { name: stubApi }
 routes:
   # POST /spreadsheets — create
   - request: { method: POST, path: /spreadsheets }
@@ -107,7 +107,7 @@ routes:
       method: !cel "request.method"
       body: !cel "request.body"
       headers: !cel "request.headers"
-    handler: !ref Echo
+    handler: !ref echo
     returns:
       - status: 200
         content:
@@ -127,7 +127,7 @@ routes:
       method: !cel "request.method"
       query: !cel "request.query"
       headers: !cel "request.headers"
-    handler: !ref Echo
+    handler: !ref echo
     returns:
       - status: 200
         content:
@@ -146,7 +146,7 @@ routes:
     inputs:
       method: !cel "request.method"
       body: !cel "request.body"
-    handler: !ref Echo
+    handler: !ref echo
     returns:
       - status: 200
         content:
@@ -163,7 +163,7 @@ routes:
     inputs:
       method: !cel "request.method"
       query: !cel "request.query"
-    handler: !ref Echo
+    handler: !ref echo
     returns:
       - status: 200
         content:
@@ -180,7 +180,7 @@ routes:
     inputs:
       method: !cel "request.method"
       body: !cel "request.body"
-    handler: !ref Echo
+    handler: !ref echo
     returns:
       - status: 200
         content:
@@ -197,7 +197,7 @@ routes:
       method: !cel "request.method"
       query: !cel "request.query"
       headers: !cel "request.headers"
-    handler: !ref Echo
+    handler: !ref echo
     returns:
       - status: 200
         content:
@@ -216,7 +216,7 @@ routes:
       method: !cel "request.method"
       query: !cel "request.query"
       body: !cel "request.body"
-    handler: !ref Echo
+    handler: !ref echo
     returns:
       - status: 200
         content:
@@ -233,7 +233,7 @@ routes:
       method: !cel "request.method"
       query: !cel "request.query"
       body: !cel "request.body"
-    handler: !ref Echo
+    handler: !ref echo
     returns:
       - status: 200
         content:
@@ -245,7 +245,7 @@ routes:
                 body: !cel "result.body"
 ---
 kind: Run.Sequence
-metadata: { name: TestOperations }
+metadata: { name: testOperations }
 # The stub server is declared inline in the sequence scope so it starts before
 # the steps and is torn down when they finish — otherwise a long-lived server
 # holds the kernel open and the app never exits.
@@ -255,7 +255,7 @@ with:
     port: !cel "ports.http"
     mounts:
       - path: /
-        mount: !ref StubApi
+        mount: !ref stubApi
 targets:
   - !ref StubServer
 steps:

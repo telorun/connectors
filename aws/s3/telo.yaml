@@ -1,7 +1,6 @@
 kind: Telo.Library
 metadata:
-  name: s3
-  namespace: aws
+  name: S3
   version: 0.8.1
   repository: https://github.com/telorun/connectors
   license: MIT
@@ -203,7 +202,7 @@ outputType:
     type: object
     properties:
       output:
-        x-telo-stream: true
+        x-telo-type: Telo.Stream
         description: Async iterable of Uint8Array chunks streamed from the storage backend.
       contentType:
         type: string

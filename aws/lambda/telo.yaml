@@ -1,7 +1,6 @@
 kind: Telo.Library
 metadata:
-  namespace: aws
-  name: lambda
+  name: Lambda
   version: 0.9.1
   repository: https://github.com/telorun/connectors
   license: MIT
@@ -12,7 +11,7 @@ metadata:
     SQS, and direct / SDK invocations.
 imports:
   # Shared HTTP outcome + matcher schemas for HTTP-shaped handler kinds.
-  HttpDispatch: oci://ghcr.io/telorun/http-dispatch@0.11.0#sha256-2QGDMUpEkxvGW0magWIXDSFwGBV8wKFSkajP9vzHPqY
+  HttpDispatch: oci://ghcr.io/telorun/http-dispatch@0.11.2#sha256-8VyKsOIjz3ozYl2gKFnuhoU7BTz42deLlO0fy-UvFVs
 exports:
   kinds:
     - Handler

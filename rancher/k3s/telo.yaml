@@ -1,0 +1,703 @@
+kind: Telo.Library
+metadata:
+  name: K3s
+  version: 0.1.0
+  repository: https://github.com/telorun/connectors
+  license: MIT
+  description: >-
+    Declarative k3s cluster nodes. `K3s.Server` and `K3s.Agent` each converge one
+    machine — reachable through any `Shell.Host` — onto a desired k3s version and
+    a fully typed `/etc/rancher/k3s/config.yaml`. Both probe before they act, so
+    re-applying an unchanged manifest installs nothing and restarts nothing; only
+    a changed version or a changed rendered config triggers work. Every k3s
+    setting is a schema field, so `telo check` rejects a misspelled flag or a
+    control-plane option placed on an agent.
+imports:
+  Shell: oci://ghcr.io/telorun/shell@0.11.4#sha256-modXQfwktXBMR5nkigZU4nqYCm8KJgUjFfzJjr-Cc4g
+  Run: oci://ghcr.io/telorun/run@0.25.0#sha256-uWNxbEhHstDLHZn1Ncu6ScZGYKUe39IZBbhmvAQTAAQ
+exports:
+  kinds:
+    - Node
+    - Server
+    - Agent
+
+---
+# K3s.Node — the fields a k3s server and a k3s agent genuinely share.
+#
+# Abstract because there is no such thing as a role-less k3s node: you install a
+# server or you install an agent, and the two differ by ~35 config keys. Holding
+# the common ~16 here and letting Server / Agent extend it is what keeps a
+# control-plane-only field (`tls-san`, `etcd-snapshot-schedule`, `disable`) out
+# of an agent's schema entirely, rather than present-but-inert. That exclusion IS
+# the feature — it is what makes a mistyped or misplaced setting a `telo check`
+# error instead of a silently ignored line in a config file.
+#
+# Every property maps to exactly one k3s config key. The mapping is spelled out
+# in each `x-k3s-key`, and the renderers below are the only place it is applied.
+kind: Telo.Abstract
+metadata:
+  name: Node
+  description: >-
+    One machine participating in a k3s cluster — the settings a server and an
+    agent share: identity, addressing, labels and taints, the data directory,
+    the join token, and the runtime and kubelet arguments. Not instantiable on
+    its own; install a K3s.Server or a K3s.Agent.
+capability: Telo.Runnable
+schema:
+  type: object
+  required: [host, token]
+  properties:
+    host:
+      title: Host
+      description: >-
+        The machine this node is installed on. Any Shell.Host driver satisfies
+        it — Shell.LocalHost for a single-machine cluster, an SSH driver for a
+        remote one — so the node kinds never learn how the target is reached.
+      x-telo-ref:
+        kind: Shell.Host
+        use: dependency
+
+    version:
+      title: k3s version
+      description: >-
+        Exact k3s release to install, e.g. `v1.31.4+k3s1`. Passed to the
+        installer as INSTALL_K3S_VERSION and compared against the installed
+        binary on every apply — a changed value is what triggers an upgrade.
+        Omit to take whatever the install channel currently serves, which makes
+        the node's version an accident of when it was first provisioned; pin it.
+      type: string
+      pattern: '^v\d+\.\d+\.\d+\+k3s\d+$'
+
+    token:
+      title: Cluster token
+      description: >-
+        The shared secret every node in one cluster presents. Pre-share it —
+        generate once, hold it in `secrets:`, hand the same value to every node
+        — rather than bootstrapping a server and discovering its token: a
+        pre-shared token removes the only data dependency between nodes, so
+        server and agent resources are ordered by liveness alone.
+      type: string
+      x-telo-eval: compile
+      x-k3s-key: token
+
+    nodeName:
+      title: Node name
+      description: The name this node registers under. Defaults to the machine's hostname.
+      type: string
+      x-k3s-key: node-name
+
+    nodeIp:
+      title: Node IP
+      description: >-
+        Address to advertise for intra-cluster traffic. Set it on any host with
+        more than one interface, where k3s's guess is a coin flip.
+      type: string
+      x-k3s-key: node-ip
+
+    nodeExternalIp:
+      title: Node external IP
+      description: Address to advertise to consumers outside the cluster.
+      type: string
+      x-k3s-key: node-external-ip
+
+    nodeLabels:
+      title: Node labels
+      description: >-
+        Labels applied at registration, as `key=value` entries. Applied only
+        when the node first registers — k3s does not reconcile them afterwards,
+        so changing this value alone will not relabel a running node.
+      type: array
+      items:
+        type: string
+        pattern: '^[^=]+=[^=]*$'
+      x-k3s-key: node-label
+
+    nodeTaints:
+      title: Node taints
+      description: Taints applied at registration, as `key=value:Effect` entries.
+      type: array
+      items:
+        type: string
+        pattern: '^[^=]+=[^:]*:(NoSchedule|PreferNoSchedule|NoExecute)$'
+      x-k3s-key: node-taint
+
+    dataDir:
+      title: Data directory
+      description: Where k3s keeps its state. Default `/var/lib/rancher/k3s`.
+      type: string
+      x-k3s-key: data-dir
+
+    containerRuntimeEndpoint:
+      title: Container runtime endpoint
+      description: >-
+        Socket of an existing CRI runtime to use instead of the bundled
+        containerd.
+      type: string
+      x-k3s-key: container-runtime-endpoint
+
+    snapshotter:
+      title: containerd snapshotter
+      type: string
+      enum: [overlayfs, native, stargz]
+      x-k3s-key: snapshotter
+
+    privateRegistry:
+      title: Private registry config
+      description: Path to a registries.yaml on the host.
+      type: string
+      x-k3s-key: private-registry
+
+    resolvConf:
+      title: resolv.conf
+      description: Path to the resolv.conf kubelet hands to pods.
+      type: string
+      x-k3s-key: resolv-conf
+
+    pauseImage:
+      title: Pause image
+      type: string
+      x-k3s-key: pause-image
+
+    selinux:
+      title: SELinux
+      description: Enable SELinux support in containerd.
+      type: boolean
+      x-k3s-key: selinux
+
+    protectKernelDefaults:
+      title: Protect kernel defaults
+      description: Fail rather than silently rewriting kernel tunables the node does not already satisfy.
+      type: boolean
+      x-k3s-key: protect-kernel-defaults
+
+    kubeletArgs:
+      title: kubelet arguments
+      description: >-
+        Raw `key=value` flags passed through to kubelet. Untyped by nature —
+        this is kubelet's surface, not k3s's.
+      type: array
+      items: { type: string }
+      x-k3s-key: kubelet-arg
+
+    kubeProxyArgs:
+      title: kube-proxy arguments
+      type: array
+      items: { type: string }
+      x-k3s-key: kube-proxy-arg
+
+    extraConfig:
+      title: Extra config
+      description: >-
+        Escape hatch — arbitrary k3s config keys merged UNDER the typed fields
+        above, so a typed field always wins. For a k3s release that has shipped
+        a flag this module has not caught up with yet. Reaching for it routinely
+        means a field is missing from the schema; open an issue rather than
+        making this the interface.
+      type: object
+      additionalProperties: true
+
+    installTimeoutMs:
+      title: Install timeout (ms)
+      description: Kill the install or restart and fail after this long.
+      type: integer
+      minimum: 1000
+      default: 600000
+
+    readyTimeoutMs:
+      title: Ready timeout (ms)
+      description: How long to wait for the node to report ready after a restart.
+      type: integer
+      minimum: 1000
+      default: 300000
+
+---
+# K3s.Server — a control-plane node.
+#
+# `oneOf` on clusterInit/server is the single most valuable static check here.
+# Getting it wrong is the classic k3s mistake and it fails SILENTLY: a joining
+# server with no `server:` URL does not error, it starts a brand-new one-member
+# cluster alongside the real one. Declaring the two mutually exclusive and
+# jointly exhaustive turns that into a `telo check` failure.
+kind: Telo.Definition
+metadata:
+  name: Server
+  description: >-
+    A k3s control-plane node — API server, scheduler, controller manager and
+    embedded etcd. Either initialises a new cluster (`clusterInit`) or joins an
+    existing one (`server`), exactly one of which must be declared. Carries the
+    control-plane settings an agent has no use for: disabled bundled components,
+    TLS SANs, cluster CIDRs, datastore endpoint and etcd snapshot policy.
+extends: Self.Node
+schema:
+  type: object
+  oneOf:
+    - required: [clusterInit]
+    - required: [server]
+  properties:
+    clusterInit:
+      title: Cluster init
+      description: >-
+        Initialise a new cluster with embedded etcd. Exactly one server in a
+        cluster declares it, and only at the cluster's birth. Mutually exclusive
+        with `server`.
+      type: boolean
+      const: true
+
+    server:
+      title: Join URL
+      description: >-
+        `https://<existing-server>:6443` — the control plane this server joins as
+        an additional etcd member. Mutually exclusive with `clusterInit`.
+      type: string
+      pattern: '^https://.+:\d+$'
+      x-k3s-key: server
+
+    disable:
+      title: Disable bundled components
+      description: >-
+        Bundled add-ons k3s should not deploy. The enum is the point: `traefik`
+        is checked, `treafik` is a check-time error rather than an add-on that
+        silently stays installed.
+      type: array
+      items:
+        type: string
+        enum: [coredns, servicelb, traefik, local-storage, metrics-server]
+      x-k3s-key: disable
+
+    disableScheduler:
+      title: Disable scheduler
+      type: boolean
+      x-k3s-key: disable-scheduler
+
+    disableCloudController:
+      title: Disable cloud controller
+      type: boolean
+      x-k3s-key: disable-cloud-controller
+
+    disableKubeProxy:
+      title: Disable kube-proxy
+      type: boolean
+      x-k3s-key: disable-kube-proxy
+
+    disableNetworkPolicy:
+      title: Disable network policy
+      type: boolean
+      x-k3s-key: disable-network-policy
+
+    disableHelmController:
+      title: Disable Helm controller
+      type: boolean
+      x-k3s-key: disable-helm-controller
+
+    tlsSans:
+      title: TLS SANs
+      description: >-
+        Extra hostnames and IPs added to the API server certificate. Every
+        address a client will ever dial — load balancer, public DNS name — must
+        be listed here, or its TLS handshake fails.
+      type: array
+      items: { type: string }
+      x-k3s-key: tls-san
+
+    clusterCidr:
+      title: Cluster CIDR
+      description: Pod network range. Fixed at cluster creation — changing it later requires a rebuild.
+      type: string
+      x-k3s-key: cluster-cidr
+
+    serviceCidr:
+      title: Service CIDR
+      description: Service network range. Fixed at cluster creation.
+      type: string
+      x-k3s-key: service-cidr
+
+    clusterDns:
+      title: Cluster DNS
+      description: Address of the cluster DNS service. Must sit inside `serviceCidr`.
+      type: string
+      x-k3s-key: cluster-dns
+
+    clusterDomain:
+      title: Cluster domain
+      type: string
+      x-k3s-key: cluster-domain
+
+    flannelBackend:
+      title: Flannel backend
+      type: string
+      enum: [none, vxlan, host-gw, wireguard-native, ipsec]
+      x-k3s-key: flannel-backend
+
+    writeKubeconfigMode:
+      title: Kubeconfig mode
+      description: File mode for the admin kubeconfig, e.g. `"0644"`. A string — `0644` unquoted is 644 decimal.
+      type: string
+      pattern: '^0[0-7]{3}$'
+      x-k3s-key: write-kubeconfig-mode
+
+    datastoreEndpoint:
+      title: External datastore
+      description: >-
+        Connection string for an external datastore (etcd, MySQL, PostgreSQL)
+        instead of embedded etcd. Mutually exclusive with embedded-etcd
+        snapshots.
+      type: string
+      x-telo-eval: compile
+      x-k3s-key: datastore-endpoint
+
+    secretsEncryption:
+      title: Secrets encryption
+      description: Encrypt Secret data at rest in the datastore.
+      type: boolean
+      x-k3s-key: secrets-encryption
+
+    etcdSnapshotSchedule:
+      title: etcd snapshot schedule
+      description: Cron expression for automatic etcd snapshots.
+      type: string
+      x-k3s-key: etcd-snapshot-schedule-cron
+
+    etcdSnapshotRetention:
+      title: etcd snapshot retention
+      type: integer
+      minimum: 1
+      x-k3s-key: etcd-snapshot-retention
+
+    etcdSnapshotDir:
+      title: etcd snapshot directory
+      type: string
+      x-k3s-key: etcd-snapshot-dir
+
+    kubeApiServerArgs:
+      title: kube-apiserver arguments
+      type: array
+      items: { type: string }
+      x-k3s-key: kube-apiserver-arg
+
+    kubeSchedulerArgs:
+      title: kube-scheduler arguments
+      type: array
+      items: { type: string }
+      x-k3s-key: kube-scheduler-arg
+
+    kubeControllerManagerArgs:
+      title: kube-controller-manager arguments
+      type: array
+      items: { type: string }
+      x-k3s-key: kube-controller-manager-arg
+
+  examples:
+    - host: !ref node-a
+      token: "${{ secrets.k3sToken }}"
+      version: v1.31.4+k3s1
+      clusterInit: true
+      disable: [traefik, servicelb]
+      tlsSans: [k8s.example.com]
+
+resources:
+  # One command channel per node. Every step below invokes this same resource
+  # with a different command line; the host it runs on is fixed at construction.
+  - kind: Shell.Command
+    metadata:
+      name: !cel "self.name + '-sh'"
+    host: !cel "self.host"
+
+  - kind: Run.Sequence
+    metadata:
+      name: !cel "self.name + '-converge'"
+    steps:
+      # 1. Render the desired config.yaml. Built as YAML lines rather than one
+      #    encoded blob so the diff a human reads in `git log` is the diff k3s
+      #    sees. `json()` on each value keeps quoting and list syntax correct for
+      #    every type at once — a string, a bool, an int and a list all serialize
+      #    to valid YAML, because YAML is a superset of JSON.
+      - name: render
+        value:
+          config: !cel >-
+            ([
+              has(self.token) ? 'token: ' + json(self.token) : '',
+              has(self.nodeName) ? 'node-name: ' + json(self.nodeName) : '',
+              has(self.nodeIp) ? 'node-ip: ' + json(self.nodeIp) : '',
+              has(self.nodeExternalIp) ? 'node-external-ip: ' + json(self.nodeExternalIp) : '',
+              has(self.nodeLabels) ? 'node-label: ' + json(self.nodeLabels) : '',
+              has(self.nodeTaints) ? 'node-taint: ' + json(self.nodeTaints) : '',
+              has(self.dataDir) ? 'data-dir: ' + json(self.dataDir) : '',
+              has(self.containerRuntimeEndpoint) ? 'container-runtime-endpoint: ' + json(self.containerRuntimeEndpoint) : '',
+              has(self.snapshotter) ? 'snapshotter: ' + json(self.snapshotter) : '',
+              has(self.privateRegistry) ? 'private-registry: ' + json(self.privateRegistry) : '',
+              has(self.resolvConf) ? 'resolv-conf: ' + json(self.resolvConf) : '',
+              has(self.pauseImage) ? 'pause-image: ' + json(self.pauseImage) : '',
+              has(self.selinux) ? 'selinux: ' + json(self.selinux) : '',
+              has(self.protectKernelDefaults) ? 'protect-kernel-defaults: ' + json(self.protectKernelDefaults) : '',
+              has(self.kubeletArgs) ? 'kubelet-arg: ' + json(self.kubeletArgs) : '',
+              has(self.kubeProxyArgs) ? 'kube-proxy-arg: ' + json(self.kubeProxyArgs) : '',
+              has(self.clusterInit) ? 'cluster-init: true' : '',
+              has(self.server) ? 'server: ' + json(self.server) : '',
+              has(self.disable) ? 'disable: ' + json(self.disable) : '',
+              has(self.disableScheduler) ? 'disable-scheduler: ' + json(self.disableScheduler) : '',
+              has(self.disableCloudController) ? 'disable-cloud-controller: ' + json(self.disableCloudController) : '',
+              has(self.disableKubeProxy) ? 'disable-kube-proxy: ' + json(self.disableKubeProxy) : '',
+              has(self.disableNetworkPolicy) ? 'disable-network-policy: ' + json(self.disableNetworkPolicy) : '',
+              has(self.disableHelmController) ? 'disable-helm-controller: ' + json(self.disableHelmController) : '',
+              has(self.tlsSans) ? 'tls-san: ' + json(self.tlsSans) : '',
+              has(self.clusterCidr) ? 'cluster-cidr: ' + json(self.clusterCidr) : '',
+              has(self.serviceCidr) ? 'service-cidr: ' + json(self.serviceCidr) : '',
+              has(self.clusterDns) ? 'cluster-dns: ' + json(self.clusterDns) : '',
+              has(self.clusterDomain) ? 'cluster-domain: ' + json(self.clusterDomain) : '',
+              has(self.flannelBackend) ? 'flannel-backend: ' + json(self.flannelBackend) : '',
+              has(self.writeKubeconfigMode) ? 'write-kubeconfig-mode: ' + json(self.writeKubeconfigMode) : '',
+              has(self.datastoreEndpoint) ? 'datastore-endpoint: ' + json(self.datastoreEndpoint) : '',
+              has(self.secretsEncryption) ? 'secrets-encryption: ' + json(self.secretsEncryption) : '',
+              has(self.etcdSnapshotSchedule) ? 'etcd-snapshot-schedule-cron: ' + json(self.etcdSnapshotSchedule) : '',
+              has(self.etcdSnapshotRetention) ? 'etcd-snapshot-retention: ' + json(self.etcdSnapshotRetention) : '',
+              has(self.etcdSnapshotDir) ? 'etcd-snapshot-dir: ' + json(self.etcdSnapshotDir) : '',
+              has(self.kubeApiServerArgs) ? 'kube-apiserver-arg: ' + json(self.kubeApiServerArgs) : '',
+              has(self.kubeSchedulerArgs) ? 'kube-scheduler-arg: ' + json(self.kubeSchedulerArgs) : '',
+              has(self.kubeControllerManagerArgs) ? 'kube-controller-manager-arg: ' + json(self.kubeControllerManagerArgs) : ''
+            ] + (has(self.extraConfig) ? keys(self.extraConfig).map(k, k + ': ' + json(self.extraConfig[k])) : []))
+            .filter(l, l != '').join('\n') + '\n'
+
+      # 2. Ask the host what it currently has. One round trip returns both facts
+      #    the decision needs: installed version and the hash of the live config.
+      #    Both are empty strings on a machine with no k3s, which reads as "differs".
+      - name: probe
+        invoke: !cel "self.name + '-sh'"
+        inputs:
+          command: >-
+            printf '%s %s'
+            "$(k3s --version 2>/dev/null | head -1 | awk '{print $3}')"
+            "$(sha256sum /etc/rancher/k3s/config.yaml 2>/dev/null | cut -d' ' -f1)"
+
+      - name: desired
+        value:
+          # An unpinned `version` compares equal to whatever is installed, so an
+          # absent pin never forces a reinstall — it only declines to upgrade.
+          versionMatches: !cel >-
+            !has(self.version) ||
+            steps.probe.result.stdout.split(' ')[0] == self.version
+          configMatches: !cel >-
+            steps.probe.result.stdout.split(' ')[1] == sha256(steps.render.result.config)
+
+      # 3. Converge only on a real difference. This branch is the whole reason
+      #    the module exists rather than a `curl | sh` in a shell script: piping
+      #    the installer unconditionally reinstalls the binary and restarts k3s
+      #    on every apply, which on a multi-server cluster is a rolling
+      #    control-plane bounce for a no-op run.
+      - name: converge
+        if: !cel >-
+          !(steps.desired.result.versionMatches && steps.desired.result.configMatches)
+        then:
+          # Config travels base64-encoded so no amount of quoting, newlines or
+          # shell metacharacters in a rendered value can break out of the command.
+          - name: writeConfig
+            invoke: !cel "self.name + '-sh'"
+            inputs:
+              command: !cel >-
+                "mkdir -p /etc/rancher/k3s && printf '%s' '" +
+                base64Encode(steps.render.result.config) +
+                "' | base64 -d > /etc/rancher/k3s/config.yaml"
+
+          - name: install
+            invoke: !cel "self.name + '-sh'"
+            inputs:
+              command: curl -sfL https://get.k3s.io | sh -s - server
+              timeoutMs: !cel "self.installTimeoutMs"
+              env:
+                INSTALL_K3S_VERSION: !cel "has(self.version) ? self.version : ''"
+                INSTALL_K3S_SKIP_START: "false"
+
+          - name: installFailed
+            if: !cel "steps.install.result.exitCode != 0"
+            then:
+              - name: raise
+                throw:
+                  code: K3S_INSTALL_FAILED
+                  message: !cel >-
+                    'k3s server install failed on ' + self.name +
+                    ' (exit ' + string(steps.install.result.exitCode) + '): ' +
+                    steps.install.result.stderr
+
+          # The installer starts k3s itself on a fresh machine, but on a machine
+          # that already had it the unit is reloaded, not restarted — a rewritten
+          # config.yaml only takes effect here.
+          - name: restart
+            invoke: !cel "self.name + '-sh'"
+            inputs:
+              command: systemctl restart k3s
+              timeoutMs: !cel "self.installTimeoutMs"
+
+          - name: waitReady
+            invoke: !cel "self.name + '-sh'"
+            inputs:
+              command: >-
+                until k3s kubectl get --raw /readyz >/dev/null 2>&1; do sleep 2; done
+              timeoutMs: !cel "self.readyTimeoutMs"
+
+          - name: notReady
+            if: !cel "steps.waitReady.result.exitCode != 0"
+            then:
+              - name: raise
+                throw:
+                  code: K3S_NOT_READY
+                  message: !cel >-
+                    'k3s server ' + self.name + ' did not report ready within ' +
+                    string(self.readyTimeoutMs) + 'ms'
+
+    outputs:
+      changed: !cel >-
+        !(steps.desired.result.versionMatches && steps.desired.result.configMatches)
+      config: !cel "steps.render.result.config"
+
+run: !cel "self.name + '-converge'"
+
+---
+# K3s.Agent — a worker node. Everything K3s.Node carries, plus the one field
+# that is optional on a server and mandatory here: where to join.
+kind: Telo.Definition
+metadata:
+  name: Agent
+  description: >-
+    A k3s worker node — kubelet and the container runtime, no control plane. It
+    must be told which control plane to join, so `server` is required here where
+    on a K3s.Server it is one of two mutually exclusive modes. Carries no
+    control-plane settings at all; those are not merely ignored on an agent, they
+    are absent from its schema.
+extends: Self.Node
+schema:
+  type: object
+  required: [server]
+  properties:
+    server:
+      title: Join URL
+      description: >-
+        `https://<server>:6443` — the control plane to join. Required: an agent
+        with nowhere to join is not a meaningful resource, and making it a schema
+        error is cheaper than discovering it as a node that never registers.
+      type: string
+      pattern: '^https://.+:\d+$'
+      x-k3s-key: server
+
+  examples:
+    - host: !ref node-b
+      token: "${{ secrets.k3sToken }}"
+      version: v1.31.4+k3s1
+      server: https://10.0.0.11:6443
+      nodeLabels: [role=worker]
+
+resources:
+  - kind: Shell.Command
+    metadata:
+      name: !cel "self.name + '-sh'"
+    host: !cel "self.host"
+
+  - kind: Run.Sequence
+    metadata:
+      name: !cel "self.name + '-converge'"
+    steps:
+      - name: render
+        value:
+          config: !cel >-
+            ([
+              'server: ' + json(self.server),
+              has(self.token) ? 'token: ' + json(self.token) : '',
+              has(self.nodeName) ? 'node-name: ' + json(self.nodeName) : '',
+              has(self.nodeIp) ? 'node-ip: ' + json(self.nodeIp) : '',
+              has(self.nodeExternalIp) ? 'node-external-ip: ' + json(self.nodeExternalIp) : '',
+              has(self.nodeLabels) ? 'node-label: ' + json(self.nodeLabels) : '',
+              has(self.nodeTaints) ? 'node-taint: ' + json(self.nodeTaints) : '',
+              has(self.dataDir) ? 'data-dir: ' + json(self.dataDir) : '',
+              has(self.containerRuntimeEndpoint) ? 'container-runtime-endpoint: ' + json(self.containerRuntimeEndpoint) : '',
+              has(self.snapshotter) ? 'snapshotter: ' + json(self.snapshotter) : '',
+              has(self.privateRegistry) ? 'private-registry: ' + json(self.privateRegistry) : '',
+              has(self.resolvConf) ? 'resolv-conf: ' + json(self.resolvConf) : '',
+              has(self.pauseImage) ? 'pause-image: ' + json(self.pauseImage) : '',
+              has(self.selinux) ? 'selinux: ' + json(self.selinux) : '',
+              has(self.protectKernelDefaults) ? 'protect-kernel-defaults: ' + json(self.protectKernelDefaults) : '',
+              has(self.kubeletArgs) ? 'kubelet-arg: ' + json(self.kubeletArgs) : '',
+              has(self.kubeProxyArgs) ? 'kube-proxy-arg: ' + json(self.kubeProxyArgs) : ''
+            ] + (has(self.extraConfig) ? keys(self.extraConfig).map(k, k + ': ' + json(self.extraConfig[k])) : []))
+            .filter(l, l != '').join('\n') + '\n'
+
+      - name: probe
+        invoke: !cel "self.name + '-sh'"
+        inputs:
+          command: >-
+            printf '%s %s'
+            "$(k3s --version 2>/dev/null | head -1 | awk '{print $3}')"
+            "$(sha256sum /etc/rancher/k3s/config.yaml 2>/dev/null | cut -d' ' -f1)"
+
+      - name: desired
+        value:
+          versionMatches: !cel >-
+            !has(self.version) ||
+            steps.probe.result.stdout.split(' ')[0] == self.version
+          configMatches: !cel >-
+            steps.probe.result.stdout.split(' ')[1] == sha256(steps.render.result.config)
+
+      - name: converge
+        if: !cel >-
+          !(steps.desired.result.versionMatches && steps.desired.result.configMatches)
+        then:
+          - name: writeConfig
+            invoke: !cel "self.name + '-sh'"
+            inputs:
+              command: !cel >-
+                "mkdir -p /etc/rancher/k3s && printf '%s' '" +
+                base64Encode(steps.render.result.config) +
+                "' | base64 -d > /etc/rancher/k3s/config.yaml"
+
+          # `sh -s - agent` selects the agent unit. K3S_URL is what the installer
+          # keys off, and it duplicates `server:` from the config — the installer
+          # reads env, the running agent reads the file, and both must agree.
+          - name: install
+            invoke: !cel "self.name + '-sh'"
+            inputs:
+              command: curl -sfL https://get.k3s.io | sh -s - agent
+              timeoutMs: !cel "self.installTimeoutMs"
+              env:
+                INSTALL_K3S_VERSION: !cel "has(self.version) ? self.version : ''"
+                K3S_URL: !cel "self.server"
+                K3S_TOKEN: !cel "self.token"
+
+          - name: installFailed
+            if: !cel "steps.install.result.exitCode != 0"
+            then:
+              - name: raise
+                throw:
+                  code: K3S_INSTALL_FAILED
+                  message: !cel >-
+                    'k3s agent install failed on ' + self.name +
+                    ' (exit ' + string(steps.install.result.exitCode) + '): ' +
+                    steps.install.result.stderr
+
+          - name: restart
+            invoke: !cel "self.name + '-sh'"
+            inputs:
+              command: systemctl restart k3s-agent
+              timeoutMs: !cel "self.installTimeoutMs"
+
+          # An agent has no local API server to ask, so readiness is the kubelet
+          # having come up far enough to serve its own healthz.
+          - name: waitReady
+            invoke: !cel "self.name + '-sh'"
+            inputs:
+              command: >-
+                until curl -sf http://127.0.0.1:10248/healthz >/dev/null 2>&1; do sleep 2; done
+              timeoutMs: !cel "self.readyTimeoutMs"
+
+          - name: notReady
+            if: !cel "steps.waitReady.result.exitCode != 0"
+            then:
+              - name: raise
+                throw:
+                  code: K3S_NOT_READY
+                  message: !cel >-
+                    'k3s agent ' + self.name + ' did not report ready within ' +
+                    string(self.readyTimeoutMs) + 'ms'
+
+    outputs:
+      changed: !cel >-
+        !(steps.desired.result.versionMatches && steps.desired.result.configMatches)
+      config: !cel "steps.render.result.config"
+
+run: !cel "self.name + '-converge'"

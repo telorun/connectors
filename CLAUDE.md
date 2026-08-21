@@ -65,8 +65,7 @@ Capabilities a kind can have (the lifecycle role):
     Http: oci://ghcr.io/telorun/http-client@0.19.0#sha256-rDyxrt23Z4u9H1_dwOgI3ajoMwEm6i9h-HbMmEQlRxg
   ```
 
-  The bare `std/<name>@VERSION` shorthand is **gone** — never write it. A
-  relative path (`../`, `../../`) is still the way to import a sibling module in
+  A relative path (`../`, `../../`) is still the way to import a sibling module in
   this repo from its own tests. Get the exact ref + digest from
   `telo module search` / `telo module manifest`; never hand-write a digest.
   Object form `{ source, variables?, secrets? }` forwards values into the
@@ -139,9 +138,7 @@ Key `x-telo-*` annotations:
   `imports:` map, `Self.<Kind>` for a kind declared in this same library, or
   `Telo.<Kind>` for a built-in capability (`Telo.Invocable`, `Telo.Runnable`,
   `Telo.Mount`, `Telo.Type`, `Telo.Executable`). E.g. an operation's `client`
-  field is `Http.Client`. The legacy `"<namespace>/<module>#<Kind>"` string
-  form (`"std/http-client#Client"`) is **deprecated** — the analyzer flags it as
-  `X_TELO_REF_LEGACY_IDENTITY`. Never use it.
+  field is `Http.Client`.
 
   Write the **object form** `{ kind: <Alias>.<Kind>, use: <how> }` — the bare
   string is shorthand that leaves `use` unstated. `use:` declares how this
@@ -258,7 +255,7 @@ before writing any resource from a module you did not author:
   required fields. Read `schema` / `inputType` / `outputType` — never invent a
   field from a kind name, and never guess a version. Record the exact OCI
   location ref, `metadata.version`, and integrity digest for the `imports:`
-  entry — the full `oci://…@VERSION#sha256-…` string, never a `std/` shorthand.
+  entry — the full `oci://…@VERSION#sha256-…` string.
 
 Also useful: `https://telo.run/llms.txt` (guide + kind reference),
 `https://telo.run/examples.md` (working manifests), `https://telo.run/cel.md`
@@ -329,12 +326,10 @@ drifts from the module tree.
   rules above.
 - ALWAYS write CEL with the `!cel "..."` tag — never the inline `${{ }}` form.
 - **OCI is the only import form.** Every external dependency is
-  `oci://ghcr.io/telorun/<name>@VERSION#sha256-…`, digest-pinned. The bare
-  `std/<name>@VERSION` shorthand is retired — never introduce one, and convert
-  any you find. Sibling modules in this repo are imported by relative path.
+  `oci://ghcr.io/telorun/<name>@VERSION#sha256-…`, digest-pinned. Sibling modules 
+  in this repo are imported by relative path.
 - Write `x-telo-ref` as an alias-qualified kind (`Http.Client`, `Self.Bucket`,
-  `Telo.Invocable`). The `"<namespace>/<module>#<Kind>"` string form is
-  deprecated and flagged by `telo check`.
+  `Telo.Invocable`).
 - Prefer composing existing registry modules and specializing existing kinds over
   inventing new kinds or writing controllers. `JS.Script` / TS controllers are a
   last resort — first check whether a generic, reusable kind (composed from the
@@ -353,8 +348,8 @@ drifts from the module tree.
 
 ## Repo layout
 
-- `<namespace>/<name>/telo.yaml` — the library manifest (e.g.
+- `<vendor>/<name>/telo.yaml` — the library manifest (e.g.
   `jetbrains/youtrack/telo.yaml`).
-- `<namespace>/<name>/tests/*.yaml` — integration tests.
-- `<namespace>/<name>/docs/` — module documentation.
-- `<namespace>/<name>/plans/` — implementation plans for that module.
+- `<vendor>/<name>/tests/*.yaml` — integration tests.
+- `<vendor>/<name>/docs/` — module documentation.
+- `<vendor>/<name>/plans/` — implementation plans for that module.

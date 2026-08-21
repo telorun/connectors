@@ -94,8 +94,7 @@ A Telo.Application can declare any number of handler resources extending `Lambda
 ```yaml
 kind: Telo.Library
 metadata:
-  namespace: aws
-  name: lambda
+  name: Lambda
   version: 0.1.0
 imports:
   # Shared HTTP outcome schema for HTTP-shaped handler kinds.
