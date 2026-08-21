@@ -60,16 +60,21 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      # .changie.yaml is generated — fail if it drifts from the module tree.
-      - name: changie config is committed
-        run: |
-          node scripts/gen-changie-config.mjs
-          git diff --exit-code .changie.yaml
+      # Controller bytes are part of a module's payload digest, so the release plan
+      # is computed against built controllers.
+      - name: Build controllers
+        run: pnpm -r run build
 
-      # Connectors are pre-1.0: reject a changie fragment that auto-bumps to 1.0.0.
-      - name: No major module bump
-        run: node scripts/check-no-major-module-bump.mjs
+      - name: Install telo CLI
+        run: npm install -g @telorun/cli
 
-      # Every published @telorun/* package changed vs main must ship a changeset.
-      - name: Changeset present
-        run: pnpm changeset status --since=origin/main
+      # Fails when no consistent release plan can be formed in a vendor workspace: a
+      # fragment naming an unknown module, a major-inducing kind (modules are pre-1.0),
+      # a manifest version disagreeing with its ledger entry, or digests taken against
+      # another registry base. It does NOT fail merely because a payload moved — that
+      # ships as an unattributed patch. It warns when a module's own files changed and
+      # no fragment names it.
+      - name: Release plan is consistent
+        env:
+          TELO_OCI_REGISTRY: ${{ vars.TELO_OCI_REGISTRY }}
+        run: node scripts/release.mjs check

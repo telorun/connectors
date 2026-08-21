@@ -1,0 +1,10 @@
+# The release anchor for this vendor. Its LOCATION is what every module key,
+# ledger entry and fragment path is relative to, and `telo release` derives a
+# module's publish destination as `<registry>/<directory name>` — so anchoring
+# per vendor is what keeps the published refs vendor-nested
+# (`oci://ghcr.io/telorun/aws/s3`) rather than flattening them under one base.
+#
+# Read by `telo release`, and by `telo run` as the bound on its `.env` /
+# `.env.local` walk-up — location only, never `modules:`.
+modules:
+  - "*"

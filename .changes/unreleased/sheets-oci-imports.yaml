@@ -1,3 +1,0 @@
-project: sheets
-kind: Added
-body: "Declare the operation `client` slots in object form as `kind: Http.Client, use: dependency`, replacing the deprecated `std/http-client#Client` form, and pin the http-client import to the OCI ref `0.19.0`."
