@@ -16,11 +16,10 @@
     "test": "telo ./test-suite.yaml",
     "test:e2e:s3": "telo ./aws/s3/test-suite-e2e.yaml",
     "test:e2e:lambda": "pnpm --filter @telorun/lambda test:e2e",
-    "gen-changie-config": "node scripts/gen-changie-config.mjs",
-    "version-packages": "node scripts/version-packages.mjs",
-    "release": "node scripts/publish-packages.mjs"
-  },
-  "devDependencies": {
-    "@changesets/cli": "^2.29.8"
+    "release:status": "node scripts/release.mjs status",
+    "release:check": "node scripts/release.mjs check",
+    "release:apply": "node scripts/release.mjs apply",
+    "release:verify": "node scripts/release.mjs verify",
+    "publish-modules": "node scripts/publish-modules.mjs"
   }
 }

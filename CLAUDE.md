@@ -273,52 +273,65 @@ Also useful: `https://telo.run/llms.txt` (guide + kind reference),
   discovery). A test asserts behavior with kinds from the `assert` + `test`
   modules (`oci://ghcr.io/telorun/assert@…`, `oci://ghcr.io/telorun/test@…`).
 
-## Versioning — every module change needs a changie fragment
+## Versioning — every module change needs a release fragment
 
 A module's published version is `metadata.version` in its `telo.yaml`. **NEVER
-hand-edit it.** changie owns telo manifest versions (what ships to the OCI
-registry); changesets owns the npm controller packages.
+hand-edit it.** `telo release` owns it — along with the module's npm controller
+version and every `pkg:npm` pin naming it, so a module has ONE version across
+`telo.yaml` and `nodejs/package.json`, and one CHANGELOG. There is no second
+ledger: changie and changesets are both retired here.
 
-**Rule: any change to a published module file — `<vendor>/<module>/telo.yaml`,
-its `include:` partials, or its controller source — ships with a changie
-fragment in the SAME change.** A module edit with no fragment is incomplete: the
-manifest changes but its version never moves, so consumers pin a digest whose
-content silently drifted. Test-only, docs-only, and plan-only edits need no
-fragment (they are not published).
+**One release workspace per vendor directory.** `telo release` derives a module's
+publish destination as `<registry>/<directory name>` and records one registry base
+per workspace, so the anchor sits at `<vendor>/telo-workspace.yaml` (`modules: ["*"]`)
+with base `oci://ghcr.io/telorun/<vendor>` — which is what keeps published refs
+vendor-nested (`oci://ghcr.io/telorun/aws/s3`). Each vendor owns its
+`<vendor>/.changes/ledger.yaml` (a cache of what the registry serves, so the PR gate
+needs no credentials) and `<vendor>/.changes/pending/`. `scripts/release.mjs` runs a
+subcommand across every vendor.
 
-Add one per affected module. `changie new --project <module>` is interactive, so
-in a non-interactive session write the file directly to
-`.changes/unreleased/<module>-<slug>.yaml`:
+**Rule: any change to a published module file — `<vendor>/<module>/telo.yaml`, its
+`include:` partials, or its controller source — ships with a fragment in the SAME
+change.** The fragment is what supplies the changelog line and the level;
+`telo release` sees the payload change either way (the digest is exact), so a
+missing fragment costs prose and an unattributed patch, not a missed publish.
+Test-only, docs-only and plan-only edits need no fragment.
+
+Write one with `telo release add` from inside the vendor directory, or by hand at
+`<vendor>/.changes/pending/<slug>.yaml` — one file, several modules, one body:
 
 ```yaml
-project: youtrack          # the changie project key = the module directory name
-kind: Added
+modules:
+  youtrack: Added            # the key is the module DIRECTORY name inside the vendor
+  sheets: Added
 body: "Short description. QUOTE the body — an unquoted ': ' breaks the YAML."
 ```
 
-Picking `kind:` — the level comes from the `auto:` mapping in `.changie.yaml`:
+Picking `kind:`:
 
-- `Added` → **minor**. Use for a new kind/field, and for a dependency bump or
-  behavior change that consumers could notice. Modules are pre-1.0, so breaking
-  changes ship as **minor** on purpose.
-- `Fixed` → **patch**. Use for a genuinely behavior-preserving fix.
-- `Changed` / `Removed` → major, and CI **rejects** them
-  (`scripts/check-no-major-module-bump.mjs`) because these modules are pre-1.0.
-  Going 1.0 must be a deliberate promotion, never a side effect of picking a
-  changelog category.
+- `Added` / `Deprecated` → **minor**. A new kind or field, a dependency bump, a
+  behavior change consumers could notice. Modules are pre-1.0, so breaking changes
+  ship as **minor** on purpose, with the break described in the body.
+- `Fixed` / `Security` → **patch**. A genuinely behavior-preserving fix.
+- `Changed` / `Removed` → major, and `telo release check` **rejects** them. Going
+  1.0 must be a deliberate promotion, never a side effect of picking a changelog
+  category.
 
-Verify before finishing — neither check is optional:
+Verify before finishing:
 
 ```bash
-node scripts/check-no-major-module-bump.mjs        # CI guard; regex-only, does NOT catch bad YAML
-changie batch auto -j <module> --dry-run           # parses the YAML; prints the resulting version
+pnpm run release:check     # CI's gate: fails when no consistent plan can be formed
+pnpm run release:status    # the plan itself — what bumps, to what, and why
 ```
 
-Run the dry-run for **each** module you added a fragment for: it is the only one
-of the two that actually parses the fragment, and it shows the version the
-fragment resolves to. `.changie.yaml` itself is **generated** — after adding or
-removing a module run `node scripts/gen-changie-config.mjs`; CI fails if it
-drifts from the module tree.
+`status` also names what it could not attribute (`payload changed, unattributed`) —
+a module whose bytes moved with no fragment, which takes a patch rather than
+failing. `pnpm run release:verify` reconciles a ledger against the registry
+(`-- --write` to re-record it); a *missing* entry means "never published", not drift.
+
+CI applies the plan: the `module-release` job opens the `chore(release): version
+modules` PR with a generated body listing every module that will publish, and
+merging it makes `publish-modules` push the artifacts.
 
 ## Authoring rules (follow strictly)
 
@@ -341,8 +354,9 @@ drifts from the module tree.
   not JSON strings; only dynamic leaves are tagged `!cel`.
 - Every module change includes documentation. Keep module docs in
   `<module>/docs/` and in sync with the code.
-- Every change to a published module file ships a **changie fragment** in the
-  same change — see Versioning above. Never hand-edit `metadata.version`.
+- Every change to a published module file ships a **release fragment**
+  (`<vendor>/.changes/pending/*.yaml`) in the same change — see Versioning above.
+  Never hand-edit `metadata.version`.
 - Design for breadth: when choosing between a generic primitive and a
   use-case-specific shortcut, default to the generic primitive.
 
@@ -353,3 +367,8 @@ drifts from the module tree.
 - `<vendor>/<name>/tests/*.yaml` — integration tests.
 - `<vendor>/<name>/docs/` — module documentation.
 - `<vendor>/<name>/plans/` — implementation plans for that module.
+- `<vendor>/telo-workspace.yaml` — the vendor's release anchor; `<vendor>/.changes/`
+  its ledger and pending fragments (see Versioning).
+- `scripts/release.mjs` — a `telo release` subcommand across every vendor;
+  `scripts/publish-modules.mjs` — the OCI/npm push pass, gated on version movement
+  and per-version presence.
