@@ -21,6 +21,13 @@ kinds:
   - label: Security
     auto: patch
 projects:
+  - label: k3s
+    key: k3s
+    changelog: rancher/k3s/CHANGELOG.md
+    replacements:
+      - path: rancher/k3s/telo.yaml
+        find: '^  version: ["'']?\d+\.\d+\.\d+["'']?$'
+        replace: '  version: {{.VersionNoPrefix}}'
   - label: lambda
     key: lambda
     changelog: aws/lambda/CHANGELOG.md
