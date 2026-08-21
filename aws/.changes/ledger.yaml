@@ -4,10 +4,10 @@
 registry: oci://ghcr.io/telorun/aws
 modules:
   lambda:
-    version: 0.9.1
+    version: 0.10.0
     layers:
-      manifest: sha256-MPJvQTNAWFu1HPIyZ2UMtYbW6LnotYyESETnzFbRSj0
+      manifest: sha256-r2pLusUQwJjBifrjM1_SlwLy5VfmMNvt8kM9BI8lh5k
   s3:
-    version: 0.8.1
+    version: 0.8.2
     layers:
-      manifest: sha256-HGjqGDbmIq6pgzOty6w0_NdTMrTGOrIk0Qsf_jw6bnE
+      manifest: sha256-ZNlbdwGPJpS5Mdy_kB5gm_Qov5x3J-G7Z1xRPL5XHw0

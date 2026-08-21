@@ -1,7 +1,7 @@
 kind: Telo.Library
 metadata:
   name: GoogleSheets
-  version: 0.1.0
+  version: 0.2.0
   description: >-
     Typed Google Sheets (API v4) operations for Telo manifests. A friendly
     Http.Client (GoogleSheetsClient) preconfigured with an OAuth2 Bearer access

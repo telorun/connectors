@@ -1,3 +1,0 @@
-modules:
-  s3: Fixed
-body: "Declare the `bucketRef` slots in object form as `kind: Self.Bucket, use: dependency`, replacing the deprecated `aws/s3#Bucket` form and clearing the `X_TELO_REF_LEGACY_IDENTITY` analyzer warning. No change to the accepted references."
