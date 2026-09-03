@@ -1,3 +1,0 @@
-modules:
-  k3s: Added
-body: "Upgrade the `run` import to 0.26.0. A controller-only release — every kind schema `K3s` builds on is unchanged; only the module's JS controller layer moved."

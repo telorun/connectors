@@ -4,6 +4,6 @@
 registry: oci://ghcr.io/telorun/google
 modules:
   sheets:
-    version: 0.2.0
+    version: 0.3.0
     layers:
-      manifest: sha256-eGny6ZPTLCwjckZmhhXzlwLeTicoIRTLnY4jsZ0gdQ4
+      manifest: sha256-o2qPfiMFfvkDUPcLaj4XmSM2Bm09PfvUNecShJaXKUM
