@@ -14,7 +14,7 @@ metadata:
     control-plane option placed on an agent.
 imports:
   Shell: oci://ghcr.io/telorun/shell@0.11.4#sha256-modXQfwktXBMR5nkigZU4nqYCm8KJgUjFfzJjr-Cc4g
-  Run: oci://ghcr.io/telorun/run@0.25.0#sha256-uWNxbEhHstDLHZn1Ncu6ScZGYKUe39IZBbhmvAQTAAQ
+  Run: oci://ghcr.io/telorun/run@0.26.0#sha256-ZhW56yiMCImqBh0wJ4mVaUvh5WuUVIaWErASFx--wCY
 exports:
   kinds:
     - Node

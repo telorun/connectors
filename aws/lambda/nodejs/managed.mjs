@@ -11,10 +11,34 @@
 // Conventional Function name is `Main`; if your manifest names it differently,
 // copy this file and edit the literal below.
 
-import { Kernel, LocalFileSource } from "@telorun/kernel";
+import { dirname, join, resolve } from "node:path";
 
-const kernel = new Kernel({ sources: [new LocalFileSource()] });
-await kernel.load("./telo.yaml");
+import {
+  Kernel,
+  LocalFileSource,
+  LocalManifestCacheSource,
+  resolveCacheRoot,
+} from "@telorun/kernel";
+
+const ENTRY = "./telo.yaml";
+const cacheRoot = resolveCacheRoot(ENTRY);
+
+// `LocalManifestCacheSource` serves the manifests `telo install` vendored into
+// `.telo/manifests` (module `telo.yaml`s AND their controller layers), ahead of
+// the registry/HTTP sources. Without it a packaged artifact re-fetches every
+// `oci://` import from the network on each cold start — which in a VPC with no
+// egress means it never boots at all.
+const kernel = new Kernel({
+  sources: [
+    new LocalFileSource(),
+    new LocalManifestCacheSource(
+      dirname(resolve(ENTRY)),
+      undefined,
+      cacheRoot ? join(cacheRoot, "manifests") : undefined,
+    ),
+  ],
+});
+await kernel.load(ENTRY);
 await kernel.boot();
 process.once("SIGTERM", () => kernel.teardown());
 

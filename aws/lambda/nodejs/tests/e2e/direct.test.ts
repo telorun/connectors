@@ -25,7 +25,7 @@ describe.each([
     if (fixture) fixture.cleanup();
   });
 
-  it("dispatches a synthetic event through Direct → JS handler and returns the result", async () => {
+  it("dispatches a synthetic event through Direct → Run.Value handler and returns the result", async () => {
     const event = { user: "alice", value: 42 };
     const response = await invokeRie(rie.invokeUrl, event);
     expect(response).toEqual({ received: { payload: event } });

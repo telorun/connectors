@@ -8,10 +8,10 @@ metadata:
   version: 1.0.0
 imports:
   Lambda: ..
-  JavaScript: oci://ghcr.io/telorun/javascript@0.12.0#sha256-HG9Ydrm-jnzR6H1phgJy_PUKxAtSUEy76QxmMn1VcLY
-  Type: oci://ghcr.io/telorun/type@0.12.0#sha256-t-oLsWBfXma4tgvf9WDzjMSUejWkgozYbP_AyBo6-XM
-  Run: oci://ghcr.io/telorun/run@0.22.0#sha256-FeYAHs_krf06Dk68n5Mtjp0wLSfOvDLslREHP54BiJM
-  Assert: oci://ghcr.io/telorun/assert@0.16.0#sha256-0a8uEwCZG2ElZ7CxeDYfL3gbDFLj-92_jHEOeJbI6m0
+  JavaScript: oci://ghcr.io/telorun/javascript@0.12.3#sha256-iUQQQDhaz0vY_ILjBbmwieUFhgVG8HXtPq-bwtcDWdA
+  Type: oci://ghcr.io/telorun/type@0.12.1#sha256-tKywEmG8dPFv9UhLgvWmpcDk_FdLDZVORhEIKMFxpVM
+  Run: oci://ghcr.io/telorun/run@0.26.0#sha256-ZhW56yiMCImqBh0wJ4mVaUvh5WuUVIaWErASFx--wCY
+  Assert: oci://ghcr.io/telorun/assert@0.18.0#sha256-mSy7HGMq_UoQUvt4WbQCIO_uqXcRZwRlmROp6DfLDjY
 targets:
   - !ref TestSqsDispatch
 ---

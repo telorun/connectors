@@ -1,36 +1,36 @@
 import { MODULE_SOURCES } from "./prepare-fixture.js";
 
 /** Minimal Telo.Application fixtures, one per handler kind. Each imports the
- *  Lambda / JS / Type modules by relative path from the LIVE workspace copy
+ *  Lambda / Run / Type modules by relative path from the LIVE workspace copy
  *  `prepare-fixture` lays down in the fixture (no published-version pins to
- *  maintain) plus a small JS handler so the E2E test exercises Function →
- *  handler-kind → user invocable → outcome rendering end to end. */
+ *  maintain) plus a small `Run.Value` handler so the E2E test exercises
+ *  Function → handler-kind → user invocable → outcome rendering end to end. */
 
 export const directManifest = `\
 kind: Telo.Application
 metadata:
-  name: e2e-direct
+  name: E2eDirect
   version: 1.0.0
 imports:
   Lambda: ${MODULE_SOURCES.lambda}
-  JS: ${MODULE_SOURCES.javascript}
+  Run: ${MODULE_SOURCES.run}
   Type: ${MODULE_SOURCES.type}
 targets: [!ref Main]
 ---
-kind: JS.Script
+kind: Run.Value
 metadata: { name: Echo }
 inputType:
   kind: Type.JsonSchema
   schema:
     type: object
+    additionalProperties: true
 outputType:
   kind: Type.JsonSchema
   schema:
     type: object
-code: |
-  function main(input) {
-    return { received: input };
-  }
+    additionalProperties: true
+value:
+  received: !cel "inputs"
 ---
 kind: Lambda.Direct
 metadata: { name: Greeter }
@@ -47,15 +47,15 @@ handlers:
 export const httpApiManifest = `\
 kind: Telo.Application
 metadata:
-  name: e2e-http-api
+  name: E2eHttpApi
   version: 1.0.0
 imports:
   Lambda: ${MODULE_SOURCES.lambda}
-  JS: ${MODULE_SOURCES.javascript}
+  Run: ${MODULE_SOURCES.run}
   Type: ${MODULE_SOURCES.type}
 targets: [!ref Main]
 ---
-kind: JS.Script
+kind: Run.Value
 metadata: { name: GreetById }
 inputType:
   kind: Type.JsonSchema
@@ -71,10 +71,8 @@ outputType:
     required: [message]
     properties:
       message: { type: string }
-code: |
-  function main({ id }) {
-    return { message: \`Hello \${id}!\` };
-  }
+value:
+  message: !cel "'Hello ' + inputs.id + '!'"
 ---
 kind: Lambda.HttpApi
 metadata: { name: Web }
@@ -100,15 +98,15 @@ handlers:
 export const sqsManifest = `\
 kind: Telo.Application
 metadata:
-  name: e2e-sqs
+  name: E2eSqs
   version: 1.0.0
 imports:
   Lambda: ${MODULE_SOURCES.lambda}
-  JS: ${MODULE_SOURCES.javascript}
+  Run: ${MODULE_SOURCES.run}
   Type: ${MODULE_SOURCES.type}
 targets: [!ref Main]
 ---
-kind: JS.Script
+kind: Run.Value
 metadata: { name: ProcessRecords }
 inputType:
   kind: Type.JsonSchema
@@ -118,17 +116,18 @@ inputType:
     properties:
       records:
         type: array
+        items:
+          type: object
+          additionalProperties: true
+          properties:
+            messageId: { type: string }
 outputType:
   kind: Type.JsonSchema
   schema:
     type: object
-code: |
-  function main({ records }) {
-    const failures = records
-      .filter((r) => r.messageId === "bad")
-      .map((r) => ({ itemIdentifier: r.messageId }));
-    return { batchItemFailures: failures };
-  }
+    additionalProperties: true
+value:
+  batchItemFailures: !cel "inputs.records.filter(r, r.messageId == 'bad').map(r, {'itemIdentifier': r.messageId})"
 ---
 kind: Lambda.Sqs
 metadata: { name: Orders }

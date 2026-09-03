@@ -7,9 +7,30 @@
 // it inside `run()` and starts the poll loop against the AWS Runtime API.
 // `kernel.start()` blocks until SIGTERM releases the Function's kernel hold.
 
-import { Kernel, LocalFileSource } from "@telorun/kernel";
+import { dirname, join, resolve } from "node:path";
 
-const kernel = new Kernel({ sources: [new LocalFileSource()] });
-await kernel.load("./telo.yaml");
+import {
+  Kernel,
+  LocalFileSource,
+  LocalManifestCacheSource,
+  resolveCacheRoot,
+} from "@telorun/kernel";
+
+const ENTRY = "./telo.yaml";
+const cacheRoot = resolveCacheRoot(ENTRY);
+
+// See managed.mjs: serves `telo install`'s vendored manifests so a packaged
+// artifact boots without reaching the registry.
+const kernel = new Kernel({
+  sources: [
+    new LocalFileSource(),
+    new LocalManifestCacheSource(
+      dirname(resolve(ENTRY)),
+      undefined,
+      cacheRoot ? join(cacheRoot, "manifests") : undefined,
+    ),
+  ],
+});
+await kernel.load(ENTRY);
 process.once("SIGTERM", () => kernel.teardown());
 await kernel.start();

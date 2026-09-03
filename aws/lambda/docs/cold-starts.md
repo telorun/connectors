@@ -38,7 +38,11 @@ If your build pipeline strips `.telo/`, the kernel falls back to `$TELO_REGISTRY
 
 The shipped bootstraps are under 20 lines each. `managed.mjs` does:
 
-1. Instantiate the kernel (no I/O).
+1. Instantiate the kernel (no I/O), wiring a `LocalFileSource` plus a
+   `LocalManifestCacheSource` over `.telo/manifests` — the latter is what makes
+   step 2 resolve every `oci://` import from the artifact instead of the
+   registry. It honours `TELO_CACHE_DIR`, so an image that bakes its cache at a
+   relocated root is served from there.
 2. `kernel.load("./telo.yaml")` — parses the manifest, follows includes / imports, compiles CEL templates.
 3. `kernel.boot()` — runs every resource's `init()`.
 4. Export `handler` — AWS calls it per invocation.

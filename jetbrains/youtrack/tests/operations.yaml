@@ -10,9 +10,9 @@ metadata:
 # responses pass through as { status, headers, body }.
 imports:
   Yt: ../
-  Server: oci://ghcr.io/telorun/http-server@0.25.0#sha256-k1n8gCdP8LEwtp1xcm_DcxGk85YLbb2RrPCl6B30TUQ
-  Run: oci://ghcr.io/telorun/run@0.22.0#sha256-FeYAHs_krf06Dk68n5Mtjp0wLSfOvDLslREHP54BiJM
-  Assert: oci://ghcr.io/telorun/assert@0.16.0#sha256-0a8uEwCZG2ElZ7CxeDYfL3gbDFLj-92_jHEOeJbI6m0
+  Server: oci://ghcr.io/telorun/http-server@0.29.2#sha256-9MtWZqXF9agsYRx97nLMJZW7YYwXpW2dLYcn_oA4kUs
+  Run: oci://ghcr.io/telorun/run@0.26.0#sha256-ZhW56yiMCImqBh0wJ4mVaUvh5WuUVIaWErASFx--wCY
+  Assert: oci://ghcr.io/telorun/assert@0.18.0#sha256-mSy7HGMq_UoQUvt4WbQCIO_uqXcRZwRlmROp6DfLDjY
 targets:
   - !ref testOperations
 ---
