@@ -23,40 +23,16 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const LAMBDA_PKG_DIR = resolve(__dirname, "..", "..");
 const LAMBDA_MODULE_DIR = resolve(LAMBDA_PKG_DIR, "..");
 
-/** Sibling module manifests fetched from the registry via the published `telo`
- *  CLI. Each is copied into `<root>/modules/<module>/telo.yaml` so fixtures
- *  import it by relative path. Whichever npm controller a manifest declares is
- *  read off its own `pkg:npm/...` PURL (see `controllersFrom`) — nothing here
- *  restates a version by hand. `http-dispatch` is pure `Telo.Type` schemas and
- *  declares no controller at all, so it contributes no npm dependency. */
-const OCI_MODULES = [
-  {
-    module: "http-dispatch",
-    ref: "oci://ghcr.io/telorun/http-dispatch@0.8.0#sha256-m1FESVzKRwwVyMGkN1NTv0RPlE_u-RlbAPSBko34UTg",
-  },
-  {
-    module: "javascript",
-    ref: "oci://ghcr.io/telorun/javascript@0.7.0#sha256-aKzlX_nloiYROA85sfZEidy4irQCugNk-MvtyDyqYoY",
-  },
-  {
-    module: "type",
-    ref: "oci://ghcr.io/telorun/type@0.8.0#sha256-z56gxs4HbdWHlUWWvLRFFHPy5wX52SU5A1Fo61s20-g",
-  },
-] as const;
-
-/** Every `pkg:npm/<name>@<version>` controller a fetched manifest declares.
- *  This is the manifest's OWN statement of which controller build pairs with
- *  it, so the fixture installs exactly that — matching the kernel's registry
- *  fast path by version, offline, with no hand-maintained mirror to drift. */
-function controllersFrom(manifest: string): Record<string, string> {
-  const found: Record<string, string> = {};
-  for (const [, name, version] of manifest.matchAll(
-    /pkg:npm\/(@?[^/@\s]+(?:\/[^@\s]+)?)@([^?#\s"']+)/g,
-  )) {
-    found[name] = version;
-  }
-  return found;
-}
+/** Sibling modules the fixtures import, by digest-pinned OCI ref. The kernel
+ *  resolves these itself on cold boot inside the container (which has a
+ *  network, same as CI), so nothing here is vendored: `run` ships its
+ *  controller as a `pkg:telo/local/js` bundle inside its own OCI layers, which
+ *  a copied `telo.yaml` alone would leave behind. Only `@telorun/lambda` — the
+ *  package under test, unpublished at this version — is sourced locally. */
+const OCI_MODULES = {
+  run: "oci://ghcr.io/telorun/run@0.26.0#sha256-ZhW56yiMCImqBh0wJ4mVaUvh5WuUVIaWErASFx--wCY",
+  type: "oci://ghcr.io/telorun/type@0.8.0#sha256-z56gxs4HbdWHlUWWvLRFFHPy5wX52SU5A1Fo61s20-g",
+} as const;
 
 /** The kernel that actually resolves our manifest inside the container. It is
  *  read off the installed `telo` CLI's own `@telorun/kernel` dependency, so the
@@ -81,13 +57,12 @@ function resolveKernelVersion(): string {
   return kernel;
 }
 
-/** Fixture-root-relative `source:` for each module's `Telo.Import`. Consumed by
- *  the manifest helpers so import paths and the copied tree stay in lockstep.
- *  All three resolve to a copied `modules/<name>/` directory. */
+/** `source:` for each module's import in the fixture manifests. Lambda is the
+ *  copied local module directory; the siblings are the OCI refs above. */
 export const MODULE_SOURCES = {
   lambda: "./modules/lambda",
-  javascript: "./modules/javascript",
-  type: "./modules/type",
+  run: OCI_MODULES.run,
+  type: OCI_MODULES.type,
 } as const;
 
 /** Cached across all fixtures in a vitest run — packing + npm-installing is
@@ -96,9 +71,9 @@ export const MODULE_SOURCES = {
 let preparedRoot: Promise<string> | null = null;
 
 /** Packs the LOCAL `@telorun/lambda` controller into a tarball so the fixture
- *  root installs the code about to ship (not a published version). `pnpm pack`
- *  ships only files listed in package.json `files` (i.e. `dist/`), so the
- *  package must be built first. */
+ *  runs the code about to ship (not a published version — npm has nothing at
+ *  this version, by design). `pnpm pack` ships only files listed in
+ *  package.json `files` (i.e. `dist/`), so the package must be built first. */
 function packLambda(packDir: string): string {
   const out = execFileSync(
     "pnpm",
@@ -118,100 +93,66 @@ function packLambda(packDir: string): string {
   return tarballPath;
 }
 
-/** Fetches a module's published `telo.yaml` via the `telo` CLI. Kept behind a
- *  helper so the offline-fixture flow has a single registry read path. */
-function fetchModuleManifest(ref: string): string {
-  return execFileSync("telo", ["module", "manifest", ref], { encoding: "utf-8" });
+/** Lays the local Lambda module down at `<root>/modules/lambda`: its manifest
+ *  verbatim (the `?local_path=./nodejs` qualifier KEPT, so the kernel resolves
+ *  the controller from the copied package rather than from npm, which has no
+ *  0.10.0) beside the packed package itself at `modules/lambda/nodejs`.
+ *
+ *  The controller's own runtime deps are installed there because `local_path`
+ *  imports the entry straight off disk — its `node_modules` walk-up has to
+ *  find `@sinclair/typebox` and friends. `--omit=dev` keeps it to what the
+ *  published package declares. */
+function stageLambdaModule(root: string, tarball: string): void {
+  const moduleDir = join(root, "modules", "lambda");
+  const pkgDir = join(moduleDir, "nodejs");
+  mkdirSync(pkgDir, { recursive: true });
+
+  writeFileSync(
+    join(moduleDir, "telo.yaml"),
+    readFileSync(join(LAMBDA_MODULE_DIR, "telo.yaml"), "utf-8"),
+  );
+
+  // `pnpm pack` tarballs are rooted at `package/`; strip it so the package
+  // lands directly at `modules/lambda/nodejs`.
+  execFileSync("tar", ["xzf", tarball, "-C", pkgDir, "--strip-components=1"]);
+  execFileSync("npm", ["install", "--omit=dev", "--no-package-lock", "--silent"], {
+    cwd: pkgDir,
+    stdio: ["ignore", "ignore", "inherit"],
+  });
 }
 
-/** Writes a synthetic `package.json` that installs the packed local Lambda
- *  controller alongside the published runtime + sibling controllers, then runs
- *  `npm install` once to produce a fully-resolved, offline `node_modules`.
- *
- *  Manifests are fetched BEFORE the install because they are what says which
- *  controller versions to install — every dependency below is derived, none is
- *  restated by hand. */
+/** Builds the tree every fixture clones: the local Lambda module staged under
+ *  `modules/`, plus a `node_modules` holding the kernel the bootstraps import.
+ *  Sibling modules and their controllers are left to the kernel's own resolver
+ *  on cold boot — the container has a network, and its npm install root is
+ *  keyed differently from the host's, so pre-staging them here would be
+ *  ignored anyway. */
 async function buildPreparedRoot(): Promise<string> {
   const packDir = mkdtempSync(join(tmpdir(), "telo-lambda-e2e-pack-"));
   const lambdaTarball = packLambda(packDir);
 
   const root = mkdtempSync(join(tmpdir(), "telo-lambda-e2e-root-"));
-  const siblingControllers = await copyModuleManifests(root);
+  stageLambdaModule(root, lambdaTarball);
 
-  const deps: Record<string, string> = {
-    "@telorun/lambda": `file:${lambdaTarball}`,
-    "@telorun/kernel": resolveKernelVersion(),
-    ...siblingControllers,
-  };
   writeFileSync(
     join(root, "package.json"),
     JSON.stringify(
-      { name: "lambda-e2e-fixture-root", version: "0.0.0", private: true, dependencies: deps },
+      {
+        name: "lambda-e2e-fixture-root",
+        version: "0.0.0",
+        private: true,
+        dependencies: { "@telorun/kernel": resolveKernelVersion() },
+      },
       null,
       2,
     ),
   );
-
   execFileSync("npm", ["install", "--no-package-lock", "--silent"], {
     cwd: root,
     stdio: ["ignore", "ignore", "inherit"],
   });
 
-  await stageControllers(root, Object.keys(siblingControllers));
-
   return root;
-}
-
-/** Places each module's `telo.yaml` under `<root>/modules/<name>/` so fixtures
- *  import it by relative path, stripping the `?local_path=` qualifier off every
- *  controller PURL so the kernel resolves it as a `kind: "registry"` spec —
- *  matched by installed *version* (staged below) rather than a `file:` path,
- *  which is what survives the host→container bind-mount with no boot-time
- *  install. Lambda's own manifest is the local copy (rewriting its
- *  `HttpDispatch` OCI import to the co-copied `../http-dispatch` sibling so the
- *  offline container never reaches the network); the siblings are fetched from
- *  the registry.
- *
- *  Returns the npm controllers the fetched sibling manifests declare, as an
- *  install-ready `{ name: version }` map. Lambda's own controller is excluded —
- *  it is installed from the locally packed tarball, not the registry. */
-async function copyModuleManifests(root: string): Promise<Record<string, string>> {
-  const stripLocalPath = (yaml: string) => yaml.replaceAll(/\?local_path=[^#"\s]+/g, "");
-
-  const lambdaManifest = stripLocalPath(
-    readFileSync(join(LAMBDA_MODULE_DIR, "telo.yaml"), "utf-8"),
-  ).replace(/^(\s*HttpDispatch:\s*).*$/m, "$1../http-dispatch");
-  const lambdaDest = join(root, "modules", "lambda");
-  mkdirSync(lambdaDest, { recursive: true });
-  writeFileSync(join(lambdaDest, "telo.yaml"), lambdaManifest);
-
-  const controllers: Record<string, string> = {};
-  for (const mod of OCI_MODULES) {
-    const manifest = stripLocalPath(fetchModuleManifest(mod.ref));
-    const dest = join(root, "modules", mod.module);
-    mkdirSync(dest, { recursive: true });
-    writeFileSync(join(dest, "telo.yaml"), manifest);
-    Object.assign(controllers, controllersFrom(manifest));
-  }
-  return controllers;
-}
-
-/** Pre-places real copies of the module controllers (installed into the
- *  fixture-root `node_modules` above) under `.telo/npm/node_modules/` so the
- *  kernel's registry fast path finds the right-version package already on disk
- *  and skips installing. `@telorun/sdk` is left to the kernel's realm-collapse
- *  bootstrap, which resolves it offline from the fixture-root `node_modules`. */
-async function stageControllers(root: string, siblings: string[]): Promise<void> {
-  const stageRoot = join(root, ".telo", "npm", "node_modules");
-  const controllers = ["@telorun/lambda", ...siblings];
-  for (const pkg of controllers) {
-    const installed = join(root, "node_modules", pkg);
-    const version = JSON.parse(readFileSync(join(installed, "package.json"), "utf-8")).version;
-    if (!version) {
-      throw new Error(`Installed controller ${pkg} is missing from ${installed}.`);
-    }
-    await cp(installed, join(stageRoot, ...pkg.split("/")), { recursive: true });
-  }
 }
 
 /** Returns the prepared root path. Builds it on first call; subsequent calls
@@ -240,11 +181,10 @@ export interface Fixture {
 }
 
 /** Materialises a per-test fixture: clones the prepared root (which already
- *  carries the copied module manifests and the staged `.telo/npm/` controllers),
- *  writes the fixture's telo.yaml, and copies the right bootstrap into place.
- *  No `telo install` is needed at boot — every controller is pre-staged at its
- *  installed version, so the offline AWS Lambda container resolves them without
- *  a network. */
+ *  carries the staged Lambda module and the kernel), writes the fixture's
+ *  telo.yaml, and copies the right bootstrap into place. The container resolves
+ *  the sibling modules and their controllers on cold boot, writing into the
+ *  bind-mounted `.telo/`. */
 export async function buildFixture(spec: FixtureSpec): Promise<Fixture> {
   const root = await getPreparedRoot();
   const dir = mkdtempSync(join(tmpdir(), `telo-lambda-e2e-${spec.name}-`));

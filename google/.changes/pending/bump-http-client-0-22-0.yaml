@@ -1,0 +1,3 @@
+modules:
+  sheets: Added
+body: "Upgrade the `http-client` import to 0.22.0, which adds three ready-made `Http.Credential` implementations — `BearerToken`, `ApiKeyHeader` and `QueryKey` — and marks credential headers and query values `x-telo-sensitive`, so auth material is redacted on the debug wire rather than riding every inspected call."
