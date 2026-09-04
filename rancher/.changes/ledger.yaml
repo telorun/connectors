@@ -4,6 +4,6 @@
 registry: oci://ghcr.io/telorun/rancher
 modules:
   k3s:
-    version: 0.2.0
+    version: 0.3.0
     layers:
-      manifest: sha256-ipkiv73flZ68HdieQy_tzirptLvpHfAoBxlp1ZcWc80
+      manifest: sha256-KMXBXHLElwYtBQGEgfwAhjhzSPcmrFEHA220EfrnCHo

@@ -4,6 +4,6 @@
 registry: oci://ghcr.io/telorun/jetbrains
 modules:
   youtrack:
-    version: 0.2.0
+    version: 0.3.0
     layers:
-      manifest: sha256-SD69PitIdzMzPru4N6NI569LIEu6pEnkTJZ5KefQpeQ
+      manifest: sha256-1X3hT7ugx85iJ6v16fdst9EdzCnSfG1VrPJ20h9TBxs

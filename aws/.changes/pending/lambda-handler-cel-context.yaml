@@ -1,3 +1,0 @@
-modules:
-  lambda: Added
-body: "Boot packaged artifacts hermetically: `managed.mjs` and `custom.mjs` now wire the kernel's `LocalManifestCacheSource` over `.telo/manifests` (honouring `TELO_CACHE_DIR`), so a `telo install`-packaged Lambda resolves its `oci://` imports from the artifact instead of re-fetching them from ghcr.io on every cold start — which never completed at all in a VPC without egress. Also declare the CEL evaluation context on Lambda.Direct and Lambda.Sqs — `inputs` (and Direct's `returns` / `catches`) now advertise the `event` / `context` (plus `result` / `error`) scope the controllers actually expand with, so `!cel \"event.Records\"` type-checks instead of failing analysis as an unknown identifier."

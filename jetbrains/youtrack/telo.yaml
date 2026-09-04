@@ -1,7 +1,7 @@
 kind: Telo.Library
 metadata:
   name: YouTrack
-  version: 0.2.0
+  version: 0.3.0
   description: >-
     Typed YouTrack operations for Telo manifests. A friendly Http.Client
     (YouTrackClient) preconfigured with instance URL + API token, plus a set of
