@@ -56,35 +56,42 @@ export function releaseIn(vendor, args, { capture = false } = {}) {
   });
 }
 
-const [subcommand, ...rest] = process.argv.slice(2);
-if (!subcommand) {
-  console.error("usage: node scripts/release.mjs <status|check|order|apply|verify> [...args]");
-  process.exit(2);
-}
-
-// `status --json <dir>` writes one plan file per vendor, for the Version PR body.
-// The plans MUST be captured before `apply` consumes the fragments the changelog
-// entries come from.
-const jsonAt = rest.indexOf("--json");
-const outDir = jsonAt === -1 ? null : rest[jsonAt + 1];
-const args = jsonAt === -1 ? rest : rest.filter((_, i) => i !== jsonAt && i !== jsonAt + 1);
-if (outDir) mkdirSync(resolve(ROOT, outDir), { recursive: true });
-
-// A vendor whose command fails does not stop the others: a broken plan in one
-// vendor must not hide the state of the rest. The exit code is the aggregate.
-let failed = 0;
-for (const vendor of vendors()) {
-  if (!outDir) console.log(`\n== ${vendor}`);
-  try {
-    if (outDir) {
-      const plan = releaseIn(vendor, [subcommand, "-o", "json", ...args], { capture: true });
-      writeFileSync(join(resolve(ROOT, outDir), `${vendor}.json`), plan);
-    } else {
-      releaseIn(vendor, [subcommand, ...args]);
-    }
-  } catch (err) {
-    failed = 1;
-    console.error(`  ${vendor}: ${err instanceof Error ? err.message.split("\n")[0] : String(err)}`);
+// CLI entry point. Guarded: `scripts/publish-modules.mjs` IMPORTS `releaseIn`/`vendors`
+// from this file, and an unguarded body would parse that process's argv — no
+// subcommand — and exit 2 before the importer ran a single line.
+function main() {
+  const [subcommand, ...rest] = process.argv.slice(2);
+  if (!subcommand) {
+    console.error("usage: node scripts/release.mjs <status|check|order|apply|verify> [...args]");
+    process.exit(2);
   }
+
+  // `status --json <dir>` writes one plan file per vendor, for the Version PR body.
+  // The plans MUST be captured before `apply` consumes the fragments the changelog
+  // entries come from.
+  const jsonAt = rest.indexOf("--json");
+  const outDir = jsonAt === -1 ? null : rest[jsonAt + 1];
+  const args = jsonAt === -1 ? rest : rest.filter((_, i) => i !== jsonAt && i !== jsonAt + 1);
+  if (outDir) mkdirSync(resolve(ROOT, outDir), { recursive: true });
+
+  // A vendor whose command fails does not stop the others: a broken plan in one
+  // vendor must not hide the state of the rest. The exit code is the aggregate.
+  let failed = 0;
+  for (const vendor of vendors()) {
+    if (!outDir) console.log(`\n== ${vendor}`);
+    try {
+      if (outDir) {
+        const plan = releaseIn(vendor, [subcommand, "-o", "json", ...args], { capture: true });
+        writeFileSync(join(resolve(ROOT, outDir), `${vendor}.json`), plan);
+      } else {
+        releaseIn(vendor, [subcommand, ...args]);
+      }
+    } catch (err) {
+      failed = 1;
+      console.error(`  ${vendor}: ${err instanceof Error ? err.message.split("\n")[0] : String(err)}`);
+    }
+  }
+  process.exit(failed);
 }
-process.exit(failed);
+
+if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) main();
