@@ -1,0 +1,5 @@
+# Changelog
+
+## 0.1.0 - 2026-09-05
+### Added
+* New `google/drive` connector: a `GoogleDriveClient` (static access token or a refreshing `Http.Credential`, retry with backoff) plus typed operations over the whole Drive API v3 surface — files (list, get, download, export, create, multipart and resumable upload, update, copy, delete, trash, ids, watch, labels), permissions, comments, replies, revisions, shared drives, changes, about, channels, apps — and a `RefreshAccessToken` helper.
