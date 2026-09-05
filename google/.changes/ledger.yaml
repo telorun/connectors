@@ -3,6 +3,10 @@
 # `telo release verify` reconciles it against the registry.
 registry: oci://ghcr.io/telorun/google
 modules:
+  drive:
+    version: 0.1.0
+    layers:
+      manifest: sha256-QhpsU_-exz6XMzz6k0kGWna8ZawNI2aCUyXPhPWvPfc
   sheets:
     version: 0.3.0
     layers:
