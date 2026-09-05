@@ -1,0 +1,1402 @@
+kind: Telo.Application
+metadata:
+  name: GoogleDriveOperationsTest
+  version: 1.0.0
+# Exercises every Google Drive operation end-to-end against a stub HTTP server
+# that echoes back the request each operation built (method, path, query, body,
+# auth header) plus canned Drive-shaped responses. Uploads are exercised for
+# real: the multipart route decodes the multipart/related body the operation
+# framed, and the resumable routes stream the raw bytes back. This verifies:
+# the GoogleDriveClient bakes the Bearer token (static or via an
+# Http.Credential) + base URL, each operation builds the right method / path /
+# query / headers, bodies are shaped correctly, binary downloads come back as
+# bytes or a stream, and 308 Resume Incomplete is returned rather than thrown.
+imports:
+  Gd: ../
+  Http: oci://ghcr.io/telorun/http-client@0.22.0#sha256-UyC8nQDnKHXyPpPPHC7TS8MicesLsgDUKWBYObf5oQ4
+  Multipart: oci://ghcr.io/telorun/multipart@0.2.2#sha256-RCqiT4UMwrVeRq1hU1xxkysRSxX4NC5DzsdrbbEBxv8
+  Ptc: oci://ghcr.io/telorun/plain-text-codec@0.10.4#sha256-Z1My-TDPdE13s63NSi5rT0Qg0CZf-7tAXbJBRcBGCOQ
+  Server: oci://ghcr.io/telorun/http-server@0.29.2#sha256-9MtWZqXF9agsYRx97nLMJZW7YYwXpW2dLYcn_oA4kUs
+  Run: oci://ghcr.io/telorun/run@0.26.0#sha256-ZhW56yiMCImqBh0wJ4mVaUvh5WuUVIaWErASFx--wCY
+  Assert: oci://ghcr.io/telorun/assert@0.18.0#sha256-mSy7HGMq_UoQUvt4WbQCIO_uqXcRZwRlmROp6DfLDjY
+ports:
+  http:
+    env: TEST_PORT
+    default: 34824
+  httpUpload:
+    env: TEST_UPLOAD_PORT
+    default: 34825
+variables:
+  baseUrl:
+    env: TEST_BASE_URL
+    type: string
+    default: http://localhost:34824
+  uploadBaseUrl:
+    env: TEST_UPLOAD_BASE_URL
+    type: string
+    default: http://localhost:34825
+targets:
+  - !ref testOperations
+---
+# The friendly client with a static token, pointed at the local stub. Every
+# request carries `Authorization: Bearer test-token`.
+kind: Gd.GoogleDriveClient
+metadata: { name: stub }
+accessToken: test-token
+baseUrl: !cel "variables.baseUrl"
+---
+# The same client authenticated through an Http.Credential instead — the shape
+# a refreshing OAuth credential plugs into.
+kind: Http.BearerToken
+metadata: { name: credToken }
+token: cred-token
+---
+kind: Gd.GoogleDriveOAuthClient
+metadata: { name: stubCred }
+credential: !ref credToken
+baseUrl: !cel "variables.baseUrl"
+---
+# Resumable uploads live on a second stub server: Google serves the multipart
+# and resumable POSTs on ONE path, distinguished only by `uploadType`, and a
+# router cannot register two handlers for the same method and path.
+kind: Gd.GoogleDriveClient
+metadata: { name: stubUpload }
+accessToken: test-token
+baseUrl: !cel "variables.uploadBaseUrl"
+---
+kind: Gd.ListFiles
+metadata: { name: listFiles }
+client: !ref stub
+---
+kind: Gd.GetFile
+metadata: { name: getFile }
+client: !ref stub
+---
+kind: Gd.DownloadFile
+metadata: { name: downloadFile }
+client: !ref stub
+---
+kind: Gd.ExportFile
+metadata: { name: exportFile }
+client: !ref stub
+---
+kind: Gd.CreateFile
+metadata: { name: createFile }
+client: !ref stub
+---
+kind: Gd.UpdateFile
+metadata: { name: updateFile }
+client: !ref stub
+---
+kind: Gd.CopyFile
+metadata: { name: copyFile }
+client: !ref stub
+---
+kind: Gd.DeleteFile
+metadata: { name: deleteFile }
+client: !ref stub
+---
+kind: Gd.EmptyTrash
+metadata: { name: emptyTrash }
+client: !ref stub
+---
+kind: Gd.GenerateFileIds
+metadata: { name: generateFileIds }
+client: !ref stub
+---
+kind: Gd.WatchFile
+metadata: { name: watchFile }
+client: !ref stub
+---
+kind: Gd.ListFileLabels
+metadata: { name: listFileLabels }
+client: !ref stub
+---
+kind: Gd.ModifyFileLabels
+metadata: { name: modifyFileLabels }
+client: !ref stub
+---
+kind: Gd.UploadFile
+metadata: { name: uploadFile }
+client: !ref stub
+---
+kind: Gd.UpdateFileContent
+metadata: { name: updateFileContent }
+client: !ref stub
+---
+kind: Gd.StartResumableUpload
+metadata: { name: startResumableUpload }
+client: !ref stubUpload
+---
+kind: Gd.UploadResumableContent
+metadata: { name: uploadResumableContent }
+client: !ref stubUpload
+---
+kind: Gd.UploadFileResumable
+metadata: { name: uploadFileResumable }
+client: !ref stubUpload
+---
+kind: Gd.ListPermissions
+metadata: { name: listPermissions }
+client: !ref stub
+---
+kind: Gd.GetPermission
+metadata: { name: getPermission }
+client: !ref stub
+---
+kind: Gd.CreatePermission
+metadata: { name: createPermission }
+client: !ref stub
+---
+kind: Gd.UpdatePermission
+metadata: { name: updatePermission }
+client: !ref stub
+---
+kind: Gd.DeletePermission
+metadata: { name: deletePermission }
+client: !ref stub
+---
+kind: Gd.ListComments
+metadata: { name: listComments }
+client: !ref stub
+---
+kind: Gd.GetComment
+metadata: { name: getComment }
+client: !ref stub
+---
+kind: Gd.CreateComment
+metadata: { name: createComment }
+client: !ref stub
+---
+kind: Gd.UpdateComment
+metadata: { name: updateComment }
+client: !ref stub
+---
+kind: Gd.DeleteComment
+metadata: { name: deleteComment }
+client: !ref stub
+---
+kind: Gd.ListReplies
+metadata: { name: listReplies }
+client: !ref stub
+---
+kind: Gd.GetReply
+metadata: { name: getReply }
+client: !ref stub
+---
+kind: Gd.CreateReply
+metadata: { name: createReply }
+client: !ref stub
+---
+kind: Gd.UpdateReply
+metadata: { name: updateReply }
+client: !ref stub
+---
+kind: Gd.DeleteReply
+metadata: { name: deleteReply }
+client: !ref stub
+---
+kind: Gd.ListRevisions
+metadata: { name: listRevisions }
+client: !ref stub
+---
+kind: Gd.GetRevision
+metadata: { name: getRevision }
+client: !ref stub
+---
+kind: Gd.DownloadRevision
+metadata: { name: downloadRevision }
+client: !ref stub
+---
+kind: Gd.UpdateRevision
+metadata: { name: updateRevision }
+client: !ref stub
+---
+kind: Gd.DeleteRevision
+metadata: { name: deleteRevision }
+client: !ref stub
+---
+kind: Gd.ListDrives
+metadata: { name: listDrives }
+client: !ref stub
+---
+kind: Gd.GetDrive
+metadata: { name: getDrive }
+client: !ref stub
+---
+kind: Gd.CreateDrive
+metadata: { name: createDrive }
+client: !ref stub
+---
+kind: Gd.UpdateDrive
+metadata: { name: updateDrive }
+client: !ref stub
+---
+kind: Gd.DeleteDrive
+metadata: { name: deleteDrive }
+client: !ref stub
+---
+kind: Gd.HideDrive
+metadata: { name: hideDrive }
+client: !ref stub
+---
+kind: Gd.UnhideDrive
+metadata: { name: unhideDrive }
+client: !ref stub
+---
+kind: Gd.GetStartPageToken
+metadata: { name: getStartPageToken }
+client: !ref stub
+---
+kind: Gd.ListChanges
+metadata: { name: listChanges }
+client: !ref stub
+---
+kind: Gd.WatchChanges
+metadata: { name: watchChanges }
+client: !ref stub
+---
+kind: Gd.GetAbout
+metadata: { name: getAbout }
+client: !ref stub
+---
+kind: Gd.StopChannel
+metadata: { name: stopChannel }
+client: !ref stub
+---
+kind: Gd.ListApps
+metadata: { name: listApps }
+client: !ref stub
+---
+kind: Gd.GetApp
+metadata: { name: getApp }
+client: !ref stub
+---
+kind: Gd.GetAbout
+metadata: { name: getAboutCred }
+client: !ref stubCred
+---
+kind: Gd.RefreshAccessToken
+metadata: { name: refreshAccessToken }
+---
+# Collects a byte stream into text — used to read a streamed download back.
+kind: Ptc.Decoder
+metadata: { name: collect }
+---
+kind: Multipart.Decoder
+metadata: { name: mpDecode }
+---
+# Generic echo handler: returns the request context it is fed, so a route can
+# reflect what the operation actually sent back into the response body.
+kind: Run.Value
+metadata: { name: echo }
+inputType:
+  kind: Telo.JsonSchema
+  schema:
+    type: object
+    properties:
+      path: {}
+      method: {}
+      query: {}
+      body: {}
+      headers: {}
+value:
+  contentType: !cel "inputs.?headers.orValue({})[?'content-type'].orValue('')"
+  media: !cel "inputs.?query.orValue({}).?alt.orValue('') == 'media' || inputs.?path.orValue('').split('?')[0].endsWith('/export')"
+  path: !cel "inputs.?path.orValue('').split('?')[0]"
+  range: !cel "inputs.?headers.orValue({}).?range.orValue('')"
+  location: !cel "variables.uploadBaseUrl + '/resumable/session-1'"
+  received:
+    method: !cel "inputs.?method.orValue('')"
+    path: !cel "inputs.?path.orValue('').split('?')[0]"
+    query: !cel "inputs.?query.orValue({})"
+    body: !cel "inputs.?body.orValue({})"
+    auth: !cel "inputs.?headers.orValue({}).?authorization.orValue('')"
+    uploadContentType: !cel "inputs.?headers.orValue({})[?'x-upload-content-type'].orValue('')"
+    uploadContentLength: !cel "inputs.?headers.orValue({})[?'x-upload-content-length'].orValue('')"
+---
+# Multipart upload handler: splits the multipart/related body the operation
+# framed back into its metadata + content parts.
+kind: Run.Sequence
+metadata: { name: multipartUpload }
+inputType:
+  kind: Telo.JsonSchema
+  schema:
+    type: object
+    properties:
+      path: {}
+      method: {}
+      query: {}
+      headers: {}
+      body: {}
+steps:
+  - name: decode
+    invoke: !ref mpDecode
+    inputs:
+      input: !cel "inputs.body"
+      contentType: !cel "inputs.headers['content-type']"
+outputs:
+  received:
+    method: !cel "inputs.method"
+    path: !cel "inputs.path.split('?')[0]"
+    query: !cel "inputs.query"
+    auth: !cel "inputs.headers.authorization"
+  framing: !cel "inputs.headers['content-type'].split(';')[0]"
+  metadata: !cel "parseJson(string(steps.decode.result.parts[0].content))"
+  metadataContentType: !cel "steps.decode.result.parts[0].contentType"
+  content: !cel "string(steps.decode.result.parts[1].content)"
+  contentType: !cel "steps.decode.result.parts[1].contentType"
+---
+# Resumable PUT handler: collects the streamed bytes and reports the upload
+# headers; `partial` selects the 308 response.
+kind: Run.Sequence
+metadata: { name: resumablePut }
+inputType:
+  kind: Telo.JsonSchema
+  schema:
+    type: object
+    properties:
+      path: {}
+      method: {}
+      headers: {}
+      body: {}
+steps:
+  - name: collect
+    invoke: !ref collect
+    inputs:
+      input: !cel "inputs.body"
+outputs:
+  partial: !cel "inputs.headers[?'content-range'].orValue('') != ''"
+  received:
+    method: !cel "inputs.method"
+    path: !cel "inputs.path.split('?')[0]"
+    auth: !cel "inputs.headers.authorization"
+    contentType: !cel "inputs.headers['content-type']"
+    contentRange: !cel "inputs.headers[?'content-range'].orValue('')"
+    contentLength: !cel "inputs.headers[?'content-length'].orValue('')"
+    content: !cel "steps.collect.result.text"
+---
+# Stub Google Drive REST surface. Metadata routes are matched by path depth and
+# echo the request; a GET with alt=media (or /export) answers with bytes.
+kind: Server.Api
+metadata: { name: stubApi }
+routes:
+  - request: { method: GET, path: /drive/v3/:a }
+    inputs:
+      path: !cel "request.path"
+      method: !cel "request.method"
+      query: !cel "request.query"
+      headers: !cel "request.headers"
+    handler: !ref echo
+    returns:
+      - status: 200
+        content:
+          application/json:
+            body:
+              id: stub-id
+              received: !cel "result.received"
+  - request: { method: POST, path: /drive/v3/:a }
+    inputs:
+      path: !cel "request.path"
+      method: !cel "request.method"
+      query: !cel "request.query"
+      body: !cel "request.?body.orValue({})"
+      headers: !cel "request.headers"
+    handler: !ref echo
+    returns:
+      - status: 200
+        content:
+          application/json:
+            body:
+              id: stub-id
+              received: !cel "result.received"
+  - request: { method: GET, path: /drive/v3/:a/:b }
+    inputs:
+      path: !cel "request.path"
+      method: !cel "request.method"
+      query: !cel "request.query"
+      headers: !cel "request.headers"
+    handler: !ref echo
+    returns:
+      - status: 200
+        when: !cel "result.media"
+        content:
+          application/octet-stream:
+            body: !cel "'bytes-of:' + result.path + ':' + result.range"
+      - status: 200
+        content:
+          application/json:
+            body:
+              id: stub-id
+              received: !cel "result.received"
+  - request: { method: POST, path: /drive/v3/:a/:b }
+    inputs:
+      path: !cel "request.path"
+      method: !cel "request.method"
+      query: !cel "request.query"
+      body: !cel "request.?body.orValue({})"
+      headers: !cel "request.headers"
+    handler: !ref echo
+    returns:
+      - status: 200
+        content:
+          application/json:
+            body:
+              id: stub-id
+              received: !cel "result.received"
+  - request: { method: PATCH, path: /drive/v3/:a/:b }
+    inputs:
+      path: !cel "request.path"
+      method: !cel "request.method"
+      query: !cel "request.query"
+      body: !cel "request.?body.orValue({})"
+      headers: !cel "request.headers"
+    handler: !ref echo
+    returns:
+      - status: 200
+        content:
+          application/json:
+            body:
+              id: stub-id
+              received: !cel "result.received"
+  - request: { method: DELETE, path: /drive/v3/:a/:b }
+    inputs:
+      path: !cel "request.path"
+      method: !cel "request.method"
+      query: !cel "request.query"
+      headers: !cel "request.headers"
+    handler: !ref echo
+    returns:
+      - status: 200
+        content:
+          application/json:
+            body:
+              id: stub-id
+              received: !cel "result.received"
+  - request: { method: GET, path: /drive/v3/:a/:b/:c }
+    inputs:
+      path: !cel "request.path"
+      method: !cel "request.method"
+      query: !cel "request.query"
+      headers: !cel "request.headers"
+    handler: !ref echo
+    returns:
+      - status: 200
+        when: !cel "result.media"
+        content:
+          application/octet-stream:
+            body: !cel "'bytes-of:' + result.path + ':' + result.range"
+      - status: 200
+        content:
+          application/json:
+            body:
+              id: stub-id
+              received: !cel "result.received"
+  - request: { method: POST, path: /drive/v3/:a/:b/:c }
+    inputs:
+      path: !cel "request.path"
+      method: !cel "request.method"
+      query: !cel "request.query"
+      body: !cel "request.?body.orValue({})"
+      headers: !cel "request.headers"
+    handler: !ref echo
+    returns:
+      - status: 200
+        content:
+          application/json:
+            body:
+              id: stub-id
+              received: !cel "result.received"
+  - request: { method: PATCH, path: /drive/v3/:a/:b/:c }
+    inputs:
+      path: !cel "request.path"
+      method: !cel "request.method"
+      query: !cel "request.query"
+      body: !cel "request.?body.orValue({})"
+      headers: !cel "request.headers"
+    handler: !ref echo
+    returns:
+      - status: 200
+        content:
+          application/json:
+            body:
+              id: stub-id
+              received: !cel "result.received"
+  - request: { method: DELETE, path: /drive/v3/:a/:b/:c }
+    inputs:
+      path: !cel "request.path"
+      method: !cel "request.method"
+      query: !cel "request.query"
+      headers: !cel "request.headers"
+    handler: !ref echo
+    returns:
+      - status: 200
+        content:
+          application/json:
+            body:
+              id: stub-id
+              received: !cel "result.received"
+  - request: { method: GET, path: /drive/v3/:a/:b/:c/:d }
+    inputs:
+      path: !cel "request.path"
+      method: !cel "request.method"
+      query: !cel "request.query"
+      headers: !cel "request.headers"
+    handler: !ref echo
+    returns:
+      - status: 200
+        when: !cel "result.media"
+        content:
+          application/octet-stream:
+            body: !cel "'bytes-of:' + result.path + ':' + result.range"
+      - status: 200
+        content:
+          application/json:
+            body:
+              id: stub-id
+              received: !cel "result.received"
+  - request: { method: POST, path: /drive/v3/:a/:b/:c/:d }
+    inputs:
+      path: !cel "request.path"
+      method: !cel "request.method"
+      query: !cel "request.query"
+      body: !cel "request.?body.orValue({})"
+      headers: !cel "request.headers"
+    handler: !ref echo
+    returns:
+      - status: 200
+        content:
+          application/json:
+            body:
+              id: stub-id
+              received: !cel "result.received"
+  - request: { method: PATCH, path: /drive/v3/:a/:b/:c/:d }
+    inputs:
+      path: !cel "request.path"
+      method: !cel "request.method"
+      query: !cel "request.query"
+      body: !cel "request.?body.orValue({})"
+      headers: !cel "request.headers"
+    handler: !ref echo
+    returns:
+      - status: 200
+        content:
+          application/json:
+            body:
+              id: stub-id
+              received: !cel "result.received"
+  - request: { method: DELETE, path: /drive/v3/:a/:b/:c/:d }
+    inputs:
+      path: !cel "request.path"
+      method: !cel "request.method"
+      query: !cel "request.query"
+      headers: !cel "request.headers"
+    handler: !ref echo
+    returns:
+      - status: 200
+        content:
+          application/json:
+            body:
+              id: stub-id
+              received: !cel "result.received"
+  - request: { method: GET, path: /drive/v3/:a/:b/:c/:d/:e }
+    inputs:
+      path: !cel "request.path"
+      method: !cel "request.method"
+      query: !cel "request.query"
+      headers: !cel "request.headers"
+    handler: !ref echo
+    returns:
+      - status: 200
+        content:
+          application/json:
+            body:
+              id: stub-id
+              received: !cel "result.received"
+  - request: { method: POST, path: /drive/v3/:a/:b/:c/:d/:e }
+    inputs:
+      path: !cel "request.path"
+      method: !cel "request.method"
+      query: !cel "request.query"
+      body: !cel "request.?body.orValue({})"
+      headers: !cel "request.headers"
+    handler: !ref echo
+    returns:
+      - status: 200
+        content:
+          application/json:
+            body:
+              id: stub-id
+              received: !cel "result.received"
+  - request: { method: PATCH, path: /drive/v3/:a/:b/:c/:d/:e }
+    inputs:
+      path: !cel "request.path"
+      method: !cel "request.method"
+      query: !cel "request.query"
+      body: !cel "request.?body.orValue({})"
+      headers: !cel "request.headers"
+    handler: !ref echo
+    returns:
+      - status: 200
+        content:
+          application/json:
+            body:
+              id: stub-id
+              received: !cel "result.received"
+  - request: { method: DELETE, path: /drive/v3/:a/:b/:c/:d/:e }
+    inputs:
+      path: !cel "request.path"
+      method: !cel "request.method"
+      query: !cel "request.query"
+      headers: !cel "request.headers"
+    handler: !ref echo
+    returns:
+      - status: 200
+        content:
+          application/json:
+            body:
+              id: stub-id
+              received: !cel "result.received"
+  - request: { method: GET, path: /drive/v3/:a/:b/:c/:d/:e/:f }
+    inputs:
+      path: !cel "request.path"
+      method: !cel "request.method"
+      query: !cel "request.query"
+      headers: !cel "request.headers"
+    handler: !ref echo
+    returns:
+      - status: 200
+        content:
+          application/json:
+            body:
+              id: stub-id
+              received: !cel "result.received"
+  - request: { method: PATCH, path: /drive/v3/:a/:b/:c/:d/:e/:f }
+    inputs:
+      path: !cel "request.path"
+      method: !cel "request.method"
+      query: !cel "request.query"
+      body: !cel "request.?body.orValue({})"
+      headers: !cel "request.headers"
+    handler: !ref echo
+    returns:
+      - status: 200
+        content:
+          application/json:
+            body:
+              id: stub-id
+              received: !cel "result.received"
+  - request: { method: DELETE, path: /drive/v3/:a/:b/:c/:d/:e/:f }
+    inputs:
+      path: !cel "request.path"
+      method: !cel "request.method"
+      query: !cel "request.query"
+      headers: !cel "request.headers"
+    handler: !ref echo
+    returns:
+      - status: 200
+        content:
+          application/json:
+            body:
+              id: stub-id
+              received: !cel "result.received"
+  # Multipart upload (streamed multipart/related body).
+  - request:
+      method: POST
+      path: /upload/drive/v3/files
+      schema:
+        body: { x-telo-type: Telo.Stream }
+    inputs:
+      path: !cel "request.path"
+      method: !cel "request.method"
+      query: !cel "request.query"
+      body: !cel "request.body"
+      headers: !cel "request.headers"
+    handler: !ref multipartUpload
+    returns:
+      - status: 200
+        content:
+          application/json:
+            body:
+              id: uploaded-mp
+              received: !cel "result.received"
+              framing: !cel "result.framing"
+              metadata: !cel "result.metadata"
+              metadataContentType: !cel "result.metadataContentType"
+              content: !cel "result.content"
+              contentType: !cel "result.contentType"
+  - request:
+      method: PATCH
+      path: /upload/drive/v3/files/:id
+      schema:
+        body: { x-telo-type: Telo.Stream }
+    inputs:
+      path: !cel "request.path"
+      method: !cel "request.method"
+      query: !cel "request.query"
+      body: !cel "request.body"
+      headers: !cel "request.headers"
+    handler: !ref multipartUpload
+    returns:
+      - status: 200
+        content:
+          application/json:
+            body:
+              id: uploaded-mp
+              received: !cel "result.received"
+              framing: !cel "result.framing"
+              metadata: !cel "result.metadata"
+              content: !cel "result.content"
+              contentType: !cel "result.contentType"
+  # OAuth token endpoint. Fastify owns the form-encoded content type, so the
+  # body is streamed past rather than parsed; the request is asserted from its
+  # method and Content-Type.
+  - request:
+      method: POST
+      path: /token
+      schema:
+        body: { x-telo-type: Telo.Stream }
+    inputs:
+      path: !cel "request.path"
+      method: !cel "request.method"
+      headers: !cel "request.headers"
+    handler: !ref echo
+    returns:
+      - status: 200
+        content:
+          application/json:
+            body:
+              access_token: fresh-token
+              expires_in: 3599
+              token_type: Bearer
+              method: !cel "result.received.method"
+              contentType: !cel "result.contentType"
+---
+# The resumable-upload stub, served on its own port.
+kind: Server.Api
+metadata: { name: uploadApi }
+routes:
+  # Resumable session start (JSON body), answered with the session URI in Location.
+  - request: { method: POST, path: /upload/drive/v3/files }
+    inputs:
+      path: !cel "request.path"
+      method: !cel "request.method"
+      query: !cel "request.query"
+      body: !cel "request.body"
+      headers: !cel "request.headers"
+    handler: !ref echo
+    returns:
+      - status: 200
+        headers:
+          Location: !cel "result.location"
+        content:
+          application/json:
+            body:
+              received: !cel "result.received"
+  - request: { method: PATCH, path: /upload/drive/v3/files/:id }
+    inputs:
+      path: !cel "request.path"
+      method: !cel "request.method"
+      query: !cel "request.query"
+      body: !cel "request.body"
+      headers: !cel "request.headers"
+    handler: !ref echo
+    returns:
+      - status: 200
+        headers:
+          Location: !cel "result.location"
+        content:
+          application/json:
+            body:
+              received: !cel "result.received"
+  # Resumable content PUT (streamed raw body): 308 for a chunk, 200 for all.
+  - request:
+      method: PUT
+      path: /resumable/:session
+      schema:
+        body: { x-telo-type: Telo.Stream }
+    inputs:
+      path: !cel "request.path"
+      method: !cel "request.method"
+      headers: !cel "request.headers"
+      body: !cel "request.body"
+    handler: !ref resumablePut
+    returns:
+      - status: 308
+        when: !cel "result.partial"
+        headers:
+          Range: bytes=0-4
+        content:
+          application/json:
+            body:
+              received: !cel "result.received"
+      - status: 200
+        content:
+          application/json:
+            body:
+              id: uploaded-1
+              received: !cel "result.received"
+---
+kind: Run.Sequence
+metadata: { name: testOperations }
+# The stub server is declared inline in the sequence scope so it starts before
+# the steps and is torn down when they finish.
+with:
+  - kind: Server.Server
+    metadata: { name: StubServer }
+    port: !cel "ports.http"
+    contentTypeParsers:
+      - { contentType: multipart/related, stream: true }
+      - { contentType: application/x-www-form-urlencoded, stream: true }
+    mounts:
+      - path: /
+        mount: !ref stubApi
+  - kind: Server.Server
+    metadata: { name: UploadServer }
+    port: !cel "ports.httpUpload"
+    contentTypeParsers:
+      - { contentType: application/octet-stream, stream: true }
+      - { contentType: application/zip, stream: true }
+    mounts:
+      - path: /
+        mount: !ref uploadApi
+targets:
+  - !ref StubServer
+  - !ref UploadServer
+steps:
+  - name: listFiles
+    invoke: !ref listFiles
+    inputs: {"q": "name = 'x'", "pageSize": 10, "orderBy": "name", "fields": "files(id)", "includeItemsFromAllDrives": true, "params": {"foo": "bar"}}
+  - name: assertListFiles
+    invoke: !ref Assert.equals
+    inputs:
+      actual: !cel "steps.listFiles.result.body.received"
+      expected: {"method": "GET", "path": "/drive/v3/files", "query": {"q": "name = 'x'", "pageSize": "10", "orderBy": "name", "fields": "files(id)", "includeItemsFromAllDrives": "true", "foo": "bar", "supportsAllDrives": "true"}, "body": {}, "auth": "Bearer test-token", "uploadContentType": "", "uploadContentLength": ""}
+  - name: getFile
+    invoke: !ref getFile
+    inputs: {"fileId": "f1", "fields": "*", "acknowledgeAbuse": false}
+  - name: assertGetFile
+    invoke: !ref Assert.equals
+    inputs:
+      actual: !cel "steps.getFile.result.body.received"
+      expected: {"method": "GET", "path": "/drive/v3/files/f1", "query": {"fields": "*", "acknowledgeAbuse": "false", "supportsAllDrives": "true"}, "body": {}, "auth": "Bearer test-token", "uploadContentType": "", "uploadContentLength": ""}
+  - name: downloadFile
+    invoke: !ref downloadFile
+    inputs: {"fileId": "f1", "range": "bytes=0-3"}
+  - name: assertDownloadFileX0
+    invoke: !ref Assert.equals
+    inputs:
+      actual: !cel "steps.downloadFile.result.status"
+      expected: 200
+  - name: assertDownloadFileX1
+    invoke: !ref Assert.equals
+    inputs:
+      actual: !cel "string(steps.downloadFile.result.body)"
+      expected: "bytes-of:/drive/v3/files/f1:bytes=0-3"
+  - name: downloadFileStream
+    invoke: !ref downloadFile
+    inputs: { fileId: f2, responseType: stream }
+  - name: collectDownload
+    invoke: !ref collect
+    inputs:
+      input: !cel "steps.downloadFileStream.result.body"
+  - name: assertDownloadFileStream
+    invoke: !ref Assert.equals
+    inputs:
+      actual: !cel "steps.collectDownload.result.text"
+      expected: "bytes-of:/drive/v3/files/f2:"
+  - name: exportFile
+    invoke: !ref exportFile
+    inputs: {"fileId": "doc1", "mimeType": "text/plain"}
+  - name: assertExportFileX0
+    invoke: !ref Assert.equals
+    inputs:
+      actual: !cel "string(steps.exportFile.result.body)"
+      expected: "bytes-of:/drive/v3/files/doc1/export:"
+  - name: createFile
+    invoke: !ref createFile
+    inputs: {"metadata": {"name": "Folder", "mimeType": "application/vnd.google-apps.folder"}, "fields": "id"}
+  - name: assertCreateFile
+    invoke: !ref Assert.equals
+    inputs:
+      actual: !cel "steps.createFile.result.body.received"
+      expected: {"method": "POST", "path": "/drive/v3/files", "query": {"fields": "id", "supportsAllDrives": "true"}, "body": {"name": "Folder", "mimeType": "application/vnd.google-apps.folder"}, "auth": "Bearer test-token", "uploadContentType": "", "uploadContentLength": ""}
+  - name: updateFile
+    invoke: !ref updateFile
+    inputs: {"fileId": "f1", "metadata": {"name": "New"}, "addParents": "p1", "removeParents": "p0"}
+  - name: assertUpdateFile
+    invoke: !ref Assert.equals
+    inputs:
+      actual: !cel "steps.updateFile.result.body.received"
+      expected: {"method": "PATCH", "path": "/drive/v3/files/f1", "query": {"addParents": "p1", "removeParents": "p0", "supportsAllDrives": "true"}, "body": {"name": "New"}, "auth": "Bearer test-token", "uploadContentType": "", "uploadContentLength": ""}
+  - name: copyFile
+    invoke: !ref copyFile
+    inputs: {"fileId": "f1", "metadata": {"name": "Copy"}}
+  - name: assertCopyFile
+    invoke: !ref Assert.equals
+    inputs:
+      actual: !cel "steps.copyFile.result.body.received"
+      expected: {"method": "POST", "path": "/drive/v3/files/f1/copy", "query": {"supportsAllDrives": "true"}, "body": {"name": "Copy"}, "auth": "Bearer test-token", "uploadContentType": "", "uploadContentLength": ""}
+  - name: deleteFile
+    invoke: !ref deleteFile
+    inputs: {"fileId": "f1"}
+  - name: assertDeleteFile
+    invoke: !ref Assert.equals
+    inputs:
+      actual: !cel "steps.deleteFile.result.body.received"
+      expected: {"method": "DELETE", "path": "/drive/v3/files/f1", "query": {"supportsAllDrives": "true"}, "body": {}, "auth": "Bearer test-token", "uploadContentType": "", "uploadContentLength": ""}
+  - name: emptyTrash
+    invoke: !ref emptyTrash
+    inputs: {"driveId": "d1"}
+  - name: assertEmptyTrash
+    invoke: !ref Assert.equals
+    inputs:
+      actual: !cel "steps.emptyTrash.result.body.received"
+      expected: {"method": "DELETE", "path": "/drive/v3/files/trash", "query": {"driveId": "d1"}, "body": {}, "auth": "Bearer test-token", "uploadContentType": "", "uploadContentLength": ""}
+  - name: generateFileIds
+    invoke: !ref generateFileIds
+    inputs: {"count": 5, "space": "drive"}
+  - name: assertGenerateFileIds
+    invoke: !ref Assert.equals
+    inputs:
+      actual: !cel "steps.generateFileIds.result.body.received"
+      expected: {"method": "GET", "path": "/drive/v3/files/generateIds", "query": {"count": "5", "space": "drive"}, "body": {}, "auth": "Bearer test-token", "uploadContentType": "", "uploadContentLength": ""}
+  - name: watchFile
+    invoke: !ref watchFile
+    inputs: {"fileId": "f1", "channel": {"id": "c1", "type": "web_hook", "address": "https://example.com/hook"}}
+  - name: assertWatchFile
+    invoke: !ref Assert.equals
+    inputs:
+      actual: !cel "steps.watchFile.result.body.received"
+      expected: {"method": "POST", "path": "/drive/v3/files/f1/watch", "query": {"supportsAllDrives": "true"}, "body": {"id": "c1", "type": "web_hook", "address": "https://example.com/hook"}, "auth": "Bearer test-token", "uploadContentType": "", "uploadContentLength": ""}
+  - name: listFileLabels
+    invoke: !ref listFileLabels
+    inputs: {"fileId": "f1", "maxResults": 2}
+  - name: assertListFileLabels
+    invoke: !ref Assert.equals
+    inputs:
+      actual: !cel "steps.listFileLabels.result.body.received"
+      expected: {"method": "GET", "path": "/drive/v3/files/f1/listLabels", "query": {"maxResults": "2"}, "body": {}, "auth": "Bearer test-token", "uploadContentType": "", "uploadContentLength": ""}
+  - name: modifyFileLabels
+    invoke: !ref modifyFileLabels
+    inputs: {"fileId": "f1", "labelModifications": [{"labelId": "l1"}]}
+  - name: assertModifyFileLabels
+    invoke: !ref Assert.equals
+    inputs:
+      actual: !cel "steps.modifyFileLabels.result.body.received"
+      expected: {"method": "POST", "path": "/drive/v3/files/f1/modifyLabels", "query": {}, "body": {"labelModifications": [{"labelId": "l1"}]}, "auth": "Bearer test-token", "uploadContentType": "", "uploadContentLength": ""}
+  - name: uploadFile
+    invoke: !ref uploadFile
+    inputs: { metadata: { name: hello.txt }, content: "hello world", contentType: text/plain, fields: id }
+  - name: assertUploadFile
+    invoke: !ref Assert.equals
+    inputs:
+      actual: !cel "steps.uploadFile.result.body"
+      expected:
+        id: uploaded-mp
+        received: { method: POST, path: /upload/drive/v3/files, query: { uploadType: multipart, supportsAllDrives: "true", fields: id }, auth: "Bearer test-token" }
+        framing: multipart/related
+        metadata: { name: hello.txt }
+        metadataContentType: "application/json; charset=UTF-8"
+        content: hello world
+        contentType: text/plain
+  - name: uploadFileBase64
+    invoke: !ref uploadFile
+    inputs: { metadata: { name: b.bin }, content: "YmluYXJ5IQ==", contentEncoding: base64 }
+  - name: assertUploadFileBase64
+    invoke: !ref Assert.equals
+    inputs:
+      actual: !cel "steps.uploadFileBase64.result.body.content"
+      expected: "binary!"
+  - name: assertUploadFileBase64Type
+    invoke: !ref Assert.equals
+    inputs:
+      actual: !cel "steps.uploadFileBase64.result.body.contentType"
+      expected: application/octet-stream
+  - name: updateFileContent
+    invoke: !ref updateFileContent
+    inputs: { fileId: f1, metadata: { name: renamed }, content: v2, contentType: text/plain, keepRevisionForever: true }
+  - name: assertUpdateFileContent
+    invoke: !ref Assert.equals
+    inputs:
+      actual: !cel "steps.updateFileContent.result.body"
+      expected:
+        id: uploaded-mp
+        received: { method: PATCH, path: /upload/drive/v3/files/f1, query: { uploadType: multipart, supportsAllDrives: "true", keepRevisionForever: "true" }, auth: "Bearer test-token" }
+        framing: multipart/related
+        metadata: { name: renamed }
+        content: v2
+        contentType: text/plain
+  - name: startResumableUpload
+    invoke: !ref startResumableUpload
+    inputs: {"metadata": {"name": "big.bin"}, "contentType": "application/zip", "contentLength": 10}
+  - name: assertStartResumableUpload
+    invoke: !ref Assert.equals
+    inputs:
+      actual: !cel "steps.startResumableUpload.result.body.received"
+      expected: {"method": "POST", "path": "/upload/drive/v3/files", "query": {"uploadType": "resumable", "supportsAllDrives": "true"}, "body": {"name": "big.bin"}, "auth": "Bearer test-token", "uploadContentType": "application/zip", "uploadContentLength": "10"}
+  - name: assertStartResumableUploadX0
+    invoke: !ref Assert.equals
+    inputs:
+      actual: !cel "steps.startResumableUpload.result.headers.location"
+      expected: "http://localhost:34825/resumable/session-1"
+  - name: startResumableUpdate
+    invoke: !ref startResumableUpload
+    inputs: {"fileId": "f1", "metadata": {}, "addParents": "p1"}
+  - name: assertStartResumableUpdate
+    invoke: !ref Assert.equals
+    inputs:
+      actual: !cel "steps.startResumableUpdate.result.body.received"
+      expected: {"method": "PATCH", "path": "/upload/drive/v3/files/f1", "query": {"uploadType": "resumable", "addParents": "p1", "supportsAllDrives": "true"}, "body": {}, "auth": "Bearer test-token", "uploadContentType": "application/octet-stream", "uploadContentLength": ""}
+  - name: uploadResumableContent
+    invoke: !ref uploadResumableContent
+    inputs:
+      uploadUri: !cel "steps.startResumableUpload.result.headers.location"
+      content: "0123456789"
+      contentType: application/zip
+      contentLength: 10
+  - name: assertUploadResumableContent
+    invoke: !ref Assert.equals
+    inputs:
+      actual: !cel "steps.uploadResumableContent.result.body"
+      expected:
+        id: uploaded-1
+        received: { method: PUT, path: /resumable/session-1, auth: "Bearer test-token", contentType: application/zip, contentRange: "", contentLength: "10", content: "0123456789" }
+  - name: uploadResumableChunk
+    invoke: !ref uploadResumableContent
+    inputs:
+      uploadUri: !cel "steps.startResumableUpload.result.headers.location"
+      content: "01234"
+      contentType: application/zip
+      contentRange: "bytes 0-4/10"
+  - name: assertUploadResumableChunkStatus
+    invoke: !ref Assert.equals
+    inputs:
+      actual: !cel "steps.uploadResumableChunk.result.status"
+      expected: 308
+  - name: assertUploadResumableChunkRange
+    invoke: !ref Assert.equals
+    inputs:
+      actual: !cel "steps.uploadResumableChunk.result.headers.range"
+      expected: bytes=0-4
+  - name: assertUploadResumableChunkBody
+    invoke: !ref Assert.equals
+    inputs:
+      actual: !cel "steps.uploadResumableChunk.result.body.received.contentRange"
+      expected: "bytes 0-4/10"
+  - name: uploadFileResumable
+    invoke: !ref uploadFileResumable
+    inputs: { metadata: { name: big.bin }, content: abcdefghij, contentType: application/octet-stream, contentLength: 10 }
+  - name: assertUploadFileResumable
+    invoke: !ref Assert.equals
+    inputs:
+      actual: !cel "steps.uploadFileResumable.result"
+      expected:
+        status: 200
+        headers: !cel "steps.uploadFileResumable.result.headers"
+        uploadUri: http://localhost:34825/resumable/session-1
+        body:
+          id: uploaded-1
+          received: { method: PUT, path: /resumable/session-1, auth: "Bearer test-token", contentType: application/octet-stream, contentRange: "", contentLength: "10", content: abcdefghij }
+  - name: listPermissions
+    invoke: !ref listPermissions
+    inputs: {"fileId": "f1", "pageSize": 5}
+  - name: assertListPermissions
+    invoke: !ref Assert.equals
+    inputs:
+      actual: !cel "steps.listPermissions.result.body.received"
+      expected: {"method": "GET", "path": "/drive/v3/files/f1/permissions", "query": {"pageSize": "5", "supportsAllDrives": "true"}, "body": {}, "auth": "Bearer test-token", "uploadContentType": "", "uploadContentLength": ""}
+  - name: getPermission
+    invoke: !ref getPermission
+    inputs: {"fileId": "f1", "permissionId": "p1", "fields": "role"}
+  - name: assertGetPermission
+    invoke: !ref Assert.equals
+    inputs:
+      actual: !cel "steps.getPermission.result.body.received"
+      expected: {"method": "GET", "path": "/drive/v3/files/f1/permissions/p1", "query": {"fields": "role", "supportsAllDrives": "true"}, "body": {}, "auth": "Bearer test-token", "uploadContentType": "", "uploadContentLength": ""}
+  - name: createPermission
+    invoke: !ref createPermission
+    inputs: {"fileId": "f1", "permission": {"role": "reader", "type": "anyone"}, "sendNotificationEmail": false}
+  - name: assertCreatePermission
+    invoke: !ref Assert.equals
+    inputs:
+      actual: !cel "steps.createPermission.result.body.received"
+      expected: {"method": "POST", "path": "/drive/v3/files/f1/permissions", "query": {"sendNotificationEmail": "false", "supportsAllDrives": "true"}, "body": {"role": "reader", "type": "anyone"}, "auth": "Bearer test-token", "uploadContentType": "", "uploadContentLength": ""}
+  - name: updatePermission
+    invoke: !ref updatePermission
+    inputs: {"fileId": "f1", "permissionId": "p1", "permission": {"role": "writer"}, "removeExpiration": true}
+  - name: assertUpdatePermission
+    invoke: !ref Assert.equals
+    inputs:
+      actual: !cel "steps.updatePermission.result.body.received"
+      expected: {"method": "PATCH", "path": "/drive/v3/files/f1/permissions/p1", "query": {"removeExpiration": "true", "supportsAllDrives": "true"}, "body": {"role": "writer"}, "auth": "Bearer test-token", "uploadContentType": "", "uploadContentLength": ""}
+  - name: deletePermission
+    invoke: !ref deletePermission
+    inputs: {"fileId": "f1", "permissionId": "p1"}
+  - name: assertDeletePermission
+    invoke: !ref Assert.equals
+    inputs:
+      actual: !cel "steps.deletePermission.result.body.received"
+      expected: {"method": "DELETE", "path": "/drive/v3/files/f1/permissions/p1", "query": {"supportsAllDrives": "true"}, "body": {}, "auth": "Bearer test-token", "uploadContentType": "", "uploadContentLength": ""}
+  - name: listComments
+    invoke: !ref listComments
+    inputs: {"fileId": "f1", "includeDeleted": true}
+  - name: assertListComments
+    invoke: !ref Assert.equals
+    inputs:
+      actual: !cel "steps.listComments.result.body.received"
+      expected: {"method": "GET", "path": "/drive/v3/files/f1/comments", "query": {"includeDeleted": "true", "fields": "*"}, "body": {}, "auth": "Bearer test-token", "uploadContentType": "", "uploadContentLength": ""}
+  - name: getComment
+    invoke: !ref getComment
+    inputs: {"fileId": "f1", "commentId": "c1"}
+  - name: assertGetComment
+    invoke: !ref Assert.equals
+    inputs:
+      actual: !cel "steps.getComment.result.body.received"
+      expected: {"method": "GET", "path": "/drive/v3/files/f1/comments/c1", "query": {"fields": "*"}, "body": {}, "auth": "Bearer test-token", "uploadContentType": "", "uploadContentLength": ""}
+  - name: createComment
+    invoke: !ref createComment
+    inputs: {"fileId": "f1", "comment": {"content": "hi"}}
+  - name: assertCreateComment
+    invoke: !ref Assert.equals
+    inputs:
+      actual: !cel "steps.createComment.result.body.received"
+      expected: {"method": "POST", "path": "/drive/v3/files/f1/comments", "query": {"fields": "*"}, "body": {"content": "hi"}, "auth": "Bearer test-token", "uploadContentType": "", "uploadContentLength": ""}
+  - name: updateComment
+    invoke: !ref updateComment
+    inputs: {"fileId": "f1", "commentId": "c1", "comment": {"resolved": true}, "fields": "resolved"}
+  - name: assertUpdateComment
+    invoke: !ref Assert.equals
+    inputs:
+      actual: !cel "steps.updateComment.result.body.received"
+      expected: {"method": "PATCH", "path": "/drive/v3/files/f1/comments/c1", "query": {"fields": "resolved"}, "body": {"resolved": true}, "auth": "Bearer test-token", "uploadContentType": "", "uploadContentLength": ""}
+  - name: deleteComment
+    invoke: !ref deleteComment
+    inputs: {"fileId": "f1", "commentId": "c1"}
+  - name: assertDeleteComment
+    invoke: !ref Assert.equals
+    inputs:
+      actual: !cel "steps.deleteComment.result.body.received"
+      expected: {"method": "DELETE", "path": "/drive/v3/files/f1/comments/c1", "query": {}, "body": {}, "auth": "Bearer test-token", "uploadContentType": "", "uploadContentLength": ""}
+  - name: listReplies
+    invoke: !ref listReplies
+    inputs: {"fileId": "f1", "commentId": "c1", "pageSize": 3}
+  - name: assertListReplies
+    invoke: !ref Assert.equals
+    inputs:
+      actual: !cel "steps.listReplies.result.body.received"
+      expected: {"method": "GET", "path": "/drive/v3/files/f1/comments/c1/replies", "query": {"pageSize": "3", "fields": "*"}, "body": {}, "auth": "Bearer test-token", "uploadContentType": "", "uploadContentLength": ""}
+  - name: getReply
+    invoke: !ref getReply
+    inputs: {"fileId": "f1", "commentId": "c1", "replyId": "r1"}
+  - name: assertGetReply
+    invoke: !ref Assert.equals
+    inputs:
+      actual: !cel "steps.getReply.result.body.received"
+      expected: {"method": "GET", "path": "/drive/v3/files/f1/comments/c1/replies/r1", "query": {"fields": "*"}, "body": {}, "auth": "Bearer test-token", "uploadContentType": "", "uploadContentLength": ""}
+  - name: createReply
+    invoke: !ref createReply
+    inputs: {"fileId": "f1", "commentId": "c1", "reply": {"action": "resolve"}}
+  - name: assertCreateReply
+    invoke: !ref Assert.equals
+    inputs:
+      actual: !cel "steps.createReply.result.body.received"
+      expected: {"method": "POST", "path": "/drive/v3/files/f1/comments/c1/replies", "query": {"fields": "*"}, "body": {"action": "resolve"}, "auth": "Bearer test-token", "uploadContentType": "", "uploadContentLength": ""}
+  - name: updateReply
+    invoke: !ref updateReply
+    inputs: {"fileId": "f1", "commentId": "c1", "replyId": "r1", "reply": {"content": "x"}}
+  - name: assertUpdateReply
+    invoke: !ref Assert.equals
+    inputs:
+      actual: !cel "steps.updateReply.result.body.received"
+      expected: {"method": "PATCH", "path": "/drive/v3/files/f1/comments/c1/replies/r1", "query": {"fields": "*"}, "body": {"content": "x"}, "auth": "Bearer test-token", "uploadContentType": "", "uploadContentLength": ""}
+  - name: deleteReply
+    invoke: !ref deleteReply
+    inputs: {"fileId": "f1", "commentId": "c1", "replyId": "r1"}
+  - name: assertDeleteReply
+    invoke: !ref Assert.equals
+    inputs:
+      actual: !cel "steps.deleteReply.result.body.received"
+      expected: {"method": "DELETE", "path": "/drive/v3/files/f1/comments/c1/replies/r1", "query": {}, "body": {}, "auth": "Bearer test-token", "uploadContentType": "", "uploadContentLength": ""}
+  - name: listRevisions
+    invoke: !ref listRevisions
+    inputs: {"fileId": "f1", "pageSize": 2}
+  - name: assertListRevisions
+    invoke: !ref Assert.equals
+    inputs:
+      actual: !cel "steps.listRevisions.result.body.received"
+      expected: {"method": "GET", "path": "/drive/v3/files/f1/revisions", "query": {"pageSize": "2"}, "body": {}, "auth": "Bearer test-token", "uploadContentType": "", "uploadContentLength": ""}
+  - name: getRevision
+    invoke: !ref getRevision
+    inputs: {"fileId": "f1", "revisionId": "r1", "fields": "id"}
+  - name: assertGetRevision
+    invoke: !ref Assert.equals
+    inputs:
+      actual: !cel "steps.getRevision.result.body.received"
+      expected: {"method": "GET", "path": "/drive/v3/files/f1/revisions/r1", "query": {"fields": "id"}, "body": {}, "auth": "Bearer test-token", "uploadContentType": "", "uploadContentLength": ""}
+  - name: downloadRevision
+    invoke: !ref downloadRevision
+    inputs: {"fileId": "f1", "revisionId": "r1"}
+  - name: assertDownloadRevisionX0
+    invoke: !ref Assert.equals
+    inputs:
+      actual: !cel "string(steps.downloadRevision.result.body)"
+      expected: "bytes-of:/drive/v3/files/f1/revisions/r1:"
+  - name: updateRevision
+    invoke: !ref updateRevision
+    inputs: {"fileId": "f1", "revisionId": "r1", "revision": {"keepForever": true}}
+  - name: assertUpdateRevision
+    invoke: !ref Assert.equals
+    inputs:
+      actual: !cel "steps.updateRevision.result.body.received"
+      expected: {"method": "PATCH", "path": "/drive/v3/files/f1/revisions/r1", "query": {}, "body": {"keepForever": true}, "auth": "Bearer test-token", "uploadContentType": "", "uploadContentLength": ""}
+  - name: deleteRevision
+    invoke: !ref deleteRevision
+    inputs: {"fileId": "f1", "revisionId": "r1"}
+  - name: assertDeleteRevision
+    invoke: !ref Assert.equals
+    inputs:
+      actual: !cel "steps.deleteRevision.result.body.received"
+      expected: {"method": "DELETE", "path": "/drive/v3/files/f1/revisions/r1", "query": {}, "body": {}, "auth": "Bearer test-token", "uploadContentType": "", "uploadContentLength": ""}
+  - name: listDrives
+    invoke: !ref listDrives
+    inputs: {"pageSize": 2, "useDomainAdminAccess": true}
+  - name: assertListDrives
+    invoke: !ref Assert.equals
+    inputs:
+      actual: !cel "steps.listDrives.result.body.received"
+      expected: {"method": "GET", "path": "/drive/v3/drives", "query": {"pageSize": "2", "useDomainAdminAccess": "true"}, "body": {}, "auth": "Bearer test-token", "uploadContentType": "", "uploadContentLength": ""}
+  - name: getDrive
+    invoke: !ref getDrive
+    inputs: {"driveId": "d1"}
+  - name: assertGetDrive
+    invoke: !ref Assert.equals
+    inputs:
+      actual: !cel "steps.getDrive.result.body.received"
+      expected: {"method": "GET", "path": "/drive/v3/drives/d1", "query": {}, "body": {}, "auth": "Bearer test-token", "uploadContentType": "", "uploadContentLength": ""}
+  - name: createDrive
+    invoke: !ref createDrive
+    inputs: {"requestId": "req-1", "drive": {"name": "Eng"}}
+  - name: assertCreateDrive
+    invoke: !ref Assert.equals
+    inputs:
+      actual: !cel "steps.createDrive.result.body.received"
+      expected: {"method": "POST", "path": "/drive/v3/drives", "query": {"requestId": "req-1"}, "body": {"name": "Eng"}, "auth": "Bearer test-token", "uploadContentType": "", "uploadContentLength": ""}
+  - name: updateDrive
+    invoke: !ref updateDrive
+    inputs: {"driveId": "d1", "drive": {"name": "Eng2"}}
+  - name: assertUpdateDrive
+    invoke: !ref Assert.equals
+    inputs:
+      actual: !cel "steps.updateDrive.result.body.received"
+      expected: {"method": "PATCH", "path": "/drive/v3/drives/d1", "query": {}, "body": {"name": "Eng2"}, "auth": "Bearer test-token", "uploadContentType": "", "uploadContentLength": ""}
+  - name: deleteDrive
+    invoke: !ref deleteDrive
+    inputs: {"driveId": "d1", "allowItemDeletion": true, "useDomainAdminAccess": true}
+  - name: assertDeleteDrive
+    invoke: !ref Assert.equals
+    inputs:
+      actual: !cel "steps.deleteDrive.result.body.received"
+      expected: {"method": "DELETE", "path": "/drive/v3/drives/d1", "query": {"useDomainAdminAccess": "true", "allowItemDeletion": "true"}, "body": {}, "auth": "Bearer test-token", "uploadContentType": "", "uploadContentLength": ""}
+  - name: hideDrive
+    invoke: !ref hideDrive
+    inputs: {"driveId": "d1"}
+  - name: assertHideDrive
+    invoke: !ref Assert.equals
+    inputs:
+      actual: !cel "steps.hideDrive.result.body.received"
+      expected: {"method": "POST", "path": "/drive/v3/drives/d1/hide", "query": {}, "body": {}, "auth": "Bearer test-token", "uploadContentType": "", "uploadContentLength": ""}
+  - name: unhideDrive
+    invoke: !ref unhideDrive
+    inputs: {"driveId": "d1"}
+  - name: assertUnhideDrive
+    invoke: !ref Assert.equals
+    inputs:
+      actual: !cel "steps.unhideDrive.result.body.received"
+      expected: {"method": "POST", "path": "/drive/v3/drives/d1/unhide", "query": {}, "body": {}, "auth": "Bearer test-token", "uploadContentType": "", "uploadContentLength": ""}
+  - name: getStartPageToken
+    invoke: !ref getStartPageToken
+    inputs: {}
+  - name: assertGetStartPageToken
+    invoke: !ref Assert.equals
+    inputs:
+      actual: !cel "steps.getStartPageToken.result.body.received"
+      expected: {"method": "GET", "path": "/drive/v3/changes/startPageToken", "query": {"supportsAllDrives": "true"}, "body": {}, "auth": "Bearer test-token", "uploadContentType": "", "uploadContentLength": ""}
+  - name: listChanges
+    invoke: !ref listChanges
+    inputs: {"pageToken": "t1", "includeRemoved": false, "spaces": "drive"}
+  - name: assertListChanges
+    invoke: !ref Assert.equals
+    inputs:
+      actual: !cel "steps.listChanges.result.body.received"
+      expected: {"method": "GET", "path": "/drive/v3/changes", "query": {"pageToken": "t1", "includeRemoved": "false", "spaces": "drive", "supportsAllDrives": "true"}, "body": {}, "auth": "Bearer test-token", "uploadContentType": "", "uploadContentLength": ""}
+  - name: watchChanges
+    invoke: !ref watchChanges
+    inputs: {"pageToken": "t1", "channel": {"id": "c2", "type": "web_hook", "address": "https://example.com/hook"}}
+  - name: assertWatchChanges
+    invoke: !ref Assert.equals
+    inputs:
+      actual: !cel "steps.watchChanges.result.body.received"
+      expected: {"method": "POST", "path": "/drive/v3/changes/watch", "query": {"pageToken": "t1", "supportsAllDrives": "true"}, "body": {"id": "c2", "type": "web_hook", "address": "https://example.com/hook"}, "auth": "Bearer test-token", "uploadContentType": "", "uploadContentLength": ""}
+  - name: getAbout
+    invoke: !ref getAbout
+    inputs: {}
+  - name: assertGetAbout
+    invoke: !ref Assert.equals
+    inputs:
+      actual: !cel "steps.getAbout.result.body.received"
+      expected: {"method": "GET", "path": "/drive/v3/about", "query": {"fields": "*"}, "body": {}, "auth": "Bearer test-token", "uploadContentType": "", "uploadContentLength": ""}
+  - name: getAboutCred
+    invoke: !ref getAboutCred
+    inputs: {"fields": "user"}
+  - name: assertGetAboutCred
+    invoke: !ref Assert.equals
+    inputs:
+      actual: !cel "steps.getAboutCred.result.body.received"
+      expected: {"method": "GET", "path": "/drive/v3/about", "query": {"fields": "user"}, "body": {}, "auth": "Bearer cred-token", "uploadContentType": "", "uploadContentLength": ""}
+  - name: stopChannel
+    invoke: !ref stopChannel
+    inputs: {"id": "c1", "resourceId": "res1"}
+  - name: assertStopChannel
+    invoke: !ref Assert.equals
+    inputs:
+      actual: !cel "steps.stopChannel.result.body.received"
+      expected: {"method": "POST", "path": "/drive/v3/channels/stop", "query": {}, "body": {"id": "c1", "resourceId": "res1"}, "auth": "Bearer test-token", "uploadContentType": "", "uploadContentLength": ""}
+  - name: listApps
+    invoke: !ref listApps
+    inputs: {"languageCode": "en"}
+  - name: assertListApps
+    invoke: !ref Assert.equals
+    inputs:
+      actual: !cel "steps.listApps.result.body.received"
+      expected: {"method": "GET", "path": "/drive/v3/apps", "query": {"languageCode": "en"}, "body": {}, "auth": "Bearer test-token", "uploadContentType": "", "uploadContentLength": ""}
+  - name: getApp
+    invoke: !ref getApp
+    inputs: {"appId": "a1"}
+  - name: assertGetApp
+    invoke: !ref Assert.equals
+    inputs:
+      actual: !cel "steps.getApp.result.body.received"
+      expected: {"method": "GET", "path": "/drive/v3/apps/a1", "query": {}, "body": {}, "auth": "Bearer test-token", "uploadContentType": "", "uploadContentLength": ""}
+  - name: refreshAccessToken
+    invoke: !ref refreshAccessToken
+    inputs:
+      clientId: cid
+      clientSecret: sec
+      refreshToken: rt
+      tokenUrl: !cel "variables.baseUrl + '/token'"
+  - name: assertRefreshAccessToken
+    invoke: !ref Assert.equals
+    inputs:
+      actual: !cel "steps.refreshAccessToken.result.body.access_token"
+      expected: fresh-token
+  - name: assertRefreshAccessTokenMethod
+    invoke: !ref Assert.equals
+    inputs:
+      actual: !cel "steps.refreshAccessToken.result.body.method"
+      expected: POST
+  - name: assertRefreshAccessTokenContentType
+    invoke: !ref Assert.equals
+    inputs:
+      actual: !cel "steps.refreshAccessToken.result.body.contentType"
+      expected: application/x-www-form-urlencoded

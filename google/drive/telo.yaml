@@ -1,0 +1,4387 @@
+kind: Telo.Library
+metadata:
+  name: GoogleDrive
+  version: 0.0.0
+  description: >-
+    Typed Google Drive (API v3) operations for Telo manifests. A friendly
+    Http.Client (GoogleDriveClient) authenticated with either a static OAuth2
+    access token or a self-refreshing Http.Credential, plus Invocable
+    operations covering the whole REST surface: files (list, get, download,
+    export, create, multipart and resumable upload, update, copy, delete,
+    trash, ids, watch, labels), permissions, comments, replies, revisions,
+    shared drives, changes, about, channels and apps. A RefreshAccessToken
+    helper exchanges an OAuth2 refresh token for a fresh access token. Built on
+    the http-client, multipart and run modules — no controller code.
+  repository: https://github.com/telorun/connectors
+  license: MIT
+imports:
+  Http: oci://ghcr.io/telorun/http-client@0.22.0#sha256-UyC8nQDnKHXyPpPPHC7TS8MicesLsgDUKWBYObf5oQ4
+  Multipart: oci://ghcr.io/telorun/multipart@0.2.2#sha256-RCqiT4UMwrVeRq1hU1xxkysRSxX4NC5DzsdrbbEBxv8
+  Run: oci://ghcr.io/telorun/run@0.26.0#sha256-ZhW56yiMCImqBh0wJ4mVaUvh5WuUVIaWErASFx--wCY
+exports:
+  kinds:
+    # Clients
+    - GoogleDriveClient
+    - GoogleDriveOAuthClient
+    # Files
+    - ListFiles
+    - GetFile
+    - DownloadFile
+    - ExportFile
+    - CreateFile
+    - UpdateFile
+    - CopyFile
+    - DeleteFile
+    - EmptyTrash
+    - GenerateFileIds
+    - WatchFile
+    - ListFileLabels
+    - ModifyFileLabels
+    # Uploads
+    - UploadFile
+    - UpdateFileContent
+    - StartResumableUpload
+    - UploadResumableContent
+    - UploadFileResumable
+    # Permissions
+    - ListPermissions
+    - GetPermission
+    - CreatePermission
+    - UpdatePermission
+    - DeletePermission
+    # Comments
+    - ListComments
+    - GetComment
+    - CreateComment
+    - UpdateComment
+    - DeleteComment
+    # Replies
+    - ListReplies
+    - GetReply
+    - CreateReply
+    - UpdateReply
+    - DeleteReply
+    # Revisions
+    - ListRevisions
+    - GetRevision
+    - DownloadRevision
+    - UpdateRevision
+    - DeleteRevision
+    # Shared drives
+    - ListDrives
+    - GetDrive
+    - CreateDrive
+    - UpdateDrive
+    - DeleteDrive
+    - HideDrive
+    - UnhideDrive
+    # Changes
+    - GetStartPageToken
+    - ListChanges
+    - WatchChanges
+    # Misc
+    - GetAbout
+    - StopChannel
+    - ListApps
+    - GetApp
+    - RefreshAccessToken
+---
+# The service clients. Both inherit the Http.Client controller (and its Provider
+# capability), so either IS an Http.Client at runtime and drops into any
+# `x-telo-ref: Http.Client` slot — every operation below takes either.
+#
+# Two kinds rather than one optional field: a credential is a live resource
+# reference, and a reference cannot be produced conditionally by an expression,
+# so an "either/or" auth field would resolve to an empty object whenever it was
+# left out. Which one to use:
+#
+#   - GoogleDriveClient — a bare OAuth2 access token. Google's expire about an
+#     hour after issue; RefreshAccessToken exchanges a refresh token for a new
+#     one. Right for a script or a short-lived run.
+#   - GoogleDriveOAuthClient — any Http.Credential: Http.BearerToken for a fixed
+#     token, or a refreshing credential (e.g. from the oauth-client module) that
+#     re-acquires before expiry and again after a 401. Right for a long-lived
+#     process.
+#
+# Both hosts Drive uses hang off the same origin (`/drive/v3` for metadata,
+# `/upload/drive/v3` for content), so baseUrl is the origin. The default retry
+# policy backs off on 408/429/5xx and honours Retry-After, which is what
+# Google's usage-limit guidance asks for. Requests with a streamed body cannot
+# be replayed; those operations disable retry themselves (see UploadFile).
+kind: Telo.Definition
+metadata:
+  name: GoogleDriveClient
+  description: >-
+    Preconfigured Google Drive Http.Client — Bearer OAuth2 access token,
+    baseUrl https://www.googleapis.com, retry with backoff.
+extends: Http.Client
+schema:
+  type: object
+  required: [accessToken]
+  properties:
+    accessToken:
+      type: string
+      description: >-
+        OAuth2 access token (the bare token, no "Bearer " prefix). Sent as
+        `Authorization: Bearer <accessToken>` on every request.
+    baseUrl:
+      type: string
+      description: >-
+        Override the API origin (no trailing slash). Defaults to
+        https://www.googleapis.com. Point it at a proxy or a stub server for
+        testing.
+    timeout:
+      type: integer
+      minimum: 1
+      description: Per-request timeout in milliseconds. Defaults to 60000.
+    retryAttempts:
+      type: integer
+      minimum: 0
+      description: >-
+        Re-attempts after the first try for retryable failures (network errors,
+        408, 429, 5xx). Defaults to 3; 0 disables retrying.
+base:
+  baseUrl: !cel "self.?baseUrl.orValue('https://www.googleapis.com')"
+  headers:
+    Authorization: !cel "'Bearer ' + self.accessToken"
+  timeout: !cel "self.?timeout.orValue(60000)"
+  retry:
+    attempts: !cel "self.?retryAttempts.orValue(3)"
+    initialDelay: 500
+    maxDelay: 16000
+    honorRetryAfter: true
+---
+# The same client authenticated by an Http.Credential — the production shape for
+# a long-lived process, since the credential is re-consulted with forceRefresh
+# and the request retried once when Google answers 401.
+kind: Telo.Definition
+metadata:
+  name: GoogleDriveOAuthClient
+  description: >-
+    Google Drive Http.Client authenticated by an Http.Credential (a refreshing
+    OAuth credential, or Http.BearerToken).
+extends: Http.Client
+schema:
+  type: object
+  required: [credential]
+  properties:
+    credential:
+      x-telo-ref:
+        kind: Http.Credential
+        use: call
+      description: >-
+        The credential consulted on every request. Re-consulted with
+        forceRefresh and the request retried once on a 401.
+    baseUrl:
+      type: string
+      description: >-
+        Override the API origin (no trailing slash). Defaults to
+        https://www.googleapis.com.
+    timeout:
+      type: integer
+      minimum: 1
+      description: Per-request timeout in milliseconds. Defaults to 60000.
+    retryAttempts:
+      type: integer
+      minimum: 0
+      description: >-
+        Re-attempts after the first try for retryable failures. Defaults to 3;
+        0 disables retrying.
+base:
+  baseUrl: !cel "self.?baseUrl.orValue('https://www.googleapis.com')"
+  credential: !cel "self.credential"
+  timeout: !cel "self.?timeout.orValue(60000)"
+  retry:
+    attempts: !cel "self.?retryAttempts.orValue(3)"
+    initialDelay: 500
+    maxDelay: 16000
+    honorRetryAfter: true
+---
+# GET /drive/v3/files — list or search files. `q` is the Drive search grammar
+# (e.g. "'folderId' in parents and trashed = false"). Page with pageToken.
+# `supportsAllDrives` defaults to true everywhere in this module, as Google
+# recommends; set `includeItemsFromAllDrives` to search shared drives too.
+kind: Telo.Definition
+metadata:
+  name: ListFiles
+  description: List or search files (GET /drive/v3/files) with the Drive query grammar.
+capability: Telo.Invocable
+schema:
+  type: object
+  required: [client]
+  properties:
+    client:
+      x-telo-ref:
+        kind: Http.Client
+        use: dependency
+      description: A GoogleDriveClient / GoogleDriveOAuthClient (or any Http.Client) to run the request against.
+inputType:
+  kind: Telo.JsonSchema
+  schema:
+    type: object
+    properties:
+      q:
+        type: string
+        description: "Search query, e.g. \"name contains 'report' and trashed = false\"."
+      pageSize:
+        type: integer
+        description: Maximum files per page (1-1000, default 100).
+      pageToken:
+        type: string
+        description: nextPageToken from the previous page.
+      orderBy:
+        type: string
+        description: "Sort keys, e.g. \"modifiedTime desc,name\"."
+      fields:
+        type: string
+        description: "Field mask, e.g. \"nextPageToken,files(id,name,mimeType)\"."
+      spaces:
+        type: string
+        description: "Comma-separated spaces to query: drive, appDataFolder."
+      corpora:
+        type: string
+        description: "Bodies to query: user, domain, drive, allDrives."
+      driveId:
+        type: string
+        description: Shared drive id to search (with corpora=drive).
+      includeItemsFromAllDrives:
+        type: boolean
+        description: Include shared drive items in results.
+      supportsAllDrives:
+        type: boolean
+        description: Whether the caller supports shared drives. Defaults to true.
+      includePermissionsForView:
+        type: string
+        description: "Extra permissions to include in the response (only 'published')."
+      includeLabels:
+        type: string
+        description: Comma-separated label ids to include in labelInfo.
+      params:
+        type: object
+        additionalProperties: { type: string }
+        description: Extra query parameters appended verbatim (escape hatch for new API options).
+outputType:
+  kind: Telo.JsonSchema
+  schema:
+    type: object
+    required: [status, headers, body]
+    properties:
+      status: { type: integer }
+      headers: { type: object, additionalProperties: { type: string } }
+      body:
+        description: Parsed JSON FileList — { files, nextPageToken?, incompleteSearch }.
+resources:
+  - kind: Http.Request
+    metadata:
+      name: !cel "self.name + '-req'"
+    client: !cel "self.client"
+    throwOnHttpError: true
+invoke:
+  kind: Http.Request
+  name: !cel "self.name + '-req'"
+inputs:
+  method: GET
+  url: !cel >-
+    trimSuffix(trimSuffix(
+      '/drive/v3/files?' + join([
+        {'k': 'q', 'v': inputs.?q.orValue('')},
+        {'k': 'pageSize', 'v': has(inputs.pageSize) ? string(inputs.pageSize) : ''},
+        {'k': 'pageToken', 'v': inputs.?pageToken.orValue('')},
+        {'k': 'orderBy', 'v': inputs.?orderBy.orValue('')},
+        {'k': 'fields', 'v': inputs.?fields.orValue('')},
+        {'k': 'spaces', 'v': inputs.?spaces.orValue('')},
+        {'k': 'corpora', 'v': inputs.?corpora.orValue('')},
+        {'k': 'driveId', 'v': inputs.?driveId.orValue('')},
+        {'k': 'includeItemsFromAllDrives', 'v': has(inputs.includeItemsFromAllDrives) ? string(inputs.includeItemsFromAllDrives) : ''},
+        {'k': 'supportsAllDrives', 'v': string(inputs.?supportsAllDrives.orValue(true))},
+        {'k': 'includePermissionsForView', 'v': inputs.?includePermissionsForView.orValue('')},
+        {'k': 'includeLabels', 'v': inputs.?includeLabels.orValue('')}
+      ].filter(p, p.v != '').map(p, p.k + '=' + urlEncode(p.v))
+        + keys(inputs.?params.orValue({})).map(k, k + '=' + urlEncode(inputs.?params.orValue({})[k])), '&')
+    , '&'), '?')
+---
+# GET /drive/v3/files/{fileId} — read a file's metadata. Use `fields` to
+# choose the projection ("*" for everything); Drive returns a small default set.
+kind: Telo.Definition
+metadata:
+  name: GetFile
+  description: Read a file's metadata by id (GET /drive/v3/files/{fileId}).
+capability: Telo.Invocable
+schema:
+  type: object
+  required: [client]
+  properties:
+    client:
+      x-telo-ref:
+        kind: Http.Client
+        use: dependency
+      description: A GoogleDriveClient / GoogleDriveOAuthClient (or any Http.Client) to run the request against.
+inputType:
+  kind: Telo.JsonSchema
+  schema:
+    type: object
+    required: [fileId]
+    properties:
+      fileId:
+        type: string
+        description: The file id.
+      fields:
+        type: string
+        description: "Field mask, e.g. \"id,name,mimeType,size,parents\" or \"*\"."
+      supportsAllDrives:
+        type: boolean
+        description: Whether the caller supports shared drives. Defaults to true.
+      acknowledgeAbuse:
+        type: boolean
+        description: Acknowledge the risk of downloading known malware or abusive files.
+      includePermissionsForView:
+        type: string
+        description: "Extra permissions to include (only 'published')."
+      includeLabels:
+        type: string
+        description: Comma-separated label ids to include in labelInfo.
+      params:
+        type: object
+        additionalProperties: { type: string }
+        description: Extra query parameters appended verbatim.
+outputType:
+  kind: Telo.JsonSchema
+  schema:
+    type: object
+    required: [status, headers, body]
+    properties:
+      status: { type: integer }
+      headers: { type: object, additionalProperties: { type: string } }
+      body:
+        description: Parsed JSON File resource.
+resources:
+  - kind: Http.Request
+    metadata:
+      name: !cel "self.name + '-req'"
+    client: !cel "self.client"
+    throwOnHttpError: true
+invoke:
+  kind: Http.Request
+  name: !cel "self.name + '-req'"
+inputs:
+  method: GET
+  url: !cel >-
+    trimSuffix(trimSuffix(
+      '/drive/v3/files/' + urlEncode(inputs.fileId) + '?' + join([
+        {'k': 'fields', 'v': inputs.?fields.orValue('')},
+        {'k': 'supportsAllDrives', 'v': string(inputs.?supportsAllDrives.orValue(true))},
+        {'k': 'acknowledgeAbuse', 'v': has(inputs.acknowledgeAbuse) ? string(inputs.acknowledgeAbuse) : ''},
+        {'k': 'includePermissionsForView', 'v': inputs.?includePermissionsForView.orValue('')},
+        {'k': 'includeLabels', 'v': inputs.?includeLabels.orValue('')}
+      ].filter(p, p.v != '').map(p, p.k + '=' + urlEncode(p.v))
+        + keys(inputs.?params.orValue({})).map(k, k + '=' + urlEncode(inputs.?params.orValue({})[k])), '&')
+    , '&'), '?')
+---
+# GET /drive/v3/files/{fileId}?alt=media — download a binary file's content.
+# Only for files with binary content (not Google Docs/Sheets/Slides — use
+# ExportFile for those). `responseType` picks buffered bytes (default) or a
+# byte stream for large files; a `range` header ("bytes=0-1023") downloads a
+# slice.
+kind: Telo.Definition
+metadata:
+  name: DownloadFile
+  description: Download a file's binary content as bytes or a byte stream (alt=media).
+capability: Telo.Invocable
+schema:
+  type: object
+  required: [client]
+  properties:
+    client:
+      x-telo-ref:
+        kind: Http.Client
+        use: dependency
+      description: A GoogleDriveClient / GoogleDriveOAuthClient (or any Http.Client) to run the request against.
+inputType:
+  kind: Telo.JsonSchema
+  schema:
+    type: object
+    required: [fileId]
+    properties:
+      fileId:
+        type: string
+        description: The file id.
+      responseType:
+        type: string
+        enum: [bytes, stream]
+        description: Buffer the content as bytes (default) or return a byte stream.
+      range:
+        type: string
+        description: "Optional HTTP Range header value, e.g. \"bytes=0-1023\", for a partial download."
+      supportsAllDrives:
+        type: boolean
+        description: Whether the caller supports shared drives. Defaults to true.
+      acknowledgeAbuse:
+        type: boolean
+        description: Acknowledge the risk of downloading known malware or abusive files.
+      params:
+        type: object
+        additionalProperties: { type: string }
+        description: Extra query parameters appended verbatim.
+outputType:
+  kind: Telo.JsonSchema
+  schema:
+    type: object
+    required: [status, headers, body]
+    properties:
+      status: { type: integer }
+      headers: { type: object, additionalProperties: { type: string } }
+      body:
+        description: The file content — raw bytes, or a byte stream when responseType is stream.
+        anyOf:
+          - x-telo-type: Telo.Bytes
+          - x-telo-type:
+              name: Telo.Stream
+              of: Telo.Bytes
+resources:
+  - kind: Http.Request
+    metadata:
+      name: !cel "self.name + '-req'"
+    client: !cel "self.client"
+    throwOnHttpError: true
+invoke:
+  kind: Http.Request
+  name: !cel "self.name + '-req'"
+inputs:
+  method: GET
+  responseType: !cel "inputs.?responseType.orValue('bytes')"
+  headers: !cel "has(inputs.range) ? {'Range': inputs.range} : {}"
+  url: !cel >-
+    trimSuffix(trimSuffix(
+      '/drive/v3/files/' + urlEncode(inputs.fileId) + '?alt=media&' + join([
+        {'k': 'supportsAllDrives', 'v': string(inputs.?supportsAllDrives.orValue(true))},
+        {'k': 'acknowledgeAbuse', 'v': has(inputs.acknowledgeAbuse) ? string(inputs.acknowledgeAbuse) : ''}
+      ].filter(p, p.v != '').map(p, p.k + '=' + urlEncode(p.v))
+        + keys(inputs.?params.orValue({})).map(k, k + '=' + urlEncode(inputs.?params.orValue({})[k])), '&')
+    , '&'), '?')
+---
+# GET /drive/v3/files/{fileId}/export?mimeType=… — export a Google Workspace
+# document (Docs, Sheets, Slides, Drawings) to another format, e.g.
+# application/pdf, text/csv, text/plain. Exports are capped at 10 MB by Google.
+kind: Telo.Definition
+metadata:
+  name: ExportFile
+  description: Export a Google Workspace document to another MIME type (bytes or stream).
+capability: Telo.Invocable
+schema:
+  type: object
+  required: [client]
+  properties:
+    client:
+      x-telo-ref:
+        kind: Http.Client
+        use: dependency
+      description: A GoogleDriveClient / GoogleDriveOAuthClient (or any Http.Client) to run the request against.
+inputType:
+  kind: Telo.JsonSchema
+  schema:
+    type: object
+    required: [fileId, mimeType]
+    properties:
+      fileId:
+        type: string
+        description: The Google Workspace document id.
+      mimeType:
+        type: string
+        description: "Target format, e.g. application/pdf, text/csv, text/plain."
+      responseType:
+        type: string
+        enum: [bytes, stream]
+        description: Buffer the content as bytes (default) or return a byte stream.
+      params:
+        type: object
+        additionalProperties: { type: string }
+        description: Extra query parameters appended verbatim.
+outputType:
+  kind: Telo.JsonSchema
+  schema:
+    type: object
+    required: [status, headers, body]
+    properties:
+      status: { type: integer }
+      headers: { type: object, additionalProperties: { type: string } }
+      body:
+        description: The exported content — raw bytes, or a byte stream when responseType is stream.
+        anyOf:
+          - x-telo-type: Telo.Bytes
+          - x-telo-type:
+              name: Telo.Stream
+              of: Telo.Bytes
+resources:
+  - kind: Http.Request
+    metadata:
+      name: !cel "self.name + '-req'"
+    client: !cel "self.client"
+    throwOnHttpError: true
+invoke:
+  kind: Http.Request
+  name: !cel "self.name + '-req'"
+inputs:
+  method: GET
+  responseType: !cel "inputs.?responseType.orValue('bytes')"
+  url: !cel >-
+    trimSuffix(trimSuffix(
+      '/drive/v3/files/' + urlEncode(inputs.fileId) + '/export?mimeType=' + urlEncode(inputs.mimeType)
+        + join([''] + keys(inputs.?params.orValue({})).map(k, k + '=' + urlEncode(inputs.?params.orValue({})[k])), '&')
+    , '&'), '?')
+---
+# POST /drive/v3/files — create a file from metadata only: a folder
+# (mimeType application/vnd.google-apps.folder), a shortcut, an empty Google
+# Doc, or an empty binary file. To create a file WITH content use UploadFile.
+kind: Telo.Definition
+metadata:
+  name: CreateFile
+  description: Create a file, folder or shortcut from metadata alone (POST /drive/v3/files).
+capability: Telo.Invocable
+schema:
+  type: object
+  required: [client]
+  properties:
+    client:
+      x-telo-ref:
+        kind: Http.Client
+        use: dependency
+      description: A GoogleDriveClient / GoogleDriveOAuthClient (or any Http.Client) to run the request against.
+inputType:
+  kind: Telo.JsonSchema
+  schema:
+    type: object
+    required: [metadata]
+    properties:
+      metadata:
+        type: object
+        additionalProperties: true
+        description: "File resource, e.g. { name, mimeType, parents: [folderId], description, properties, appProperties }."
+      supportsAllDrives:
+        type: boolean
+        description: Whether the caller supports shared drives. Defaults to true.
+      ignoreDefaultVisibility:
+        type: boolean
+        description: Ignore the domain's default visibility settings for the created file.
+      keepRevisionForever:
+        type: boolean
+        description: Pin the new head revision (binary files only, 200 pinned max).
+      ocrLanguage:
+        type: string
+        description: ISO 639-1 language hint for OCR during image import.
+      useContentAsIndexableText:
+        type: boolean
+        description: Use the uploaded content as indexable text.
+      fields:
+        type: string
+        description: Field mask for the returned File resource.
+      includePermissionsForView:
+        type: string
+        description: "Extra permissions to include (only 'published')."
+      includeLabels:
+        type: string
+        description: Comma-separated label ids to include in labelInfo.
+      params:
+        type: object
+        additionalProperties: { type: string }
+        description: Extra query parameters appended verbatim.
+outputType:
+  kind: Telo.JsonSchema
+  schema:
+    type: object
+    required: [status, headers, body]
+    properties:
+      status: { type: integer }
+      headers: { type: object, additionalProperties: { type: string } }
+      body:
+        description: Parsed JSON File resource of the created file.
+resources:
+  - kind: Http.Request
+    metadata:
+      name: !cel "self.name + '-req'"
+    client: !cel "self.client"
+    throwOnHttpError: true
+invoke:
+  kind: Http.Request
+  name: !cel "self.name + '-req'"
+inputs:
+  method: POST
+  body: !cel "inputs.metadata"
+  url: !cel >-
+    trimSuffix(trimSuffix(
+      '/drive/v3/files?' + join([
+        {'k': 'supportsAllDrives', 'v': string(inputs.?supportsAllDrives.orValue(true))},
+        {'k': 'ignoreDefaultVisibility', 'v': has(inputs.ignoreDefaultVisibility) ? string(inputs.ignoreDefaultVisibility) : ''},
+        {'k': 'keepRevisionForever', 'v': has(inputs.keepRevisionForever) ? string(inputs.keepRevisionForever) : ''},
+        {'k': 'ocrLanguage', 'v': inputs.?ocrLanguage.orValue('')},
+        {'k': 'useContentAsIndexableText', 'v': has(inputs.useContentAsIndexableText) ? string(inputs.useContentAsIndexableText) : ''},
+        {'k': 'fields', 'v': inputs.?fields.orValue('')},
+        {'k': 'includePermissionsForView', 'v': inputs.?includePermissionsForView.orValue('')},
+        {'k': 'includeLabels', 'v': inputs.?includeLabels.orValue('')}
+      ].filter(p, p.v != '').map(p, p.k + '=' + urlEncode(p.v))
+        + keys(inputs.?params.orValue({})).map(k, k + '=' + urlEncode(inputs.?params.orValue({})[k])), '&')
+    , '&'), '?')
+---
+# PATCH /drive/v3/files/{fileId} — update metadata: rename, describe, star,
+# trash/untrash (`trashed`), set properties, or move between folders with
+# addParents / removeParents. Content is replaced with UpdateFileContent.
+kind: Telo.Definition
+metadata:
+  name: UpdateFile
+  description: Update a file's metadata, or move it with addParents/removeParents (PATCH).
+capability: Telo.Invocable
+schema:
+  type: object
+  required: [client]
+  properties:
+    client:
+      x-telo-ref:
+        kind: Http.Client
+        use: dependency
+      description: A GoogleDriveClient / GoogleDriveOAuthClient (or any Http.Client) to run the request against.
+inputType:
+  kind: Telo.JsonSchema
+  schema:
+    type: object
+    required: [fileId]
+    properties:
+      fileId:
+        type: string
+        description: The file id.
+      metadata:
+        type: object
+        additionalProperties: true
+        description: "Fields to change, e.g. { name, description, starred, trashed, properties }. Defaults to {}."
+      addParents:
+        type: string
+        description: Comma-separated parent ids to add (move into).
+      removeParents:
+        type: string
+        description: Comma-separated parent ids to remove (move out of).
+      supportsAllDrives:
+        type: boolean
+        description: Whether the caller supports shared drives. Defaults to true.
+      keepRevisionForever:
+        type: boolean
+        description: Pin the new head revision (binary files only).
+      ocrLanguage:
+        type: string
+        description: ISO 639-1 language hint for OCR during image import.
+      useContentAsIndexableText:
+        type: boolean
+        description: Use the uploaded content as indexable text.
+      fields:
+        type: string
+        description: Field mask for the returned File resource.
+      includePermissionsForView:
+        type: string
+        description: "Extra permissions to include (only 'published')."
+      includeLabels:
+        type: string
+        description: Comma-separated label ids to include in labelInfo.
+      params:
+        type: object
+        additionalProperties: { type: string }
+        description: Extra query parameters appended verbatim.
+outputType:
+  kind: Telo.JsonSchema
+  schema:
+    type: object
+    required: [status, headers, body]
+    properties:
+      status: { type: integer }
+      headers: { type: object, additionalProperties: { type: string } }
+      body:
+        description: Parsed JSON File resource after the update.
+resources:
+  - kind: Http.Request
+    metadata:
+      name: !cel "self.name + '-req'"
+    client: !cel "self.client"
+    throwOnHttpError: true
+invoke:
+  kind: Http.Request
+  name: !cel "self.name + '-req'"
+inputs:
+  method: PATCH
+  body: !cel "inputs.?metadata.orValue({})"
+  url: !cel >-
+    trimSuffix(trimSuffix(
+      '/drive/v3/files/' + urlEncode(inputs.fileId) + '?' + join([
+        {'k': 'addParents', 'v': inputs.?addParents.orValue('')},
+        {'k': 'removeParents', 'v': inputs.?removeParents.orValue('')},
+        {'k': 'supportsAllDrives', 'v': string(inputs.?supportsAllDrives.orValue(true))},
+        {'k': 'keepRevisionForever', 'v': has(inputs.keepRevisionForever) ? string(inputs.keepRevisionForever) : ''},
+        {'k': 'ocrLanguage', 'v': inputs.?ocrLanguage.orValue('')},
+        {'k': 'useContentAsIndexableText', 'v': has(inputs.useContentAsIndexableText) ? string(inputs.useContentAsIndexableText) : ''},
+        {'k': 'fields', 'v': inputs.?fields.orValue('')},
+        {'k': 'includePermissionsForView', 'v': inputs.?includePermissionsForView.orValue('')},
+        {'k': 'includeLabels', 'v': inputs.?includeLabels.orValue('')}
+      ].filter(p, p.v != '').map(p, p.k + '=' + urlEncode(p.v))
+        + keys(inputs.?params.orValue({})).map(k, k + '=' + urlEncode(inputs.?params.orValue({})[k])), '&')
+    , '&'), '?')
+---
+# POST /drive/v3/files/{fileId}/copy — copy a file, optionally renaming it or
+# placing the copy in other parents via `metadata`. Folders cannot be copied.
+kind: Telo.Definition
+metadata:
+  name: CopyFile
+  description: Copy a file, optionally with new metadata (POST /drive/v3/files/{fileId}/copy).
+capability: Telo.Invocable
+schema:
+  type: object
+  required: [client]
+  properties:
+    client:
+      x-telo-ref:
+        kind: Http.Client
+        use: dependency
+      description: A GoogleDriveClient / GoogleDriveOAuthClient (or any Http.Client) to run the request against.
+inputType:
+  kind: Telo.JsonSchema
+  schema:
+    type: object
+    required: [fileId]
+    properties:
+      fileId:
+        type: string
+        description: The file to copy.
+      metadata:
+        type: object
+        additionalProperties: true
+        description: "Metadata for the copy, e.g. { name, parents: [folderId] }. Defaults to {}."
+      supportsAllDrives:
+        type: boolean
+        description: Whether the caller supports shared drives. Defaults to true.
+      ignoreDefaultVisibility:
+        type: boolean
+        description: Ignore the domain's default visibility settings for the copy.
+      keepRevisionForever:
+        type: boolean
+        description: Pin the copy's head revision (binary files only).
+      ocrLanguage:
+        type: string
+        description: ISO 639-1 language hint for OCR during image import.
+      fields:
+        type: string
+        description: Field mask for the returned File resource.
+      includePermissionsForView:
+        type: string
+        description: "Extra permissions to include (only 'published')."
+      includeLabels:
+        type: string
+        description: Comma-separated label ids to include in labelInfo.
+      params:
+        type: object
+        additionalProperties: { type: string }
+        description: Extra query parameters appended verbatim.
+outputType:
+  kind: Telo.JsonSchema
+  schema:
+    type: object
+    required: [status, headers, body]
+    properties:
+      status: { type: integer }
+      headers: { type: object, additionalProperties: { type: string } }
+      body:
+        description: Parsed JSON File resource of the copy.
+resources:
+  - kind: Http.Request
+    metadata:
+      name: !cel "self.name + '-req'"
+    client: !cel "self.client"
+    throwOnHttpError: true
+invoke:
+  kind: Http.Request
+  name: !cel "self.name + '-req'"
+inputs:
+  method: POST
+  body: !cel "inputs.?metadata.orValue({})"
+  url: !cel >-
+    trimSuffix(trimSuffix(
+      '/drive/v3/files/' + urlEncode(inputs.fileId) + '/copy?' + join([
+        {'k': 'supportsAllDrives', 'v': string(inputs.?supportsAllDrives.orValue(true))},
+        {'k': 'ignoreDefaultVisibility', 'v': has(inputs.ignoreDefaultVisibility) ? string(inputs.ignoreDefaultVisibility) : ''},
+        {'k': 'keepRevisionForever', 'v': has(inputs.keepRevisionForever) ? string(inputs.keepRevisionForever) : ''},
+        {'k': 'ocrLanguage', 'v': inputs.?ocrLanguage.orValue('')},
+        {'k': 'fields', 'v': inputs.?fields.orValue('')},
+        {'k': 'includePermissionsForView', 'v': inputs.?includePermissionsForView.orValue('')},
+        {'k': 'includeLabels', 'v': inputs.?includeLabels.orValue('')}
+      ].filter(p, p.v != '').map(p, p.k + '=' + urlEncode(p.v))
+        + keys(inputs.?params.orValue({})).map(k, k + '=' + urlEncode(inputs.?params.orValue({})[k])), '&')
+    , '&'), '?')
+---
+# DELETE /drive/v3/files/{fileId} — permanently delete a file, skipping the
+# trash. For a folder, everything inside goes too. To trash instead, use
+# UpdateFile with { trashed: true }. Responds 204 with an empty body.
+kind: Telo.Definition
+metadata:
+  name: DeleteFile
+  description: Permanently delete a file, bypassing the trash (DELETE /drive/v3/files/{fileId}).
+capability: Telo.Invocable
+schema:
+  type: object
+  required: [client]
+  properties:
+    client:
+      x-telo-ref:
+        kind: Http.Client
+        use: dependency
+      description: A GoogleDriveClient / GoogleDriveOAuthClient (or any Http.Client) to run the request against.
+inputType:
+  kind: Telo.JsonSchema
+  schema:
+    type: object
+    required: [fileId]
+    properties:
+      fileId:
+        type: string
+        description: The file id.
+      supportsAllDrives:
+        type: boolean
+        description: Whether the caller supports shared drives. Defaults to true.
+      params:
+        type: object
+        additionalProperties: { type: string }
+        description: Extra query parameters appended verbatim.
+outputType:
+  kind: Telo.JsonSchema
+  schema:
+    type: object
+    required: [status, headers, body]
+    properties:
+      status: { type: integer }
+      headers: { type: object, additionalProperties: { type: string } }
+      body:
+        description: Empty on success (204).
+resources:
+  - kind: Http.Request
+    metadata:
+      name: !cel "self.name + '-req'"
+    client: !cel "self.client"
+    throwOnHttpError: true
+invoke:
+  kind: Http.Request
+  name: !cel "self.name + '-req'"
+inputs:
+  method: DELETE
+  url: !cel >-
+    trimSuffix(trimSuffix(
+      '/drive/v3/files/' + urlEncode(inputs.fileId) + '?' + join([
+        {'k': 'supportsAllDrives', 'v': string(inputs.?supportsAllDrives.orValue(true))}
+      ].filter(p, p.v != '').map(p, p.k + '=' + urlEncode(p.v))
+        + keys(inputs.?params.orValue({})).map(k, k + '=' + urlEncode(inputs.?params.orValue({})[k])), '&')
+    , '&'), '?')
+---
+# DELETE /drive/v3/files/trash — permanently delete everything in the user's
+# trash, or in a shared drive's trash when `driveId` is given.
+kind: Telo.Definition
+metadata:
+  name: EmptyTrash
+  description: Permanently delete all trashed files (DELETE /drive/v3/files/trash).
+capability: Telo.Invocable
+schema:
+  type: object
+  required: [client]
+  properties:
+    client:
+      x-telo-ref:
+        kind: Http.Client
+        use: dependency
+      description: A GoogleDriveClient / GoogleDriveOAuthClient (or any Http.Client) to run the request against.
+inputType:
+  kind: Telo.JsonSchema
+  schema:
+    type: object
+    properties:
+      driveId:
+        type: string
+        description: Empty a shared drive's trash instead of the user's.
+      params:
+        type: object
+        additionalProperties: { type: string }
+        description: Extra query parameters appended verbatim.
+outputType:
+  kind: Telo.JsonSchema
+  schema:
+    type: object
+    required: [status, headers, body]
+    properties:
+      status: { type: integer }
+      headers: { type: object, additionalProperties: { type: string } }
+      body:
+        description: Empty on success (204).
+resources:
+  - kind: Http.Request
+    metadata:
+      name: !cel "self.name + '-req'"
+    client: !cel "self.client"
+    throwOnHttpError: true
+invoke:
+  kind: Http.Request
+  name: !cel "self.name + '-req'"
+inputs:
+  method: DELETE
+  url: !cel >-
+    trimSuffix(trimSuffix(
+      '/drive/v3/files/trash?' + join([
+        {'k': 'driveId', 'v': inputs.?driveId.orValue('')}
+      ].filter(p, p.v != '').map(p, p.k + '=' + urlEncode(p.v))
+        + keys(inputs.?params.orValue({})).map(k, k + '=' + urlEncode(inputs.?params.orValue({})[k])), '&')
+    , '&'), '?')
+---
+# GET /drive/v3/files/generateIds — reserve file ids ahead of creation, so an
+# upload can be retried idempotently by passing the same `id` in its metadata.
+kind: Telo.Definition
+metadata:
+  name: GenerateFileIds
+  description: Reserve file ids for later create/upload calls (GET /drive/v3/files/generateIds).
+capability: Telo.Invocable
+schema:
+  type: object
+  required: [client]
+  properties:
+    client:
+      x-telo-ref:
+        kind: Http.Client
+        use: dependency
+      description: A GoogleDriveClient / GoogleDriveOAuthClient (or any Http.Client) to run the request against.
+inputType:
+  kind: Telo.JsonSchema
+  schema:
+    type: object
+    properties:
+      count:
+        type: integer
+        description: Number of ids to return (1-1000, default 10).
+      space:
+        type: string
+        description: "Space the ids may be used in: drive (default) or appDataFolder."
+      type:
+        type: string
+        description: "Type of items the ids may be used for: files (default) or shortcuts."
+      params:
+        type: object
+        additionalProperties: { type: string }
+        description: Extra query parameters appended verbatim.
+outputType:
+  kind: Telo.JsonSchema
+  schema:
+    type: object
+    required: [status, headers, body]
+    properties:
+      status: { type: integer }
+      headers: { type: object, additionalProperties: { type: string } }
+      body:
+        description: Parsed JSON — { ids, space, kind }.
+resources:
+  - kind: Http.Request
+    metadata:
+      name: !cel "self.name + '-req'"
+    client: !cel "self.client"
+    throwOnHttpError: true
+invoke:
+  kind: Http.Request
+  name: !cel "self.name + '-req'"
+inputs:
+  method: GET
+  url: !cel >-
+    trimSuffix(trimSuffix(
+      '/drive/v3/files/generateIds?' + join([
+        {'k': 'count', 'v': has(inputs.count) ? string(inputs.count) : ''},
+        {'k': 'space', 'v': inputs.?space.orValue('')},
+        {'k': 'type', 'v': inputs.?type.orValue('')}
+      ].filter(p, p.v != '').map(p, p.k + '=' + urlEncode(p.v))
+        + keys(inputs.?params.orValue({})).map(k, k + '=' + urlEncode(inputs.?params.orValue({})[k])), '&')
+    , '&'), '?')
+---
+# POST /drive/v3/files/{fileId}/watch — subscribe to push notifications for a
+# file. `channel` is a Channel resource: { id, type: "web_hook", address, token?,
+# expiration? }. Stop it with StopChannel.
+kind: Telo.Definition
+metadata:
+  name: WatchFile
+  description: Subscribe a webhook channel to changes on one file (POST /drive/v3/files/{fileId}/watch).
+capability: Telo.Invocable
+schema:
+  type: object
+  required: [client]
+  properties:
+    client:
+      x-telo-ref:
+        kind: Http.Client
+        use: dependency
+      description: A GoogleDriveClient / GoogleDriveOAuthClient (or any Http.Client) to run the request against.
+inputType:
+  kind: Telo.JsonSchema
+  schema:
+    type: object
+    required: [fileId, channel]
+    properties:
+      fileId:
+        type: string
+        description: The file to watch.
+      channel:
+        type: object
+        additionalProperties: true
+        description: "Channel resource: { id, type: 'web_hook', address, token?, expiration? }."
+      supportsAllDrives:
+        type: boolean
+        description: Whether the caller supports shared drives. Defaults to true.
+      acknowledgeAbuse:
+        type: boolean
+        description: Acknowledge the risk of downloading known malware or abusive files.
+      fields:
+        type: string
+        description: Field mask for the returned Channel resource.
+      includePermissionsForView:
+        type: string
+        description: "Extra permissions to include (only 'published')."
+      includeLabels:
+        type: string
+        description: Comma-separated label ids to include in labelInfo.
+      params:
+        type: object
+        additionalProperties: { type: string }
+        description: Extra query parameters appended verbatim.
+outputType:
+  kind: Telo.JsonSchema
+  schema:
+    type: object
+    required: [status, headers, body]
+    properties:
+      status: { type: integer }
+      headers: { type: object, additionalProperties: { type: string } }
+      body:
+        description: Parsed JSON Channel resource (carries resourceId for StopChannel).
+resources:
+  - kind: Http.Request
+    metadata:
+      name: !cel "self.name + '-req'"
+    client: !cel "self.client"
+    throwOnHttpError: true
+invoke:
+  kind: Http.Request
+  name: !cel "self.name + '-req'"
+inputs:
+  method: POST
+  body: !cel "inputs.channel"
+  url: !cel >-
+    trimSuffix(trimSuffix(
+      '/drive/v3/files/' + urlEncode(inputs.fileId) + '/watch?' + join([
+        {'k': 'supportsAllDrives', 'v': string(inputs.?supportsAllDrives.orValue(true))},
+        {'k': 'acknowledgeAbuse', 'v': has(inputs.acknowledgeAbuse) ? string(inputs.acknowledgeAbuse) : ''},
+        {'k': 'fields', 'v': inputs.?fields.orValue('')},
+        {'k': 'includePermissionsForView', 'v': inputs.?includePermissionsForView.orValue('')},
+        {'k': 'includeLabels', 'v': inputs.?includeLabels.orValue('')}
+      ].filter(p, p.v != '').map(p, p.k + '=' + urlEncode(p.v))
+        + keys(inputs.?params.orValue({})).map(k, k + '=' + urlEncode(inputs.?params.orValue({})[k])), '&')
+    , '&'), '?')
+---
+# GET /drive/v3/files/{fileId}/listLabels — the labels applied to a file.
+kind: Telo.Definition
+metadata:
+  name: ListFileLabels
+  description: List the labels applied to a file (GET /drive/v3/files/{fileId}/listLabels).
+capability: Telo.Invocable
+schema:
+  type: object
+  required: [client]
+  properties:
+    client:
+      x-telo-ref:
+        kind: Http.Client
+        use: dependency
+      description: A GoogleDriveClient / GoogleDriveOAuthClient (or any Http.Client) to run the request against.
+inputType:
+  kind: Telo.JsonSchema
+  schema:
+    type: object
+    required: [fileId]
+    properties:
+      fileId:
+        type: string
+        description: The file id.
+      maxResults:
+        type: integer
+        description: Maximum labels per page (default 100).
+      pageToken:
+        type: string
+        description: nextPageToken from the previous page.
+      params:
+        type: object
+        additionalProperties: { type: string }
+        description: Extra query parameters appended verbatim.
+outputType:
+  kind: Telo.JsonSchema
+  schema:
+    type: object
+    required: [status, headers, body]
+    properties:
+      status: { type: integer }
+      headers: { type: object, additionalProperties: { type: string } }
+      body:
+        description: Parsed JSON LabelList — { labels, nextPageToken? }.
+resources:
+  - kind: Http.Request
+    metadata:
+      name: !cel "self.name + '-req'"
+    client: !cel "self.client"
+    throwOnHttpError: true
+invoke:
+  kind: Http.Request
+  name: !cel "self.name + '-req'"
+inputs:
+  method: GET
+  url: !cel >-
+    trimSuffix(trimSuffix(
+      '/drive/v3/files/' + urlEncode(inputs.fileId) + '/listLabels?' + join([
+        {'k': 'maxResults', 'v': has(inputs.maxResults) ? string(inputs.maxResults) : ''},
+        {'k': 'pageToken', 'v': inputs.?pageToken.orValue('')}
+      ].filter(p, p.v != '').map(p, p.k + '=' + urlEncode(p.v))
+        + keys(inputs.?params.orValue({})).map(k, k + '=' + urlEncode(inputs.?params.orValue({})[k])), '&')
+    , '&'), '?')
+---
+# POST /drive/v3/files/{fileId}/modifyLabels — apply, update or remove labels
+# on a file. `labelModifications` is a list of LabelModification objects
+# ({ labelId, fieldModifications?, removeLabel? }). Applied atomically.
+kind: Telo.Definition
+metadata:
+  name: ModifyFileLabels
+  description: Apply, change or remove labels on a file (POST /drive/v3/files/{fileId}/modifyLabels).
+capability: Telo.Invocable
+schema:
+  type: object
+  required: [client]
+  properties:
+    client:
+      x-telo-ref:
+        kind: Http.Client
+        use: dependency
+      description: A GoogleDriveClient / GoogleDriveOAuthClient (or any Http.Client) to run the request against.
+inputType:
+  kind: Telo.JsonSchema
+  schema:
+    type: object
+    required: [fileId, labelModifications]
+    properties:
+      fileId:
+        type: string
+        description: The file id.
+      labelModifications:
+        type: array
+        items:
+          type: object
+          additionalProperties: true
+        description: "LabelModification list, e.g. [{ labelId, fieldModifications: [{ fieldId, setTextValues: ['x'] }] }]."
+      params:
+        type: object
+        additionalProperties: { type: string }
+        description: Extra query parameters appended verbatim.
+outputType:
+  kind: Telo.JsonSchema
+  schema:
+    type: object
+    required: [status, headers, body]
+    properties:
+      status: { type: integer }
+      headers: { type: object, additionalProperties: { type: string } }
+      body:
+        description: Parsed JSON ModifyLabelsResponse — { modifiedLabels }.
+resources:
+  - kind: Http.Request
+    metadata:
+      name: !cel "self.name + '-req'"
+    client: !cel "self.client"
+    throwOnHttpError: true
+invoke:
+  kind: Http.Request
+  name: !cel "self.name + '-req'"
+inputs:
+  method: POST
+  body:
+    labelModifications: !cel "inputs.labelModifications"
+  url: !cel >-
+    trimSuffix(trimSuffix(
+      '/drive/v3/files/' + urlEncode(inputs.fileId) + '/modifyLabels?'
+        + join(keys(inputs.?params.orValue({})).map(k, k + '=' + urlEncode(inputs.?params.orValue({})[k])), '&')
+    , '&'), '?')
+---
+# POST /upload/drive/v3/files?uploadType=multipart — create a file WITH content
+# in one request: a JSON metadata part plus the content part, framed as
+# multipart/related by Multipart.Encoder. Google caps this path at 5 MB; above
+# that use UploadFileResumable. `content` may be a string (utf8, or base64 with
+# contentEncoding), raw bytes, or a byte stream.
+#
+# The framed body is a stream, so it cannot be replayed: retry is disabled on
+# this request (a transient failure surfaces as the real HTTP error rather than
+# ERR_HTTP_BODY_NOT_REPLAYABLE). Retry at the call site if needed — a
+# Run.Sequence step `retry:` re-invokes the whole operation and re-encodes.
+kind: Telo.Definition
+metadata:
+  name: UploadFile
+  description: Create a file with content in one multipart request (uploadType=multipart, ≤5 MB).
+capability: Telo.Invocable
+schema:
+  type: object
+  required: [client]
+  properties:
+    client:
+      x-telo-ref:
+        kind: Http.Client
+        use: dependency
+      description: A GoogleDriveClient / GoogleDriveOAuthClient (or any Http.Client) to run the request against.
+inputType:
+  kind: Telo.JsonSchema
+  schema:
+    type: object
+    required: [content]
+    properties:
+      metadata:
+        type: object
+        additionalProperties: true
+        description: "File resource, e.g. { name, mimeType, parents: [folderId], description }. Defaults to {}."
+      content:
+        description: The file content — a string, raw bytes, or a byte stream.
+        anyOf:
+          - type: string
+          - x-telo-type: Telo.Bytes
+          - x-telo-type:
+              name: Telo.Stream
+              of: Telo.Bytes
+      contentType:
+        type: string
+        description: MIME type of the content part. Defaults to application/octet-stream.
+      contentEncoding:
+        type: string
+        enum: [utf8, base64]
+        description: How a STRING content is interpreted — utf8 text (default) or base64-encoded bytes.
+      supportsAllDrives:
+        type: boolean
+        description: Whether the caller supports shared drives. Defaults to true.
+      ignoreDefaultVisibility:
+        type: boolean
+        description: Ignore the domain's default visibility settings for the created file.
+      keepRevisionForever:
+        type: boolean
+        description: Pin the new head revision (binary files only).
+      ocrLanguage:
+        type: string
+        description: ISO 639-1 language hint for OCR during image import.
+      useContentAsIndexableText:
+        type: boolean
+        description: Use the uploaded content as indexable text.
+      fields:
+        type: string
+        description: Field mask for the returned File resource.
+      params:
+        type: object
+        additionalProperties: { type: string }
+        description: Extra query parameters appended verbatim.
+outputType:
+  kind: Telo.JsonSchema
+  schema:
+    type: object
+    required: [status, headers, body]
+    properties:
+      status: { type: integer }
+      headers: { type: object, additionalProperties: { type: string } }
+      body:
+        description: Parsed JSON File resource of the created file.
+resources:
+  - kind: Multipart.Encoder
+    metadata:
+      name: !cel "self.name + '-mp'"
+  - kind: Http.Request
+    metadata:
+      name: !cel "self.name + '-req'"
+    client: !cel "self.client"
+    throwOnHttpError: true
+    retry:
+      attempts: 0
+  - kind: Run.Sequence
+    metadata:
+      name: !cel "self.name + '-seq'"
+    inputType:
+      kind: Telo.JsonSchema
+      schema:
+        type: object
+        required: [content]
+        properties:
+          metadata: { type: object, additionalProperties: true }
+          content: {}
+          contentType: { type: string }
+          contentEncoding: { type: string }
+          supportsAllDrives: { type: boolean }
+          ignoreDefaultVisibility: { type: boolean }
+          keepRevisionForever: { type: boolean }
+          ocrLanguage: { type: string }
+          useContentAsIndexableText: { type: boolean }
+          fields: { type: string }
+          params: { type: object, additionalProperties: { type: string } }
+    steps:
+      - name: encode
+        invoke:
+          kind: Multipart.Encoder
+          name: !cel "self.name + '-mp'"
+        inputs:
+          subtype: related
+          parts:
+            - content: !cel "json(inputs.?metadata.orValue({}))"
+              contentType: application/json; charset=UTF-8
+            - content: !cel "inputs.?contentEncoding.orValue('utf8') == 'base64' ? bytesFromBase64(inputs.content) : inputs.content"
+              contentType: !cel "inputs.?contentType.orValue('application/octet-stream')"
+      - name: send
+        invoke:
+          kind: Http.Request
+          name: !cel "self.name + '-req'"
+        inputs:
+          method: POST
+          headers:
+            Content-Type: !cel "steps.encode.result.contentType"
+          body: !cel "steps.encode.result.output"
+          url: !cel >-
+            trimSuffix(trimSuffix(
+              '/upload/drive/v3/files?uploadType=multipart&' + join([
+                {'k': 'supportsAllDrives', 'v': string(inputs.?supportsAllDrives.orValue(true))},
+                {'k': 'ignoreDefaultVisibility', 'v': inputs.?ignoreDefaultVisibility.orValue(false) ? 'true' : ''},
+                {'k': 'keepRevisionForever', 'v': inputs.?keepRevisionForever.orValue(false) ? 'true' : ''},
+                {'k': 'ocrLanguage', 'v': inputs.?ocrLanguage.orValue('')},
+                {'k': 'useContentAsIndexableText', 'v': inputs.?useContentAsIndexableText.orValue(false) ? 'true' : ''},
+                {'k': 'fields', 'v': inputs.?fields.orValue('')}
+              ].filter(p, p.v != '').map(p, p.k + '=' + urlEncode(p.v))
+                + keys(inputs.?params.orValue({})).map(k, k + '=' + urlEncode(inputs.?params.orValue({})[k])), '&')
+            , '&'), '?')
+    outputs:
+      status: !cel "steps.send.result.status"
+      headers: !cel "steps.send.result.headers"
+      body: !cel "steps.send.result.body"
+invoke:
+  kind: Run.Sequence
+  name: !cel "self.name + '-seq'"
+inputs:
+  metadata: !cel "inputs.?metadata.orValue({})"
+  content: !cel "inputs.content"
+  contentType: !cel "inputs.?contentType.orValue('application/octet-stream')"
+  contentEncoding: !cel "inputs.?contentEncoding.orValue('utf8')"
+  supportsAllDrives: !cel "inputs.?supportsAllDrives.orValue(true)"
+  ignoreDefaultVisibility: !cel "inputs.?ignoreDefaultVisibility.orValue(false)"
+  keepRevisionForever: !cel "inputs.?keepRevisionForever.orValue(false)"
+  ocrLanguage: !cel "inputs.?ocrLanguage.orValue('')"
+  useContentAsIndexableText: !cel "inputs.?useContentAsIndexableText.orValue(false)"
+  fields: !cel "inputs.?fields.orValue('')"
+  params: !cel "inputs.?params.orValue({})"
+---
+# PATCH /upload/drive/v3/files/{fileId}?uploadType=multipart — replace a file's
+# content (a new head revision), optionally changing metadata in the same
+# request. Same 5 MB cap and same no-retry rule as UploadFile; for larger
+# content use StartResumableUpload with `fileId`.
+kind: Telo.Definition
+metadata:
+  name: UpdateFileContent
+  description: Replace a file's content (and optionally metadata) in one multipart request.
+capability: Telo.Invocable
+schema:
+  type: object
+  required: [client]
+  properties:
+    client:
+      x-telo-ref:
+        kind: Http.Client
+        use: dependency
+      description: A GoogleDriveClient / GoogleDriveOAuthClient (or any Http.Client) to run the request against.
+inputType:
+  kind: Telo.JsonSchema
+  schema:
+    type: object
+    required: [fileId, content]
+    properties:
+      fileId:
+        type: string
+        description: The file whose content is replaced.
+      metadata:
+        type: object
+        additionalProperties: true
+        description: "Metadata fields to change alongside the content, e.g. { name, mimeType }. Defaults to {}."
+      content:
+        description: The new content — a string, raw bytes, or a byte stream.
+        anyOf:
+          - type: string
+          - x-telo-type: Telo.Bytes
+          - x-telo-type:
+              name: Telo.Stream
+              of: Telo.Bytes
+      contentType:
+        type: string
+        description: MIME type of the content part. Defaults to application/octet-stream.
+      contentEncoding:
+        type: string
+        enum: [utf8, base64]
+        description: How a STRING content is interpreted — utf8 text (default) or base64-encoded bytes.
+      addParents:
+        type: string
+        description: Comma-separated parent ids to add.
+      removeParents:
+        type: string
+        description: Comma-separated parent ids to remove.
+      supportsAllDrives:
+        type: boolean
+        description: Whether the caller supports shared drives. Defaults to true.
+      keepRevisionForever:
+        type: boolean
+        description: Pin the new head revision (binary files only).
+      ocrLanguage:
+        type: string
+        description: ISO 639-1 language hint for OCR during image import.
+      useContentAsIndexableText:
+        type: boolean
+        description: Use the uploaded content as indexable text.
+      fields:
+        type: string
+        description: Field mask for the returned File resource.
+      params:
+        type: object
+        additionalProperties: { type: string }
+        description: Extra query parameters appended verbatim.
+outputType:
+  kind: Telo.JsonSchema
+  schema:
+    type: object
+    required: [status, headers, body]
+    properties:
+      status: { type: integer }
+      headers: { type: object, additionalProperties: { type: string } }
+      body:
+        description: Parsed JSON File resource after the update.
+resources:
+  - kind: Multipart.Encoder
+    metadata:
+      name: !cel "self.name + '-mp'"
+  - kind: Http.Request
+    metadata:
+      name: !cel "self.name + '-req'"
+    client: !cel "self.client"
+    throwOnHttpError: true
+    retry:
+      attempts: 0
+  - kind: Run.Sequence
+    metadata:
+      name: !cel "self.name + '-seq'"
+    inputType:
+      kind: Telo.JsonSchema
+      schema:
+        type: object
+        required: [fileId, content]
+        properties:
+          fileId: { type: string }
+          metadata: { type: object, additionalProperties: true }
+          content: {}
+          contentType: { type: string }
+          contentEncoding: { type: string }
+          addParents: { type: string }
+          removeParents: { type: string }
+          supportsAllDrives: { type: boolean }
+          keepRevisionForever: { type: boolean }
+          ocrLanguage: { type: string }
+          useContentAsIndexableText: { type: boolean }
+          fields: { type: string }
+          params: { type: object, additionalProperties: { type: string } }
+    steps:
+      - name: encode
+        invoke:
+          kind: Multipart.Encoder
+          name: !cel "self.name + '-mp'"
+        inputs:
+          subtype: related
+          parts:
+            - content: !cel "json(inputs.?metadata.orValue({}))"
+              contentType: application/json; charset=UTF-8
+            - content: !cel "inputs.?contentEncoding.orValue('utf8') == 'base64' ? bytesFromBase64(inputs.content) : inputs.content"
+              contentType: !cel "inputs.?contentType.orValue('application/octet-stream')"
+      - name: send
+        invoke:
+          kind: Http.Request
+          name: !cel "self.name + '-req'"
+        inputs:
+          method: PATCH
+          headers:
+            Content-Type: !cel "steps.encode.result.contentType"
+          body: !cel "steps.encode.result.output"
+          url: !cel >-
+            trimSuffix(trimSuffix(
+              '/upload/drive/v3/files/' + urlEncode(inputs.fileId) + '?uploadType=multipart&' + join([
+                {'k': 'addParents', 'v': inputs.?addParents.orValue('')},
+                {'k': 'removeParents', 'v': inputs.?removeParents.orValue('')},
+                {'k': 'supportsAllDrives', 'v': string(inputs.?supportsAllDrives.orValue(true))},
+                {'k': 'keepRevisionForever', 'v': inputs.?keepRevisionForever.orValue(false) ? 'true' : ''},
+                {'k': 'ocrLanguage', 'v': inputs.?ocrLanguage.orValue('')},
+                {'k': 'useContentAsIndexableText', 'v': inputs.?useContentAsIndexableText.orValue(false) ? 'true' : ''},
+                {'k': 'fields', 'v': inputs.?fields.orValue('')}
+              ].filter(p, p.v != '').map(p, p.k + '=' + urlEncode(p.v))
+                + keys(inputs.?params.orValue({})).map(k, k + '=' + urlEncode(inputs.?params.orValue({})[k])), '&')
+            , '&'), '?')
+    outputs:
+      status: !cel "steps.send.result.status"
+      headers: !cel "steps.send.result.headers"
+      body: !cel "steps.send.result.body"
+invoke:
+  kind: Run.Sequence
+  name: !cel "self.name + '-seq'"
+inputs:
+  fileId: !cel "inputs.fileId"
+  metadata: !cel "inputs.?metadata.orValue({})"
+  content: !cel "inputs.content"
+  contentType: !cel "inputs.?contentType.orValue('application/octet-stream')"
+  contentEncoding: !cel "inputs.?contentEncoding.orValue('utf8')"
+  addParents: !cel "inputs.?addParents.orValue('')"
+  removeParents: !cel "inputs.?removeParents.orValue('')"
+  supportsAllDrives: !cel "inputs.?supportsAllDrives.orValue(true)"
+  keepRevisionForever: !cel "inputs.?keepRevisionForever.orValue(false)"
+  ocrLanguage: !cel "inputs.?ocrLanguage.orValue('')"
+  useContentAsIndexableText: !cel "inputs.?useContentAsIndexableText.orValue(false)"
+  fields: !cel "inputs.?fields.orValue('')"
+  params: !cel "inputs.?params.orValue({})"
+---
+# POST /upload/drive/v3/files?uploadType=resumable (or PATCH …/files/{fileId}
+# with `fileId`, to replace content) — open a resumable upload session. The
+# response carries the session URI in `headers.location`; send the bytes to it
+# with UploadResumableContent, in one request or in chunks (multiples of
+# 256 KiB, each with a Content-Range). Sessions live for about a week. For the
+# one-shot start+send pair use UploadFileResumable.
+kind: Telo.Definition
+metadata:
+  name: StartResumableUpload
+  description: Open a resumable upload session; the session URI is returned in headers.location.
+capability: Telo.Invocable
+schema:
+  type: object
+  required: [client]
+  properties:
+    client:
+      x-telo-ref:
+        kind: Http.Client
+        use: dependency
+      description: A GoogleDriveClient / GoogleDriveOAuthClient (or any Http.Client) to run the request against.
+inputType:
+  kind: Telo.JsonSchema
+  schema:
+    type: object
+    properties:
+      fileId:
+        type: string
+        description: When set, the session replaces this file's content (PATCH) instead of creating a file (POST).
+      metadata:
+        type: object
+        additionalProperties: true
+        description: "File resource for the new file (or fields to change), e.g. { name, parents }. Defaults to {}."
+      contentType:
+        type: string
+        description: MIME type of the content to be uploaded (X-Upload-Content-Type). Defaults to application/octet-stream.
+      contentLength:
+        type: integer
+        description: Total size in bytes of the content to be uploaded (X-Upload-Content-Length), when known.
+      addParents:
+        type: string
+        description: With fileId — comma-separated parent ids to add.
+      removeParents:
+        type: string
+        description: With fileId — comma-separated parent ids to remove.
+      supportsAllDrives:
+        type: boolean
+        description: Whether the caller supports shared drives. Defaults to true.
+      ignoreDefaultVisibility:
+        type: boolean
+        description: Ignore the domain's default visibility settings (create only).
+      keepRevisionForever:
+        type: boolean
+        description: Pin the new head revision (binary files only).
+      ocrLanguage:
+        type: string
+        description: ISO 639-1 language hint for OCR during image import.
+      useContentAsIndexableText:
+        type: boolean
+        description: Use the uploaded content as indexable text.
+      fields:
+        type: string
+        description: Field mask for the File resource returned by the final upload request.
+      params:
+        type: object
+        additionalProperties: { type: string }
+        description: Extra query parameters appended verbatim.
+outputType:
+  kind: Telo.JsonSchema
+  schema:
+    type: object
+    required: [status, headers, body]
+    properties:
+      status: { type: integer }
+      headers:
+        type: object
+        additionalProperties: { type: string }
+        description: Response headers; `location` is the resumable session URI.
+      body:
+        description: Empty on success (200).
+resources:
+  - kind: Http.Request
+    metadata:
+      name: !cel "self.name + '-req'"
+    client: !cel "self.client"
+    throwOnHttpError: true
+invoke:
+  kind: Http.Request
+  name: !cel "self.name + '-req'"
+inputs:
+  method: !cel "has(inputs.fileId) ? 'PATCH' : 'POST'"
+  body: !cel "inputs.?metadata.orValue({})"
+  headers: !cel >-
+    inputs.?contentLength.orValue(0) > 0
+      ? {'X-Upload-Content-Type': inputs.?contentType.orValue('application/octet-stream'),
+         'X-Upload-Content-Length': string(inputs.contentLength)}
+      : {'X-Upload-Content-Type': inputs.?contentType.orValue('application/octet-stream')}
+  url: !cel >-
+    trimSuffix(trimSuffix(
+      '/upload/drive/v3/files' + (has(inputs.fileId) ? '/' + urlEncode(inputs.fileId) : '')
+        + '?uploadType=resumable&' + join([
+        {'k': 'addParents', 'v': inputs.?addParents.orValue('')},
+        {'k': 'removeParents', 'v': inputs.?removeParents.orValue('')},
+        {'k': 'supportsAllDrives', 'v': string(inputs.?supportsAllDrives.orValue(true))},
+        {'k': 'ignoreDefaultVisibility', 'v': inputs.?ignoreDefaultVisibility.orValue(false) ? 'true' : ''},
+        {'k': 'keepRevisionForever', 'v': inputs.?keepRevisionForever.orValue(false) ? 'true' : ''},
+        {'k': 'ocrLanguage', 'v': inputs.?ocrLanguage.orValue('')},
+        {'k': 'useContentAsIndexableText', 'v': inputs.?useContentAsIndexableText.orValue(false) ? 'true' : ''},
+        {'k': 'fields', 'v': inputs.?fields.orValue('')}
+      ].filter(p, p.v != '').map(p, p.k + '=' + urlEncode(p.v))
+        + keys(inputs.?params.orValue({})).map(k, k + '=' + urlEncode(inputs.?params.orValue({})[k])), '&')
+    , '&'), '?')
+---
+# PUT <session URI> — send content to a resumable upload session opened by
+# StartResumableUpload. Send everything in one request (no contentRange), or a
+# chunk at a time with `contentRange` ("bytes 0-262143/1048576"): Google
+# answers 308 Resume Incomplete (with a `range` header naming what it holds)
+# until the last chunk, then 200/201 with the File resource. To query a
+# session's progress, send an empty content with contentRange "bytes */<total>".
+# 308 is declared a success here so it is returned rather than thrown.
+#
+# Pass `contentLength` when `content` is a stream: it sets Content-Length so the
+# request is not sent chunked, which Google's upload endpoint rejects.
+kind: Telo.Definition
+metadata:
+  name: UploadResumableContent
+  description: Send all or a chunk of a file's content to a resumable upload session (PUT).
+capability: Telo.Invocable
+schema:
+  type: object
+  required: [client]
+  properties:
+    client:
+      x-telo-ref:
+        kind: Http.Client
+        use: dependency
+      description: A GoogleDriveClient / GoogleDriveOAuthClient (or any Http.Client) to run the request against.
+inputType:
+  kind: Telo.JsonSchema
+  schema:
+    type: object
+    required: [uploadUri, content]
+    properties:
+      uploadUri:
+        type: string
+        description: The session URI from StartResumableUpload's headers.location.
+      content:
+        description: The bytes to send — a string, raw bytes, or a byte stream. Empty string to query progress.
+        anyOf:
+          - type: string
+          - x-telo-type: Telo.Bytes
+          - x-telo-type:
+              name: Telo.Stream
+              of: Telo.Bytes
+      contentType:
+        type: string
+        description: MIME type of the content. Defaults to application/octet-stream.
+      contentEncoding:
+        type: string
+        enum: [utf8, base64]
+        description: How a STRING content is interpreted — utf8 text (default) or base64-encoded bytes.
+      contentRange:
+        type: string
+        description: "Content-Range for a chunk, e.g. \"bytes 0-262143/1048576\", or \"bytes */1048576\" to query progress."
+      contentLength:
+        type: integer
+        description: Explicit Content-Length in bytes; required when `content` is a stream.
+outputType:
+  kind: Telo.JsonSchema
+  schema:
+    type: object
+    required: [status, headers, body]
+    properties:
+      status:
+        type: integer
+        description: 200/201 when the upload completed, 308 when more chunks are expected.
+      headers:
+        type: object
+        additionalProperties: { type: string }
+        description: Response headers; on 308, `range` names the bytes received so far.
+      body:
+        description: Parsed JSON File resource once complete; empty on 308.
+resources:
+  - kind: Http.Request
+    metadata:
+      name: !cel "self.name + '-req'"
+    client: !cel "self.client"
+    throwOnHttpError: true
+    success: [200, 201, 308]
+invoke:
+  kind: Http.Request
+  name: !cel "self.name + '-req'"
+inputs:
+  method: PUT
+  url: !cel "inputs.uploadUri"
+  body: !cel "inputs.?contentEncoding.orValue('utf8') == 'base64' ? bytesFromBase64(inputs.content) : inputs.content"
+  headers: !cel >-
+    has(inputs.contentRange)
+      ? (inputs.?contentLength.orValue(0) > 0
+          ? {'Content-Type': inputs.?contentType.orValue('application/octet-stream'),
+             'Content-Range': inputs.contentRange,
+             'Content-Length': string(inputs.contentLength)}
+          : {'Content-Type': inputs.?contentType.orValue('application/octet-stream'),
+             'Content-Range': inputs.contentRange})
+      : (inputs.?contentLength.orValue(0) > 0
+          ? {'Content-Type': inputs.?contentType.orValue('application/octet-stream'),
+             'Content-Length': string(inputs.contentLength)}
+          : {'Content-Type': inputs.?contentType.orValue('application/octet-stream')})
+---
+# Start a resumable session and send the whole content in one go — the
+# recommended path for any file over 5 MB and the robust one for any size
+# (Google's own clients default to it). Returns the final PUT response plus the
+# session URI, so a caller that hits a transient failure can resume by querying
+# the session with UploadResumableContent instead of starting over.
+kind: Telo.Definition
+metadata:
+  name: UploadFileResumable
+  description: Upload a file of any size via a resumable session (start + single PUT).
+capability: Telo.Invocable
+schema:
+  type: object
+  required: [client]
+  properties:
+    client:
+      x-telo-ref:
+        kind: Http.Client
+        use: dependency
+      description: A GoogleDriveClient / GoogleDriveOAuthClient (or any Http.Client) to run the requests against.
+inputType:
+  kind: Telo.JsonSchema
+  schema:
+    type: object
+    required: [content]
+    properties:
+      fileId:
+        type: string
+        description: When set, replaces this file's content instead of creating a new file.
+      metadata:
+        type: object
+        additionalProperties: true
+        description: "File resource for the new file (or fields to change), e.g. { name, parents }. Defaults to {}."
+      content:
+        description: The file content — a string, raw bytes, or a byte stream.
+        anyOf:
+          - type: string
+          - x-telo-type: Telo.Bytes
+          - x-telo-type:
+              name: Telo.Stream
+              of: Telo.Bytes
+      contentType:
+        type: string
+        description: MIME type of the content. Defaults to application/octet-stream.
+      contentEncoding:
+        type: string
+        enum: [utf8, base64]
+        description: How a STRING content is interpreted — utf8 text (default) or base64-encoded bytes.
+      contentLength:
+        type: integer
+        description: Total size in bytes; required when `content` is a stream, advisory otherwise.
+      addParents:
+        type: string
+        description: With fileId — comma-separated parent ids to add.
+      removeParents:
+        type: string
+        description: With fileId — comma-separated parent ids to remove.
+      supportsAllDrives:
+        type: boolean
+        description: Whether the caller supports shared drives. Defaults to true.
+      ignoreDefaultVisibility:
+        type: boolean
+        description: Ignore the domain's default visibility settings (create only).
+      keepRevisionForever:
+        type: boolean
+        description: Pin the new head revision (binary files only).
+      ocrLanguage:
+        type: string
+        description: ISO 639-1 language hint for OCR during image import.
+      useContentAsIndexableText:
+        type: boolean
+        description: Use the uploaded content as indexable text.
+      fields:
+        type: string
+        description: Field mask for the returned File resource.
+      params:
+        type: object
+        additionalProperties: { type: string }
+        description: Extra query parameters appended verbatim to the session request.
+outputType:
+  kind: Telo.JsonSchema
+  schema:
+    type: object
+    required: [status, headers, body, uploadUri]
+    properties:
+      status: { type: integer }
+      headers: { type: object, additionalProperties: { type: string } }
+      body:
+        description: Parsed JSON File resource of the uploaded file.
+      uploadUri:
+        type: string
+        description: The resumable session URI, for resuming after a failure.
+resources:
+  - kind: Http.Request
+    metadata:
+      name: !cel "self.name + '-start'"
+    client: !cel "self.client"
+    throwOnHttpError: true
+  - kind: Http.Request
+    metadata:
+      name: !cel "self.name + '-put'"
+    client: !cel "self.client"
+    throwOnHttpError: true
+    success: [200, 201, 308]
+  - kind: Run.Sequence
+    metadata:
+      name: !cel "self.name + '-seq'"
+    inputType:
+      kind: Telo.JsonSchema
+      schema:
+        type: object
+        required: [content]
+        properties:
+          fileId: { type: string }
+          metadata: { type: object, additionalProperties: true }
+          content: {}
+          contentType: { type: string }
+          contentEncoding: { type: string }
+          contentLength: { type: integer }
+          addParents: { type: string }
+          removeParents: { type: string }
+          supportsAllDrives: { type: boolean }
+          ignoreDefaultVisibility: { type: boolean }
+          keepRevisionForever: { type: boolean }
+          ocrLanguage: { type: string }
+          useContentAsIndexableText: { type: boolean }
+          fields: { type: string }
+          params: { type: object, additionalProperties: { type: string } }
+    steps:
+      - name: start
+        invoke:
+          kind: Http.Request
+          name: !cel "self.name + '-start'"
+        inputs:
+          method: !cel "inputs.?fileId.orValue('') != '' ? 'PATCH' : 'POST'"
+          body: !cel "inputs.?metadata.orValue({})"
+          headers: !cel >-
+            inputs.?contentLength.orValue(0) > 0
+              ? {'X-Upload-Content-Type': inputs.?contentType.orValue('application/octet-stream'),
+                 'X-Upload-Content-Length': string(inputs.contentLength)}
+              : {'X-Upload-Content-Type': inputs.?contentType.orValue('application/octet-stream')}
+          url: !cel >-
+            trimSuffix(trimSuffix(
+              '/upload/drive/v3/files' + (inputs.?fileId.orValue('') != '' ? '/' + urlEncode(inputs.fileId) : '')
+                + '?uploadType=resumable&' + join([
+                {'k': 'addParents', 'v': inputs.?addParents.orValue('')},
+                {'k': 'removeParents', 'v': inputs.?removeParents.orValue('')},
+                {'k': 'supportsAllDrives', 'v': string(inputs.?supportsAllDrives.orValue(true))},
+                {'k': 'ignoreDefaultVisibility', 'v': inputs.?ignoreDefaultVisibility.orValue(false) ? 'true' : ''},
+                {'k': 'keepRevisionForever', 'v': inputs.?keepRevisionForever.orValue(false) ? 'true' : ''},
+                {'k': 'ocrLanguage', 'v': inputs.?ocrLanguage.orValue('')},
+                {'k': 'useContentAsIndexableText', 'v': inputs.?useContentAsIndexableText.orValue(false) ? 'true' : ''},
+                {'k': 'fields', 'v': inputs.?fields.orValue('')}
+              ].filter(p, p.v != '').map(p, p.k + '=' + urlEncode(p.v))
+                + keys(inputs.?params.orValue({})).map(k, k + '=' + urlEncode(inputs.?params.orValue({})[k])), '&')
+            , '&'), '?')
+      - name: put
+        invoke:
+          kind: Http.Request
+          name: !cel "self.name + '-put'"
+        inputs:
+          method: PUT
+          url: !cel "steps.start.result.headers.location"
+          body: !cel "inputs.?contentEncoding.orValue('utf8') == 'base64' ? bytesFromBase64(inputs.content) : inputs.content"
+          headers: !cel >-
+            inputs.?contentLength.orValue(0) > 0
+              ? {'Content-Type': inputs.?contentType.orValue('application/octet-stream'),
+                 'Content-Length': string(inputs.contentLength)}
+              : {'Content-Type': inputs.?contentType.orValue('application/octet-stream')}
+    outputs:
+      status: !cel "steps.put.result.status"
+      headers: !cel "steps.put.result.headers"
+      body: !cel "steps.put.result.body"
+      uploadUri: !cel "steps.start.result.headers.location"
+invoke:
+  kind: Run.Sequence
+  name: !cel "self.name + '-seq'"
+inputs:
+  fileId: !cel "inputs.?fileId.orValue('')"
+  metadata: !cel "inputs.?metadata.orValue({})"
+  content: !cel "inputs.content"
+  contentType: !cel "inputs.?contentType.orValue('application/octet-stream')"
+  contentEncoding: !cel "inputs.?contentEncoding.orValue('utf8')"
+  contentLength: !cel "inputs.?contentLength.orValue(0)"
+  addParents: !cel "inputs.?addParents.orValue('')"
+  removeParents: !cel "inputs.?removeParents.orValue('')"
+  supportsAllDrives: !cel "inputs.?supportsAllDrives.orValue(true)"
+  ignoreDefaultVisibility: !cel "inputs.?ignoreDefaultVisibility.orValue(false)"
+  keepRevisionForever: !cel "inputs.?keepRevisionForever.orValue(false)"
+  ocrLanguage: !cel "inputs.?ocrLanguage.orValue('')"
+  useContentAsIndexableText: !cel "inputs.?useContentAsIndexableText.orValue(false)"
+  fields: !cel "inputs.?fields.orValue('')"
+  params: !cel "inputs.?params.orValue({})"
+---
+# GET /drive/v3/files/{fileId}/permissions — list who has access to a file or
+# shared drive.
+kind: Telo.Definition
+metadata:
+  name: ListPermissions
+  description: List a file's or shared drive's permissions (GET /drive/v3/files/{fileId}/permissions).
+capability: Telo.Invocable
+schema:
+  type: object
+  required: [client]
+  properties:
+    client:
+      x-telo-ref:
+        kind: Http.Client
+        use: dependency
+      description: A GoogleDriveClient / GoogleDriveOAuthClient (or any Http.Client) to run the request against.
+inputType:
+  kind: Telo.JsonSchema
+  schema:
+    type: object
+    required: [fileId]
+    properties:
+      fileId:
+        type: string
+        description: The file or shared drive id.
+      pageSize:
+        type: integer
+        description: Maximum permissions per page.
+      pageToken:
+        type: string
+        description: nextPageToken from the previous page.
+      fields:
+        type: string
+        description: "Field mask, e.g. \"permissions(id,role,type,emailAddress)\"."
+      supportsAllDrives:
+        type: boolean
+        description: Whether the caller supports shared drives. Defaults to true.
+      useDomainAdminAccess:
+        type: boolean
+        description: Issue the request as a domain administrator.
+      includePermissionsForView:
+        type: string
+        description: "Extra permissions to include (only 'published')."
+      params:
+        type: object
+        additionalProperties: { type: string }
+        description: Extra query parameters appended verbatim.
+outputType:
+  kind: Telo.JsonSchema
+  schema:
+    type: object
+    required: [status, headers, body]
+    properties:
+      status: { type: integer }
+      headers: { type: object, additionalProperties: { type: string } }
+      body:
+        description: Parsed JSON PermissionList — { permissions, nextPageToken? }.
+resources:
+  - kind: Http.Request
+    metadata:
+      name: !cel "self.name + '-req'"
+    client: !cel "self.client"
+    throwOnHttpError: true
+invoke:
+  kind: Http.Request
+  name: !cel "self.name + '-req'"
+inputs:
+  method: GET
+  url: !cel >-
+    trimSuffix(trimSuffix(
+      '/drive/v3/files/' + urlEncode(inputs.fileId) + '/permissions?' + join([
+        {'k': 'pageSize', 'v': has(inputs.pageSize) ? string(inputs.pageSize) : ''},
+        {'k': 'pageToken', 'v': inputs.?pageToken.orValue('')},
+        {'k': 'fields', 'v': inputs.?fields.orValue('')},
+        {'k': 'supportsAllDrives', 'v': string(inputs.?supportsAllDrives.orValue(true))},
+        {'k': 'useDomainAdminAccess', 'v': has(inputs.useDomainAdminAccess) ? string(inputs.useDomainAdminAccess) : ''},
+        {'k': 'includePermissionsForView', 'v': inputs.?includePermissionsForView.orValue('')}
+      ].filter(p, p.v != '').map(p, p.k + '=' + urlEncode(p.v))
+        + keys(inputs.?params.orValue({})).map(k, k + '=' + urlEncode(inputs.?params.orValue({})[k])), '&')
+    , '&'), '?')
+---
+# GET /drive/v3/files/{fileId}/permissions/{permissionId} — read one permission.
+kind: Telo.Definition
+metadata:
+  name: GetPermission
+  description: Read one permission by id (GET /drive/v3/files/{fileId}/permissions/{permissionId}).
+capability: Telo.Invocable
+schema:
+  type: object
+  required: [client]
+  properties:
+    client:
+      x-telo-ref:
+        kind: Http.Client
+        use: dependency
+      description: A GoogleDriveClient / GoogleDriveOAuthClient (or any Http.Client) to run the request against.
+inputType:
+  kind: Telo.JsonSchema
+  schema:
+    type: object
+    required: [fileId, permissionId]
+    properties:
+      fileId:
+        type: string
+        description: The file or shared drive id.
+      permissionId:
+        type: string
+        description: The permission id.
+      fields:
+        type: string
+        description: Field mask for the returned Permission.
+      supportsAllDrives:
+        type: boolean
+        description: Whether the caller supports shared drives. Defaults to true.
+      useDomainAdminAccess:
+        type: boolean
+        description: Issue the request as a domain administrator.
+      params:
+        type: object
+        additionalProperties: { type: string }
+        description: Extra query parameters appended verbatim.
+outputType:
+  kind: Telo.JsonSchema
+  schema:
+    type: object
+    required: [status, headers, body]
+    properties:
+      status: { type: integer }
+      headers: { type: object, additionalProperties: { type: string } }
+      body:
+        description: Parsed JSON Permission resource.
+resources:
+  - kind: Http.Request
+    metadata:
+      name: !cel "self.name + '-req'"
+    client: !cel "self.client"
+    throwOnHttpError: true
+invoke:
+  kind: Http.Request
+  name: !cel "self.name + '-req'"
+inputs:
+  method: GET
+  url: !cel >-
+    trimSuffix(trimSuffix(
+      '/drive/v3/files/' + urlEncode(inputs.fileId) + '/permissions/' + urlEncode(inputs.permissionId) + '?' + join([
+        {'k': 'fields', 'v': inputs.?fields.orValue('')},
+        {'k': 'supportsAllDrives', 'v': string(inputs.?supportsAllDrives.orValue(true))},
+        {'k': 'useDomainAdminAccess', 'v': has(inputs.useDomainAdminAccess) ? string(inputs.useDomainAdminAccess) : ''}
+      ].filter(p, p.v != '').map(p, p.k + '=' + urlEncode(p.v))
+        + keys(inputs.?params.orValue({})).map(k, k + '=' + urlEncode(inputs.?params.orValue({})[k])), '&')
+    , '&'), '?')
+---
+# POST /drive/v3/files/{fileId}/permissions — share a file or shared drive.
+# `permission` is { role: reader|commenter|writer|fileOrganizer|organizer|owner,
+# type: user|group|domain|anyone, emailAddress? | domain?, allowFileDiscovery?,
+# expirationTime? }. Ownership transfer needs transferOwnership=true.
+kind: Telo.Definition
+metadata:
+  name: CreatePermission
+  description: Share a file or shared drive with a user, group, domain or anyone (POST …/permissions).
+capability: Telo.Invocable
+schema:
+  type: object
+  required: [client]
+  properties:
+    client:
+      x-telo-ref:
+        kind: Http.Client
+        use: dependency
+      description: A GoogleDriveClient / GoogleDriveOAuthClient (or any Http.Client) to run the request against.
+inputType:
+  kind: Telo.JsonSchema
+  schema:
+    type: object
+    required: [fileId, permission]
+    properties:
+      fileId:
+        type: string
+        description: The file or shared drive id.
+      permission:
+        type: object
+        additionalProperties: true
+        description: "Permission resource, e.g. { role: 'writer', type: 'user', emailAddress: 'a@b.com' }."
+      emailMessage:
+        type: string
+        description: Custom message for the notification email.
+      sendNotificationEmail:
+        type: boolean
+        description: Send a notification email (default true for user/group).
+      transferOwnership:
+        type: boolean
+        description: Required true when granting the owner role.
+      moveToNewOwnersRoot:
+        type: boolean
+        description: With transferOwnership — move the file to the new owner's My Drive root.
+      supportsAllDrives:
+        type: boolean
+        description: Whether the caller supports shared drives. Defaults to true.
+      useDomainAdminAccess:
+        type: boolean
+        description: Issue the request as a domain administrator.
+      fields:
+        type: string
+        description: Field mask for the returned Permission.
+      params:
+        type: object
+        additionalProperties: { type: string }
+        description: Extra query parameters appended verbatim.
+outputType:
+  kind: Telo.JsonSchema
+  schema:
+    type: object
+    required: [status, headers, body]
+    properties:
+      status: { type: integer }
+      headers: { type: object, additionalProperties: { type: string } }
+      body:
+        description: Parsed JSON Permission resource.
+resources:
+  - kind: Http.Request
+    metadata:
+      name: !cel "self.name + '-req'"
+    client: !cel "self.client"
+    throwOnHttpError: true
+invoke:
+  kind: Http.Request
+  name: !cel "self.name + '-req'"
+inputs:
+  method: POST
+  body: !cel "inputs.permission"
+  url: !cel >-
+    trimSuffix(trimSuffix(
+      '/drive/v3/files/' + urlEncode(inputs.fileId) + '/permissions?' + join([
+        {'k': 'emailMessage', 'v': inputs.?emailMessage.orValue('')},
+        {'k': 'sendNotificationEmail', 'v': has(inputs.sendNotificationEmail) ? string(inputs.sendNotificationEmail) : ''},
+        {'k': 'transferOwnership', 'v': has(inputs.transferOwnership) ? string(inputs.transferOwnership) : ''},
+        {'k': 'moveToNewOwnersRoot', 'v': has(inputs.moveToNewOwnersRoot) ? string(inputs.moveToNewOwnersRoot) : ''},
+        {'k': 'supportsAllDrives', 'v': string(inputs.?supportsAllDrives.orValue(true))},
+        {'k': 'useDomainAdminAccess', 'v': has(inputs.useDomainAdminAccess) ? string(inputs.useDomainAdminAccess) : ''},
+        {'k': 'fields', 'v': inputs.?fields.orValue('')}
+      ].filter(p, p.v != '').map(p, p.k + '=' + urlEncode(p.v))
+        + keys(inputs.?params.orValue({})).map(k, k + '=' + urlEncode(inputs.?params.orValue({})[k])), '&')
+    , '&'), '?')
+---
+# PATCH /drive/v3/files/{fileId}/permissions/{permissionId} — change a
+# permission's role or expiration.
+kind: Telo.Definition
+metadata:
+  name: UpdatePermission
+  description: Change a permission's role or expiration (PATCH …/permissions/{permissionId}).
+capability: Telo.Invocable
+schema:
+  type: object
+  required: [client]
+  properties:
+    client:
+      x-telo-ref:
+        kind: Http.Client
+        use: dependency
+      description: A GoogleDriveClient / GoogleDriveOAuthClient (or any Http.Client) to run the request against.
+inputType:
+  kind: Telo.JsonSchema
+  schema:
+    type: object
+    required: [fileId, permissionId, permission]
+    properties:
+      fileId:
+        type: string
+        description: The file or shared drive id.
+      permissionId:
+        type: string
+        description: The permission id.
+      permission:
+        type: object
+        additionalProperties: true
+        description: "Fields to change, e.g. { role: 'reader' } or { expirationTime }."
+      removeExpiration:
+        type: boolean
+        description: Remove the permission's expiration date.
+      transferOwnership:
+        type: boolean
+        description: Required true when changing the role to owner.
+      supportsAllDrives:
+        type: boolean
+        description: Whether the caller supports shared drives. Defaults to true.
+      useDomainAdminAccess:
+        type: boolean
+        description: Issue the request as a domain administrator.
+      fields:
+        type: string
+        description: Field mask for the returned Permission.
+      params:
+        type: object
+        additionalProperties: { type: string }
+        description: Extra query parameters appended verbatim.
+outputType:
+  kind: Telo.JsonSchema
+  schema:
+    type: object
+    required: [status, headers, body]
+    properties:
+      status: { type: integer }
+      headers: { type: object, additionalProperties: { type: string } }
+      body:
+        description: Parsed JSON Permission resource after the update.
+resources:
+  - kind: Http.Request
+    metadata:
+      name: !cel "self.name + '-req'"
+    client: !cel "self.client"
+    throwOnHttpError: true
+invoke:
+  kind: Http.Request
+  name: !cel "self.name + '-req'"
+inputs:
+  method: PATCH
+  body: !cel "inputs.permission"
+  url: !cel >-
+    trimSuffix(trimSuffix(
+      '/drive/v3/files/' + urlEncode(inputs.fileId) + '/permissions/' + urlEncode(inputs.permissionId) + '?' + join([
+        {'k': 'removeExpiration', 'v': has(inputs.removeExpiration) ? string(inputs.removeExpiration) : ''},
+        {'k': 'transferOwnership', 'v': has(inputs.transferOwnership) ? string(inputs.transferOwnership) : ''},
+        {'k': 'supportsAllDrives', 'v': string(inputs.?supportsAllDrives.orValue(true))},
+        {'k': 'useDomainAdminAccess', 'v': has(inputs.useDomainAdminAccess) ? string(inputs.useDomainAdminAccess) : ''},
+        {'k': 'fields', 'v': inputs.?fields.orValue('')}
+      ].filter(p, p.v != '').map(p, p.k + '=' + urlEncode(p.v))
+        + keys(inputs.?params.orValue({})).map(k, k + '=' + urlEncode(inputs.?params.orValue({})[k])), '&')
+    , '&'), '?')
+---
+# DELETE /drive/v3/files/{fileId}/permissions/{permissionId} — revoke access.
+kind: Telo.Definition
+metadata:
+  name: DeletePermission
+  description: Revoke a permission (DELETE …/permissions/{permissionId}).
+capability: Telo.Invocable
+schema:
+  type: object
+  required: [client]
+  properties:
+    client:
+      x-telo-ref:
+        kind: Http.Client
+        use: dependency
+      description: A GoogleDriveClient / GoogleDriveOAuthClient (or any Http.Client) to run the request against.
+inputType:
+  kind: Telo.JsonSchema
+  schema:
+    type: object
+    required: [fileId, permissionId]
+    properties:
+      fileId:
+        type: string
+        description: The file or shared drive id.
+      permissionId:
+        type: string
+        description: The permission id.
+      supportsAllDrives:
+        type: boolean
+        description: Whether the caller supports shared drives. Defaults to true.
+      useDomainAdminAccess:
+        type: boolean
+        description: Issue the request as a domain administrator.
+      params:
+        type: object
+        additionalProperties: { type: string }
+        description: Extra query parameters appended verbatim.
+outputType:
+  kind: Telo.JsonSchema
+  schema:
+    type: object
+    required: [status, headers, body]
+    properties:
+      status: { type: integer }
+      headers: { type: object, additionalProperties: { type: string } }
+      body:
+        description: Empty on success (204).
+resources:
+  - kind: Http.Request
+    metadata:
+      name: !cel "self.name + '-req'"
+    client: !cel "self.client"
+    throwOnHttpError: true
+invoke:
+  kind: Http.Request
+  name: !cel "self.name + '-req'"
+inputs:
+  method: DELETE
+  url: !cel >-
+    trimSuffix(trimSuffix(
+      '/drive/v3/files/' + urlEncode(inputs.fileId) + '/permissions/' + urlEncode(inputs.permissionId) + '?' + join([
+        {'k': 'supportsAllDrives', 'v': string(inputs.?supportsAllDrives.orValue(true))},
+        {'k': 'useDomainAdminAccess', 'v': has(inputs.useDomainAdminAccess) ? string(inputs.useDomainAdminAccess) : ''}
+      ].filter(p, p.v != '').map(p, p.k + '=' + urlEncode(p.v))
+        + keys(inputs.?params.orValue({})).map(k, k + '=' + urlEncode(inputs.?params.orValue({})[k])), '&')
+    , '&'), '?')
+---
+# GET /drive/v3/files/{fileId}/comments — list a file's comments. The Comments
+# API requires a `fields` mask; it defaults to "*" here.
+kind: Telo.Definition
+metadata:
+  name: ListComments
+  description: List a file's comments (GET /drive/v3/files/{fileId}/comments).
+capability: Telo.Invocable
+schema:
+  type: object
+  required: [client]
+  properties:
+    client:
+      x-telo-ref:
+        kind: Http.Client
+        use: dependency
+      description: A GoogleDriveClient / GoogleDriveOAuthClient (or any Http.Client) to run the request against.
+inputType:
+  kind: Telo.JsonSchema
+  schema:
+    type: object
+    required: [fileId]
+    properties:
+      fileId:
+        type: string
+        description: The file id.
+      includeDeleted:
+        type: boolean
+        description: Include deleted comments (content stripped).
+      pageSize:
+        type: integer
+        description: Maximum comments per page (1-100, default 20).
+      pageToken:
+        type: string
+        description: nextPageToken from the previous page.
+      startModifiedTime:
+        type: string
+        description: RFC 3339 lower bound on modifiedTime.
+      fields:
+        type: string
+        description: "Field mask; required by the API. Defaults to \"*\"."
+      params:
+        type: object
+        additionalProperties: { type: string }
+        description: Extra query parameters appended verbatim.
+outputType:
+  kind: Telo.JsonSchema
+  schema:
+    type: object
+    required: [status, headers, body]
+    properties:
+      status: { type: integer }
+      headers: { type: object, additionalProperties: { type: string } }
+      body:
+        description: Parsed JSON CommentList — { comments, nextPageToken? }.
+resources:
+  - kind: Http.Request
+    metadata:
+      name: !cel "self.name + '-req'"
+    client: !cel "self.client"
+    throwOnHttpError: true
+invoke:
+  kind: Http.Request
+  name: !cel "self.name + '-req'"
+inputs:
+  method: GET
+  url: !cel >-
+    trimSuffix(trimSuffix(
+      '/drive/v3/files/' + urlEncode(inputs.fileId) + '/comments?' + join([
+        {'k': 'includeDeleted', 'v': has(inputs.includeDeleted) ? string(inputs.includeDeleted) : ''},
+        {'k': 'pageSize', 'v': has(inputs.pageSize) ? string(inputs.pageSize) : ''},
+        {'k': 'pageToken', 'v': inputs.?pageToken.orValue('')},
+        {'k': 'startModifiedTime', 'v': inputs.?startModifiedTime.orValue('')},
+        {'k': 'fields', 'v': inputs.?fields.orValue('*')}
+      ].filter(p, p.v != '').map(p, p.k + '=' + urlEncode(p.v))
+        + keys(inputs.?params.orValue({})).map(k, k + '=' + urlEncode(inputs.?params.orValue({})[k])), '&')
+    , '&'), '?')
+---
+# GET /drive/v3/files/{fileId}/comments/{commentId} — read one comment.
+kind: Telo.Definition
+metadata:
+  name: GetComment
+  description: Read one comment by id (GET …/comments/{commentId}).
+capability: Telo.Invocable
+schema:
+  type: object
+  required: [client]
+  properties:
+    client:
+      x-telo-ref:
+        kind: Http.Client
+        use: dependency
+      description: A GoogleDriveClient / GoogleDriveOAuthClient (or any Http.Client) to run the request against.
+inputType:
+  kind: Telo.JsonSchema
+  schema:
+    type: object
+    required: [fileId, commentId]
+    properties:
+      fileId:
+        type: string
+        description: The file id.
+      commentId:
+        type: string
+        description: The comment id.
+      includeDeleted:
+        type: boolean
+        description: Return the comment even if deleted.
+      fields:
+        type: string
+        description: "Field mask; required by the API. Defaults to \"*\"."
+      params:
+        type: object
+        additionalProperties: { type: string }
+        description: Extra query parameters appended verbatim.
+outputType:
+  kind: Telo.JsonSchema
+  schema:
+    type: object
+    required: [status, headers, body]
+    properties:
+      status: { type: integer }
+      headers: { type: object, additionalProperties: { type: string } }
+      body:
+        description: Parsed JSON Comment resource.
+resources:
+  - kind: Http.Request
+    metadata:
+      name: !cel "self.name + '-req'"
+    client: !cel "self.client"
+    throwOnHttpError: true
+invoke:
+  kind: Http.Request
+  name: !cel "self.name + '-req'"
+inputs:
+  method: GET
+  url: !cel >-
+    trimSuffix(trimSuffix(
+      '/drive/v3/files/' + urlEncode(inputs.fileId) + '/comments/' + urlEncode(inputs.commentId) + '?' + join([
+        {'k': 'includeDeleted', 'v': has(inputs.includeDeleted) ? string(inputs.includeDeleted) : ''},
+        {'k': 'fields', 'v': inputs.?fields.orValue('*')}
+      ].filter(p, p.v != '').map(p, p.k + '=' + urlEncode(p.v))
+        + keys(inputs.?params.orValue({})).map(k, k + '=' + urlEncode(inputs.?params.orValue({})[k])), '&')
+    , '&'), '?')
+---
+# POST /drive/v3/files/{fileId}/comments — add a comment. `comment` is
+# { content, anchor?, quotedFileContent? }.
+kind: Telo.Definition
+metadata:
+  name: CreateComment
+  description: Add a comment to a file (POST …/comments).
+capability: Telo.Invocable
+schema:
+  type: object
+  required: [client]
+  properties:
+    client:
+      x-telo-ref:
+        kind: Http.Client
+        use: dependency
+      description: A GoogleDriveClient / GoogleDriveOAuthClient (or any Http.Client) to run the request against.
+inputType:
+  kind: Telo.JsonSchema
+  schema:
+    type: object
+    required: [fileId, comment]
+    properties:
+      fileId:
+        type: string
+        description: The file id.
+      comment:
+        type: object
+        additionalProperties: true
+        description: "Comment resource, e.g. { content: 'Looks good', anchor? }."
+      fields:
+        type: string
+        description: "Field mask; required by the API. Defaults to \"*\"."
+      params:
+        type: object
+        additionalProperties: { type: string }
+        description: Extra query parameters appended verbatim.
+outputType:
+  kind: Telo.JsonSchema
+  schema:
+    type: object
+    required: [status, headers, body]
+    properties:
+      status: { type: integer }
+      headers: { type: object, additionalProperties: { type: string } }
+      body:
+        description: Parsed JSON Comment resource.
+resources:
+  - kind: Http.Request
+    metadata:
+      name: !cel "self.name + '-req'"
+    client: !cel "self.client"
+    throwOnHttpError: true
+invoke:
+  kind: Http.Request
+  name: !cel "self.name + '-req'"
+inputs:
+  method: POST
+  body: !cel "inputs.comment"
+  url: !cel >-
+    trimSuffix(trimSuffix(
+      '/drive/v3/files/' + urlEncode(inputs.fileId) + '/comments?' + join([
+        {'k': 'fields', 'v': inputs.?fields.orValue('*')}
+      ].filter(p, p.v != '').map(p, p.k + '=' + urlEncode(p.v))
+        + keys(inputs.?params.orValue({})).map(k, k + '=' + urlEncode(inputs.?params.orValue({})[k])), '&')
+    , '&'), '?')
+---
+# PATCH /drive/v3/files/{fileId}/comments/{commentId} — edit a comment's
+# content or resolve it ({ resolved: true }).
+kind: Telo.Definition
+metadata:
+  name: UpdateComment
+  description: Edit or resolve a comment (PATCH …/comments/{commentId}).
+capability: Telo.Invocable
+schema:
+  type: object
+  required: [client]
+  properties:
+    client:
+      x-telo-ref:
+        kind: Http.Client
+        use: dependency
+      description: A GoogleDriveClient / GoogleDriveOAuthClient (or any Http.Client) to run the request against.
+inputType:
+  kind: Telo.JsonSchema
+  schema:
+    type: object
+    required: [fileId, commentId, comment]
+    properties:
+      fileId:
+        type: string
+        description: The file id.
+      commentId:
+        type: string
+        description: The comment id.
+      comment:
+        type: object
+        additionalProperties: true
+        description: "Fields to change, e.g. { content } or { resolved: true }."
+      fields:
+        type: string
+        description: "Field mask; required by the API. Defaults to \"*\"."
+      params:
+        type: object
+        additionalProperties: { type: string }
+        description: Extra query parameters appended verbatim.
+outputType:
+  kind: Telo.JsonSchema
+  schema:
+    type: object
+    required: [status, headers, body]
+    properties:
+      status: { type: integer }
+      headers: { type: object, additionalProperties: { type: string } }
+      body:
+        description: Parsed JSON Comment resource after the update.
+resources:
+  - kind: Http.Request
+    metadata:
+      name: !cel "self.name + '-req'"
+    client: !cel "self.client"
+    throwOnHttpError: true
+invoke:
+  kind: Http.Request
+  name: !cel "self.name + '-req'"
+inputs:
+  method: PATCH
+  body: !cel "inputs.comment"
+  url: !cel >-
+    trimSuffix(trimSuffix(
+      '/drive/v3/files/' + urlEncode(inputs.fileId) + '/comments/' + urlEncode(inputs.commentId) + '?' + join([
+        {'k': 'fields', 'v': inputs.?fields.orValue('*')}
+      ].filter(p, p.v != '').map(p, p.k + '=' + urlEncode(p.v))
+        + keys(inputs.?params.orValue({})).map(k, k + '=' + urlEncode(inputs.?params.orValue({})[k])), '&')
+    , '&'), '?')
+---
+# DELETE /drive/v3/files/{fileId}/comments/{commentId} — delete a comment.
+kind: Telo.Definition
+metadata:
+  name: DeleteComment
+  description: Delete a comment (DELETE …/comments/{commentId}).
+capability: Telo.Invocable
+schema:
+  type: object
+  required: [client]
+  properties:
+    client:
+      x-telo-ref:
+        kind: Http.Client
+        use: dependency
+      description: A GoogleDriveClient / GoogleDriveOAuthClient (or any Http.Client) to run the request against.
+inputType:
+  kind: Telo.JsonSchema
+  schema:
+    type: object
+    required: [fileId, commentId]
+    properties:
+      fileId:
+        type: string
+        description: The file id.
+      commentId:
+        type: string
+        description: The comment id.
+      params:
+        type: object
+        additionalProperties: { type: string }
+        description: Extra query parameters appended verbatim.
+outputType:
+  kind: Telo.JsonSchema
+  schema:
+    type: object
+    required: [status, headers, body]
+    properties:
+      status: { type: integer }
+      headers: { type: object, additionalProperties: { type: string } }
+      body:
+        description: Empty on success (204).
+resources:
+  - kind: Http.Request
+    metadata:
+      name: !cel "self.name + '-req'"
+    client: !cel "self.client"
+    throwOnHttpError: true
+invoke:
+  kind: Http.Request
+  name: !cel "self.name + '-req'"
+inputs:
+  method: DELETE
+  url: !cel >-
+    trimSuffix(trimSuffix(
+      '/drive/v3/files/' + urlEncode(inputs.fileId) + '/comments/' + urlEncode(inputs.commentId) + '?'
+        + join(keys(inputs.?params.orValue({})).map(k, k + '=' + urlEncode(inputs.?params.orValue({})[k])), '&')
+    , '&'), '?')
+---
+# GET /drive/v3/files/{fileId}/comments/{commentId}/replies — list a comment's
+# replies. `fields` is required by the API and defaults to "*".
+kind: Telo.Definition
+metadata:
+  name: ListReplies
+  description: List a comment's replies (GET …/comments/{commentId}/replies).
+capability: Telo.Invocable
+schema:
+  type: object
+  required: [client]
+  properties:
+    client:
+      x-telo-ref:
+        kind: Http.Client
+        use: dependency
+      description: A GoogleDriveClient / GoogleDriveOAuthClient (or any Http.Client) to run the request against.
+inputType:
+  kind: Telo.JsonSchema
+  schema:
+    type: object
+    required: [fileId, commentId]
+    properties:
+      fileId:
+        type: string
+        description: The file id.
+      commentId:
+        type: string
+        description: The comment id.
+      includeDeleted:
+        type: boolean
+        description: Include deleted replies.
+      pageSize:
+        type: integer
+        description: Maximum replies per page (1-100, default 20).
+      pageToken:
+        type: string
+        description: nextPageToken from the previous page.
+      fields:
+        type: string
+        description: "Field mask; required by the API. Defaults to \"*\"."
+      params:
+        type: object
+        additionalProperties: { type: string }
+        description: Extra query parameters appended verbatim.
+outputType:
+  kind: Telo.JsonSchema
+  schema:
+    type: object
+    required: [status, headers, body]
+    properties:
+      status: { type: integer }
+      headers: { type: object, additionalProperties: { type: string } }
+      body:
+        description: Parsed JSON ReplyList — { replies, nextPageToken? }.
+resources:
+  - kind: Http.Request
+    metadata:
+      name: !cel "self.name + '-req'"
+    client: !cel "self.client"
+    throwOnHttpError: true
+invoke:
+  kind: Http.Request
+  name: !cel "self.name + '-req'"
+inputs:
+  method: GET
+  url: !cel >-
+    trimSuffix(trimSuffix(
+      '/drive/v3/files/' + urlEncode(inputs.fileId) + '/comments/' + urlEncode(inputs.commentId) + '/replies?' + join([
+        {'k': 'includeDeleted', 'v': has(inputs.includeDeleted) ? string(inputs.includeDeleted) : ''},
+        {'k': 'pageSize', 'v': has(inputs.pageSize) ? string(inputs.pageSize) : ''},
+        {'k': 'pageToken', 'v': inputs.?pageToken.orValue('')},
+        {'k': 'fields', 'v': inputs.?fields.orValue('*')}
+      ].filter(p, p.v != '').map(p, p.k + '=' + urlEncode(p.v))
+        + keys(inputs.?params.orValue({})).map(k, k + '=' + urlEncode(inputs.?params.orValue({})[k])), '&')
+    , '&'), '?')
+---
+# GET /drive/v3/files/{fileId}/comments/{commentId}/replies/{replyId} — read one reply.
+kind: Telo.Definition
+metadata:
+  name: GetReply
+  description: Read one reply by id (GET …/replies/{replyId}).
+capability: Telo.Invocable
+schema:
+  type: object
+  required: [client]
+  properties:
+    client:
+      x-telo-ref:
+        kind: Http.Client
+        use: dependency
+      description: A GoogleDriveClient / GoogleDriveOAuthClient (or any Http.Client) to run the request against.
+inputType:
+  kind: Telo.JsonSchema
+  schema:
+    type: object
+    required: [fileId, commentId, replyId]
+    properties:
+      fileId:
+        type: string
+        description: The file id.
+      commentId:
+        type: string
+        description: The comment id.
+      replyId:
+        type: string
+        description: The reply id.
+      includeDeleted:
+        type: boolean
+        description: Return the reply even if deleted.
+      fields:
+        type: string
+        description: "Field mask; required by the API. Defaults to \"*\"."
+      params:
+        type: object
+        additionalProperties: { type: string }
+        description: Extra query parameters appended verbatim.
+outputType:
+  kind: Telo.JsonSchema
+  schema:
+    type: object
+    required: [status, headers, body]
+    properties:
+      status: { type: integer }
+      headers: { type: object, additionalProperties: { type: string } }
+      body:
+        description: Parsed JSON Reply resource.
+resources:
+  - kind: Http.Request
+    metadata:
+      name: !cel "self.name + '-req'"
+    client: !cel "self.client"
+    throwOnHttpError: true
+invoke:
+  kind: Http.Request
+  name: !cel "self.name + '-req'"
+inputs:
+  method: GET
+  url: !cel >-
+    trimSuffix(trimSuffix(
+      '/drive/v3/files/' + urlEncode(inputs.fileId) + '/comments/' + urlEncode(inputs.commentId)
+        + '/replies/' + urlEncode(inputs.replyId) + '?' + join([
+        {'k': 'includeDeleted', 'v': has(inputs.includeDeleted) ? string(inputs.includeDeleted) : ''},
+        {'k': 'fields', 'v': inputs.?fields.orValue('*')}
+      ].filter(p, p.v != '').map(p, p.k + '=' + urlEncode(p.v))
+        + keys(inputs.?params.orValue({})).map(k, k + '=' + urlEncode(inputs.?params.orValue({})[k])), '&')
+    , '&'), '?')
+---
+# POST /drive/v3/files/{fileId}/comments/{commentId}/replies — reply to a
+# comment. `reply` is { content } or { action: resolve|reopen, content? }.
+kind: Telo.Definition
+metadata:
+  name: CreateReply
+  description: Reply to a comment, or resolve/reopen it via action (POST …/replies).
+capability: Telo.Invocable
+schema:
+  type: object
+  required: [client]
+  properties:
+    client:
+      x-telo-ref:
+        kind: Http.Client
+        use: dependency
+      description: A GoogleDriveClient / GoogleDriveOAuthClient (or any Http.Client) to run the request against.
+inputType:
+  kind: Telo.JsonSchema
+  schema:
+    type: object
+    required: [fileId, commentId, reply]
+    properties:
+      fileId:
+        type: string
+        description: The file id.
+      commentId:
+        type: string
+        description: The comment id.
+      reply:
+        type: object
+        additionalProperties: true
+        description: "Reply resource, e.g. { content: 'Done' } or { action: 'resolve' }."
+      fields:
+        type: string
+        description: "Field mask; required by the API. Defaults to \"*\"."
+      params:
+        type: object
+        additionalProperties: { type: string }
+        description: Extra query parameters appended verbatim.
+outputType:
+  kind: Telo.JsonSchema
+  schema:
+    type: object
+    required: [status, headers, body]
+    properties:
+      status: { type: integer }
+      headers: { type: object, additionalProperties: { type: string } }
+      body:
+        description: Parsed JSON Reply resource.
+resources:
+  - kind: Http.Request
+    metadata:
+      name: !cel "self.name + '-req'"
+    client: !cel "self.client"
+    throwOnHttpError: true
+invoke:
+  kind: Http.Request
+  name: !cel "self.name + '-req'"
+inputs:
+  method: POST
+  body: !cel "inputs.reply"
+  url: !cel >-
+    trimSuffix(trimSuffix(
+      '/drive/v3/files/' + urlEncode(inputs.fileId) + '/comments/' + urlEncode(inputs.commentId) + '/replies?' + join([
+        {'k': 'fields', 'v': inputs.?fields.orValue('*')}
+      ].filter(p, p.v != '').map(p, p.k + '=' + urlEncode(p.v))
+        + keys(inputs.?params.orValue({})).map(k, k + '=' + urlEncode(inputs.?params.orValue({})[k])), '&')
+    , '&'), '?')
+---
+# PATCH /drive/v3/files/{fileId}/comments/{commentId}/replies/{replyId} — edit a reply.
+kind: Telo.Definition
+metadata:
+  name: UpdateReply
+  description: Edit a reply's content (PATCH …/replies/{replyId}).
+capability: Telo.Invocable
+schema:
+  type: object
+  required: [client]
+  properties:
+    client:
+      x-telo-ref:
+        kind: Http.Client
+        use: dependency
+      description: A GoogleDriveClient / GoogleDriveOAuthClient (or any Http.Client) to run the request against.
+inputType:
+  kind: Telo.JsonSchema
+  schema:
+    type: object
+    required: [fileId, commentId, replyId, reply]
+    properties:
+      fileId:
+        type: string
+        description: The file id.
+      commentId:
+        type: string
+        description: The comment id.
+      replyId:
+        type: string
+        description: The reply id.
+      reply:
+        type: object
+        additionalProperties: true
+        description: "Fields to change, e.g. { content }."
+      fields:
+        type: string
+        description: "Field mask; required by the API. Defaults to \"*\"."
+      params:
+        type: object
+        additionalProperties: { type: string }
+        description: Extra query parameters appended verbatim.
+outputType:
+  kind: Telo.JsonSchema
+  schema:
+    type: object
+    required: [status, headers, body]
+    properties:
+      status: { type: integer }
+      headers: { type: object, additionalProperties: { type: string } }
+      body:
+        description: Parsed JSON Reply resource after the update.
+resources:
+  - kind: Http.Request
+    metadata:
+      name: !cel "self.name + '-req'"
+    client: !cel "self.client"
+    throwOnHttpError: true
+invoke:
+  kind: Http.Request
+  name: !cel "self.name + '-req'"
+inputs:
+  method: PATCH
+  body: !cel "inputs.reply"
+  url: !cel >-
+    trimSuffix(trimSuffix(
+      '/drive/v3/files/' + urlEncode(inputs.fileId) + '/comments/' + urlEncode(inputs.commentId)
+        + '/replies/' + urlEncode(inputs.replyId) + '?' + join([
+        {'k': 'fields', 'v': inputs.?fields.orValue('*')}
+      ].filter(p, p.v != '').map(p, p.k + '=' + urlEncode(p.v))
+        + keys(inputs.?params.orValue({})).map(k, k + '=' + urlEncode(inputs.?params.orValue({})[k])), '&')
+    , '&'), '?')
+---
+# DELETE /drive/v3/files/{fileId}/comments/{commentId}/replies/{replyId} — delete a reply.
+kind: Telo.Definition
+metadata:
+  name: DeleteReply
+  description: Delete a reply (DELETE …/replies/{replyId}).
+capability: Telo.Invocable
+schema:
+  type: object
+  required: [client]
+  properties:
+    client:
+      x-telo-ref:
+        kind: Http.Client
+        use: dependency
+      description: A GoogleDriveClient / GoogleDriveOAuthClient (or any Http.Client) to run the request against.
+inputType:
+  kind: Telo.JsonSchema
+  schema:
+    type: object
+    required: [fileId, commentId, replyId]
+    properties:
+      fileId:
+        type: string
+        description: The file id.
+      commentId:
+        type: string
+        description: The comment id.
+      replyId:
+        type: string
+        description: The reply id.
+      params:
+        type: object
+        additionalProperties: { type: string }
+        description: Extra query parameters appended verbatim.
+outputType:
+  kind: Telo.JsonSchema
+  schema:
+    type: object
+    required: [status, headers, body]
+    properties:
+      status: { type: integer }
+      headers: { type: object, additionalProperties: { type: string } }
+      body:
+        description: Empty on success (204).
+resources:
+  - kind: Http.Request
+    metadata:
+      name: !cel "self.name + '-req'"
+    client: !cel "self.client"
+    throwOnHttpError: true
+invoke:
+  kind: Http.Request
+  name: !cel "self.name + '-req'"
+inputs:
+  method: DELETE
+  url: !cel >-
+    trimSuffix(trimSuffix(
+      '/drive/v3/files/' + urlEncode(inputs.fileId) + '/comments/' + urlEncode(inputs.commentId)
+        + '/replies/' + urlEncode(inputs.replyId) + '?'
+        + join(keys(inputs.?params.orValue({})).map(k, k + '=' + urlEncode(inputs.?params.orValue({})[k])), '&')
+    , '&'), '?')
+---
+# GET /drive/v3/files/{fileId}/revisions — list a file's revisions.
+kind: Telo.Definition
+metadata:
+  name: ListRevisions
+  description: List a file's revisions (GET /drive/v3/files/{fileId}/revisions).
+capability: Telo.Invocable
+schema:
+  type: object
+  required: [client]
+  properties:
+    client:
+      x-telo-ref:
+        kind: Http.Client
+        use: dependency
+      description: A GoogleDriveClient / GoogleDriveOAuthClient (or any Http.Client) to run the request against.
+inputType:
+  kind: Telo.JsonSchema
+  schema:
+    type: object
+    required: [fileId]
+    properties:
+      fileId:
+        type: string
+        description: The file id.
+      pageSize:
+        type: integer
+        description: Maximum revisions per page (1-1000, default 200).
+      pageToken:
+        type: string
+        description: nextPageToken from the previous page.
+      fields:
+        type: string
+        description: "Field mask, e.g. \"revisions(id,modifiedTime,size)\"."
+      params:
+        type: object
+        additionalProperties: { type: string }
+        description: Extra query parameters appended verbatim.
+outputType:
+  kind: Telo.JsonSchema
+  schema:
+    type: object
+    required: [status, headers, body]
+    properties:
+      status: { type: integer }
+      headers: { type: object, additionalProperties: { type: string } }
+      body:
+        description: Parsed JSON RevisionList — { revisions, nextPageToken? }.
+resources:
+  - kind: Http.Request
+    metadata:
+      name: !cel "self.name + '-req'"
+    client: !cel "self.client"
+    throwOnHttpError: true
+invoke:
+  kind: Http.Request
+  name: !cel "self.name + '-req'"
+inputs:
+  method: GET
+  url: !cel >-
+    trimSuffix(trimSuffix(
+      '/drive/v3/files/' + urlEncode(inputs.fileId) + '/revisions?' + join([
+        {'k': 'pageSize', 'v': has(inputs.pageSize) ? string(inputs.pageSize) : ''},
+        {'k': 'pageToken', 'v': inputs.?pageToken.orValue('')},
+        {'k': 'fields', 'v': inputs.?fields.orValue('')}
+      ].filter(p, p.v != '').map(p, p.k + '=' + urlEncode(p.v))
+        + keys(inputs.?params.orValue({})).map(k, k + '=' + urlEncode(inputs.?params.orValue({})[k])), '&')
+    , '&'), '?')
+---
+# GET /drive/v3/files/{fileId}/revisions/{revisionId} — read a revision's metadata.
+kind: Telo.Definition
+metadata:
+  name: GetRevision
+  description: Read a revision's metadata (GET …/revisions/{revisionId}).
+capability: Telo.Invocable
+schema:
+  type: object
+  required: [client]
+  properties:
+    client:
+      x-telo-ref:
+        kind: Http.Client
+        use: dependency
+      description: A GoogleDriveClient / GoogleDriveOAuthClient (or any Http.Client) to run the request against.
+inputType:
+  kind: Telo.JsonSchema
+  schema:
+    type: object
+    required: [fileId, revisionId]
+    properties:
+      fileId:
+        type: string
+        description: The file id.
+      revisionId:
+        type: string
+        description: The revision id.
+      fields:
+        type: string
+        description: Field mask for the returned Revision.
+      acknowledgeAbuse:
+        type: boolean
+        description: Acknowledge the risk of downloading known malware or abusive files.
+      params:
+        type: object
+        additionalProperties: { type: string }
+        description: Extra query parameters appended verbatim.
+outputType:
+  kind: Telo.JsonSchema
+  schema:
+    type: object
+    required: [status, headers, body]
+    properties:
+      status: { type: integer }
+      headers: { type: object, additionalProperties: { type: string } }
+      body:
+        description: Parsed JSON Revision resource.
+resources:
+  - kind: Http.Request
+    metadata:
+      name: !cel "self.name + '-req'"
+    client: !cel "self.client"
+    throwOnHttpError: true
+invoke:
+  kind: Http.Request
+  name: !cel "self.name + '-req'"
+inputs:
+  method: GET
+  url: !cel >-
+    trimSuffix(trimSuffix(
+      '/drive/v3/files/' + urlEncode(inputs.fileId) + '/revisions/' + urlEncode(inputs.revisionId) + '?' + join([
+        {'k': 'fields', 'v': inputs.?fields.orValue('')},
+        {'k': 'acknowledgeAbuse', 'v': has(inputs.acknowledgeAbuse) ? string(inputs.acknowledgeAbuse) : ''}
+      ].filter(p, p.v != '').map(p, p.k + '=' + urlEncode(p.v))
+        + keys(inputs.?params.orValue({})).map(k, k + '=' + urlEncode(inputs.?params.orValue({})[k])), '&')
+    , '&'), '?')
+---
+# GET /drive/v3/files/{fileId}/revisions/{revisionId}?alt=media — download a
+# revision's binary content (binary files only).
+kind: Telo.Definition
+metadata:
+  name: DownloadRevision
+  description: Download a revision's binary content as bytes or a byte stream (alt=media).
+capability: Telo.Invocable
+schema:
+  type: object
+  required: [client]
+  properties:
+    client:
+      x-telo-ref:
+        kind: Http.Client
+        use: dependency
+      description: A GoogleDriveClient / GoogleDriveOAuthClient (or any Http.Client) to run the request against.
+inputType:
+  kind: Telo.JsonSchema
+  schema:
+    type: object
+    required: [fileId, revisionId]
+    properties:
+      fileId:
+        type: string
+        description: The file id.
+      revisionId:
+        type: string
+        description: The revision id.
+      responseType:
+        type: string
+        enum: [bytes, stream]
+        description: Buffer the content as bytes (default) or return a byte stream.
+      acknowledgeAbuse:
+        type: boolean
+        description: Acknowledge the risk of downloading known malware or abusive files.
+      params:
+        type: object
+        additionalProperties: { type: string }
+        description: Extra query parameters appended verbatim.
+outputType:
+  kind: Telo.JsonSchema
+  schema:
+    type: object
+    required: [status, headers, body]
+    properties:
+      status: { type: integer }
+      headers: { type: object, additionalProperties: { type: string } }
+      body:
+        description: The revision content — raw bytes, or a byte stream when responseType is stream.
+        anyOf:
+          - x-telo-type: Telo.Bytes
+          - x-telo-type:
+              name: Telo.Stream
+              of: Telo.Bytes
+resources:
+  - kind: Http.Request
+    metadata:
+      name: !cel "self.name + '-req'"
+    client: !cel "self.client"
+    throwOnHttpError: true
+invoke:
+  kind: Http.Request
+  name: !cel "self.name + '-req'"
+inputs:
+  method: GET
+  responseType: !cel "inputs.?responseType.orValue('bytes')"
+  url: !cel >-
+    trimSuffix(trimSuffix(
+      '/drive/v3/files/' + urlEncode(inputs.fileId) + '/revisions/' + urlEncode(inputs.revisionId) + '?alt=media&' + join([
+        {'k': 'acknowledgeAbuse', 'v': has(inputs.acknowledgeAbuse) ? string(inputs.acknowledgeAbuse) : ''}
+      ].filter(p, p.v != '').map(p, p.k + '=' + urlEncode(p.v))
+        + keys(inputs.?params.orValue({})).map(k, k + '=' + urlEncode(inputs.?params.orValue({})[k])), '&')
+    , '&'), '?')
+---
+# PATCH /drive/v3/files/{fileId}/revisions/{revisionId} — pin a revision
+# ({ keepForever: true }) or change its publish settings.
+kind: Telo.Definition
+metadata:
+  name: UpdateRevision
+  description: Pin a revision or change its publish settings (PATCH …/revisions/{revisionId}).
+capability: Telo.Invocable
+schema:
+  type: object
+  required: [client]
+  properties:
+    client:
+      x-telo-ref:
+        kind: Http.Client
+        use: dependency
+      description: A GoogleDriveClient / GoogleDriveOAuthClient (or any Http.Client) to run the request against.
+inputType:
+  kind: Telo.JsonSchema
+  schema:
+    type: object
+    required: [fileId, revisionId, revision]
+    properties:
+      fileId:
+        type: string
+        description: The file id.
+      revisionId:
+        type: string
+        description: The revision id.
+      revision:
+        type: object
+        additionalProperties: true
+        description: "Fields to change: { keepForever, published, publishAuto, publishedOutsideDomain }."
+      fields:
+        type: string
+        description: Field mask for the returned Revision.
+      params:
+        type: object
+        additionalProperties: { type: string }
+        description: Extra query parameters appended verbatim.
+outputType:
+  kind: Telo.JsonSchema
+  schema:
+    type: object
+    required: [status, headers, body]
+    properties:
+      status: { type: integer }
+      headers: { type: object, additionalProperties: { type: string } }
+      body:
+        description: Parsed JSON Revision resource after the update.
+resources:
+  - kind: Http.Request
+    metadata:
+      name: !cel "self.name + '-req'"
+    client: !cel "self.client"
+    throwOnHttpError: true
+invoke:
+  kind: Http.Request
+  name: !cel "self.name + '-req'"
+inputs:
+  method: PATCH
+  body: !cel "inputs.revision"
+  url: !cel >-
+    trimSuffix(trimSuffix(
+      '/drive/v3/files/' + urlEncode(inputs.fileId) + '/revisions/' + urlEncode(inputs.revisionId) + '?' + join([
+        {'k': 'fields', 'v': inputs.?fields.orValue('')}
+      ].filter(p, p.v != '').map(p, p.k + '=' + urlEncode(p.v))
+        + keys(inputs.?params.orValue({})).map(k, k + '=' + urlEncode(inputs.?params.orValue({})[k])), '&')
+    , '&'), '?')
+---
+# DELETE /drive/v3/files/{fileId}/revisions/{revisionId} — permanently delete a
+# revision (binary files only; the head revision cannot be deleted).
+kind: Telo.Definition
+metadata:
+  name: DeleteRevision
+  description: Permanently delete a file revision (DELETE …/revisions/{revisionId}).
+capability: Telo.Invocable
+schema:
+  type: object
+  required: [client]
+  properties:
+    client:
+      x-telo-ref:
+        kind: Http.Client
+        use: dependency
+      description: A GoogleDriveClient / GoogleDriveOAuthClient (or any Http.Client) to run the request against.
+inputType:
+  kind: Telo.JsonSchema
+  schema:
+    type: object
+    required: [fileId, revisionId]
+    properties:
+      fileId:
+        type: string
+        description: The file id.
+      revisionId:
+        type: string
+        description: The revision id.
+      params:
+        type: object
+        additionalProperties: { type: string }
+        description: Extra query parameters appended verbatim.
+outputType:
+  kind: Telo.JsonSchema
+  schema:
+    type: object
+    required: [status, headers, body]
+    properties:
+      status: { type: integer }
+      headers: { type: object, additionalProperties: { type: string } }
+      body:
+        description: Empty on success (204).
+resources:
+  - kind: Http.Request
+    metadata:
+      name: !cel "self.name + '-req'"
+    client: !cel "self.client"
+    throwOnHttpError: true
+invoke:
+  kind: Http.Request
+  name: !cel "self.name + '-req'"
+inputs:
+  method: DELETE
+  url: !cel >-
+    trimSuffix(trimSuffix(
+      '/drive/v3/files/' + urlEncode(inputs.fileId) + '/revisions/' + urlEncode(inputs.revisionId) + '?'
+        + join(keys(inputs.?params.orValue({})).map(k, k + '=' + urlEncode(inputs.?params.orValue({})[k])), '&')
+    , '&'), '?')
+---
+# GET /drive/v3/drives — list the shared drives the user can access (or all,
+# as a domain admin with useDomainAdminAccess and a `q` filter).
+kind: Telo.Definition
+metadata:
+  name: ListDrives
+  description: List shared drives (GET /drive/v3/drives).
+capability: Telo.Invocable
+schema:
+  type: object
+  required: [client]
+  properties:
+    client:
+      x-telo-ref:
+        kind: Http.Client
+        use: dependency
+      description: A GoogleDriveClient / GoogleDriveOAuthClient (or any Http.Client) to run the request against.
+inputType:
+  kind: Telo.JsonSchema
+  schema:
+    type: object
+    properties:
+      pageSize:
+        type: integer
+        description: Maximum shared drives per page (1-100, default 10).
+      pageToken:
+        type: string
+        description: nextPageToken from the previous page.
+      q:
+        type: string
+        description: "Search query, e.g. \"name contains 'Eng'\" or \"hidden = true\"."
+      useDomainAdminAccess:
+        type: boolean
+        description: Issue the request as a domain administrator (lists all shared drives).
+      fields:
+        type: string
+        description: "Field mask, e.g. \"nextPageToken,drives(id,name)\"."
+      params:
+        type: object
+        additionalProperties: { type: string }
+        description: Extra query parameters appended verbatim.
+outputType:
+  kind: Telo.JsonSchema
+  schema:
+    type: object
+    required: [status, headers, body]
+    properties:
+      status: { type: integer }
+      headers: { type: object, additionalProperties: { type: string } }
+      body:
+        description: Parsed JSON DriveList — { drives, nextPageToken? }.
+resources:
+  - kind: Http.Request
+    metadata:
+      name: !cel "self.name + '-req'"
+    client: !cel "self.client"
+    throwOnHttpError: true
+invoke:
+  kind: Http.Request
+  name: !cel "self.name + '-req'"
+inputs:
+  method: GET
+  url: !cel >-
+    trimSuffix(trimSuffix(
+      '/drive/v3/drives?' + join([
+        {'k': 'pageSize', 'v': has(inputs.pageSize) ? string(inputs.pageSize) : ''},
+        {'k': 'pageToken', 'v': inputs.?pageToken.orValue('')},
+        {'k': 'q', 'v': inputs.?q.orValue('')},
+        {'k': 'useDomainAdminAccess', 'v': has(inputs.useDomainAdminAccess) ? string(inputs.useDomainAdminAccess) : ''},
+        {'k': 'fields', 'v': inputs.?fields.orValue('')}
+      ].filter(p, p.v != '').map(p, p.k + '=' + urlEncode(p.v))
+        + keys(inputs.?params.orValue({})).map(k, k + '=' + urlEncode(inputs.?params.orValue({})[k])), '&')
+    , '&'), '?')
+---
+# GET /drive/v3/drives/{driveId} — read a shared drive's metadata.
+kind: Telo.Definition
+metadata:
+  name: GetDrive
+  description: Read a shared drive's metadata (GET /drive/v3/drives/{driveId}).
+capability: Telo.Invocable
+schema:
+  type: object
+  required: [client]
+  properties:
+    client:
+      x-telo-ref:
+        kind: Http.Client
+        use: dependency
+      description: A GoogleDriveClient / GoogleDriveOAuthClient (or any Http.Client) to run the request against.
+inputType:
+  kind: Telo.JsonSchema
+  schema:
+    type: object
+    required: [driveId]
+    properties:
+      driveId:
+        type: string
+        description: The shared drive id.
+      useDomainAdminAccess:
+        type: boolean
+        description: Issue the request as a domain administrator.
+      fields:
+        type: string
+        description: Field mask for the returned Drive.
+      params:
+        type: object
+        additionalProperties: { type: string }
+        description: Extra query parameters appended verbatim.
+outputType:
+  kind: Telo.JsonSchema
+  schema:
+    type: object
+    required: [status, headers, body]
+    properties:
+      status: { type: integer }
+      headers: { type: object, additionalProperties: { type: string } }
+      body:
+        description: Parsed JSON Drive resource.
+resources:
+  - kind: Http.Request
+    metadata:
+      name: !cel "self.name + '-req'"
+    client: !cel "self.client"
+    throwOnHttpError: true
+invoke:
+  kind: Http.Request
+  name: !cel "self.name + '-req'"
+inputs:
+  method: GET
+  url: !cel >-
+    trimSuffix(trimSuffix(
+      '/drive/v3/drives/' + urlEncode(inputs.driveId) + '?' + join([
+        {'k': 'useDomainAdminAccess', 'v': has(inputs.useDomainAdminAccess) ? string(inputs.useDomainAdminAccess) : ''},
+        {'k': 'fields', 'v': inputs.?fields.orValue('')}
+      ].filter(p, p.v != '').map(p, p.k + '=' + urlEncode(p.v))
+        + keys(inputs.?params.orValue({})).map(k, k + '=' + urlEncode(inputs.?params.orValue({})[k])), '&')
+    , '&'), '?')
+---
+# POST /drive/v3/drives?requestId=… — create a shared drive. `requestId` is a
+# caller-chosen idempotency key: repeating it returns the drive already created.
+kind: Telo.Definition
+metadata:
+  name: CreateDrive
+  description: Create a shared drive with an idempotent requestId (POST /drive/v3/drives).
+capability: Telo.Invocable
+schema:
+  type: object
+  required: [client]
+  properties:
+    client:
+      x-telo-ref:
+        kind: Http.Client
+        use: dependency
+      description: A GoogleDriveClient / GoogleDriveOAuthClient (or any Http.Client) to run the request against.
+inputType:
+  kind: Telo.JsonSchema
+  schema:
+    type: object
+    required: [requestId, drive]
+    properties:
+      requestId:
+        type: string
+        description: Idempotency key (e.g. a UUID) — the same key never creates a second drive.
+      drive:
+        type: object
+        additionalProperties: true
+        description: "Drive resource, e.g. { name, themeId?, restrictions? }."
+      fields:
+        type: string
+        description: Field mask for the returned Drive.
+      params:
+        type: object
+        additionalProperties: { type: string }
+        description: Extra query parameters appended verbatim.
+outputType:
+  kind: Telo.JsonSchema
+  schema:
+    type: object
+    required: [status, headers, body]
+    properties:
+      status: { type: integer }
+      headers: { type: object, additionalProperties: { type: string } }
+      body:
+        description: Parsed JSON Drive resource.
+resources:
+  - kind: Http.Request
+    metadata:
+      name: !cel "self.name + '-req'"
+    client: !cel "self.client"
+    throwOnHttpError: true
+invoke:
+  kind: Http.Request
+  name: !cel "self.name + '-req'"
+inputs:
+  method: POST
+  body: !cel "inputs.drive"
+  url: !cel >-
+    trimSuffix(trimSuffix(
+      '/drive/v3/drives?' + join([
+        {'k': 'requestId', 'v': inputs.requestId},
+        {'k': 'fields', 'v': inputs.?fields.orValue('')}
+      ].filter(p, p.v != '').map(p, p.k + '=' + urlEncode(p.v))
+        + keys(inputs.?params.orValue({})).map(k, k + '=' + urlEncode(inputs.?params.orValue({})[k])), '&')
+    , '&'), '?')
+---
+# PATCH /drive/v3/drives/{driveId} — rename a shared drive, change its theme or
+# restrictions.
+kind: Telo.Definition
+metadata:
+  name: UpdateDrive
+  description: Update a shared drive's metadata (PATCH /drive/v3/drives/{driveId}).
+capability: Telo.Invocable
+schema:
+  type: object
+  required: [client]
+  properties:
+    client:
+      x-telo-ref:
+        kind: Http.Client
+        use: dependency
+      description: A GoogleDriveClient / GoogleDriveOAuthClient (or any Http.Client) to run the request against.
+inputType:
+  kind: Telo.JsonSchema
+  schema:
+    type: object
+    required: [driveId, drive]
+    properties:
+      driveId:
+        type: string
+        description: The shared drive id.
+      drive:
+        type: object
+        additionalProperties: true
+        description: "Fields to change, e.g. { name } or { restrictions: { domainUsersOnly: true } }."
+      useDomainAdminAccess:
+        type: boolean
+        description: Issue the request as a domain administrator.
+      fields:
+        type: string
+        description: Field mask for the returned Drive.
+      params:
+        type: object
+        additionalProperties: { type: string }
+        description: Extra query parameters appended verbatim.
+outputType:
+  kind: Telo.JsonSchema
+  schema:
+    type: object
+    required: [status, headers, body]
+    properties:
+      status: { type: integer }
+      headers: { type: object, additionalProperties: { type: string } }
+      body:
+        description: Parsed JSON Drive resource after the update.
+resources:
+  - kind: Http.Request
+    metadata:
+      name: !cel "self.name + '-req'"
+    client: !cel "self.client"
+    throwOnHttpError: true
+invoke:
+  kind: Http.Request
+  name: !cel "self.name + '-req'"
+inputs:
+  method: PATCH
+  body: !cel "inputs.drive"
+  url: !cel >-
+    trimSuffix(trimSuffix(
+      '/drive/v3/drives/' + urlEncode(inputs.driveId) + '?' + join([
+        {'k': 'useDomainAdminAccess', 'v': has(inputs.useDomainAdminAccess) ? string(inputs.useDomainAdminAccess) : ''},
+        {'k': 'fields', 'v': inputs.?fields.orValue('')}
+      ].filter(p, p.v != '').map(p, p.k + '=' + urlEncode(p.v))
+        + keys(inputs.?params.orValue({})).map(k, k + '=' + urlEncode(inputs.?params.orValue({})[k])), '&')
+    , '&'), '?')
+---
+# DELETE /drive/v3/drives/{driveId} — permanently delete a shared drive. It
+# must be empty unless allowItemDeletion is set (domain admin only).
+kind: Telo.Definition
+metadata:
+  name: DeleteDrive
+  description: Permanently delete a shared drive (DELETE /drive/v3/drives/{driveId}).
+capability: Telo.Invocable
+schema:
+  type: object
+  required: [client]
+  properties:
+    client:
+      x-telo-ref:
+        kind: Http.Client
+        use: dependency
+      description: A GoogleDriveClient / GoogleDriveOAuthClient (or any Http.Client) to run the request against.
+inputType:
+  kind: Telo.JsonSchema
+  schema:
+    type: object
+    required: [driveId]
+    properties:
+      driveId:
+        type: string
+        description: The shared drive id.
+      useDomainAdminAccess:
+        type: boolean
+        description: Issue the request as a domain administrator.
+      allowItemDeletion:
+        type: boolean
+        description: Also delete the drive's contents (requires useDomainAdminAccess).
+      params:
+        type: object
+        additionalProperties: { type: string }
+        description: Extra query parameters appended verbatim.
+outputType:
+  kind: Telo.JsonSchema
+  schema:
+    type: object
+    required: [status, headers, body]
+    properties:
+      status: { type: integer }
+      headers: { type: object, additionalProperties: { type: string } }
+      body:
+        description: Empty on success (204).
+resources:
+  - kind: Http.Request
+    metadata:
+      name: !cel "self.name + '-req'"
+    client: !cel "self.client"
+    throwOnHttpError: true
+invoke:
+  kind: Http.Request
+  name: !cel "self.name + '-req'"
+inputs:
+  method: DELETE
+  url: !cel >-
+    trimSuffix(trimSuffix(
+      '/drive/v3/drives/' + urlEncode(inputs.driveId) + '?' + join([
+        {'k': 'useDomainAdminAccess', 'v': has(inputs.useDomainAdminAccess) ? string(inputs.useDomainAdminAccess) : ''},
+        {'k': 'allowItemDeletion', 'v': has(inputs.allowItemDeletion) ? string(inputs.allowItemDeletion) : ''}
+      ].filter(p, p.v != '').map(p, p.k + '=' + urlEncode(p.v))
+        + keys(inputs.?params.orValue({})).map(k, k + '=' + urlEncode(inputs.?params.orValue({})[k])), '&')
+    , '&'), '?')
+---
+# POST /drive/v3/drives/{driveId}/hide — hide a shared drive from the default view.
+kind: Telo.Definition
+metadata:
+  name: HideDrive
+  description: Hide a shared drive from the default view (POST /drive/v3/drives/{driveId}/hide).
+capability: Telo.Invocable
+schema:
+  type: object
+  required: [client]
+  properties:
+    client:
+      x-telo-ref:
+        kind: Http.Client
+        use: dependency
+      description: A GoogleDriveClient / GoogleDriveOAuthClient (or any Http.Client) to run the request against.
+inputType:
+  kind: Telo.JsonSchema
+  schema:
+    type: object
+    required: [driveId]
+    properties:
+      driveId:
+        type: string
+        description: The shared drive id.
+      params:
+        type: object
+        additionalProperties: { type: string }
+        description: Extra query parameters appended verbatim.
+outputType:
+  kind: Telo.JsonSchema
+  schema:
+    type: object
+    required: [status, headers, body]
+    properties:
+      status: { type: integer }
+      headers: { type: object, additionalProperties: { type: string } }
+      body:
+        description: Parsed JSON Drive resource.
+resources:
+  - kind: Http.Request
+    metadata:
+      name: !cel "self.name + '-req'"
+    client: !cel "self.client"
+    throwOnHttpError: true
+invoke:
+  kind: Http.Request
+  name: !cel "self.name + '-req'"
+inputs:
+  method: POST
+  url: !cel >-
+    trimSuffix(trimSuffix(
+      '/drive/v3/drives/' + urlEncode(inputs.driveId) + '/hide?'
+        + join(keys(inputs.?params.orValue({})).map(k, k + '=' + urlEncode(inputs.?params.orValue({})[k])), '&')
+    , '&'), '?')
+---
+# POST /drive/v3/drives/{driveId}/unhide — restore a shared drive to the default view.
+kind: Telo.Definition
+metadata:
+  name: UnhideDrive
+  description: Restore a hidden shared drive to the default view (POST …/drives/{driveId}/unhide).
+capability: Telo.Invocable
+schema:
+  type: object
+  required: [client]
+  properties:
+    client:
+      x-telo-ref:
+        kind: Http.Client
+        use: dependency
+      description: A GoogleDriveClient / GoogleDriveOAuthClient (or any Http.Client) to run the request against.
+inputType:
+  kind: Telo.JsonSchema
+  schema:
+    type: object
+    required: [driveId]
+    properties:
+      driveId:
+        type: string
+        description: The shared drive id.
+      params:
+        type: object
+        additionalProperties: { type: string }
+        description: Extra query parameters appended verbatim.
+outputType:
+  kind: Telo.JsonSchema
+  schema:
+    type: object
+    required: [status, headers, body]
+    properties:
+      status: { type: integer }
+      headers: { type: object, additionalProperties: { type: string } }
+      body:
+        description: Parsed JSON Drive resource.
+resources:
+  - kind: Http.Request
+    metadata:
+      name: !cel "self.name + '-req'"
+    client: !cel "self.client"
+    throwOnHttpError: true
+invoke:
+  kind: Http.Request
+  name: !cel "self.name + '-req'"
+inputs:
+  method: POST
+  url: !cel >-
+    trimSuffix(trimSuffix(
+      '/drive/v3/drives/' + urlEncode(inputs.driveId) + '/unhide?'
+        + join(keys(inputs.?params.orValue({})).map(k, k + '=' + urlEncode(inputs.?params.orValue({})[k])), '&')
+    , '&'), '?')
+---
+# GET /drive/v3/changes/startPageToken — the token to start tracking changes
+# from "now". Store it and feed it to ListChanges later.
+kind: Telo.Definition
+metadata:
+  name: GetStartPageToken
+  description: Get the page token that starts change tracking from now (GET /drive/v3/changes/startPageToken).
+capability: Telo.Invocable
+schema:
+  type: object
+  required: [client]
+  properties:
+    client:
+      x-telo-ref:
+        kind: Http.Client
+        use: dependency
+      description: A GoogleDriveClient / GoogleDriveOAuthClient (or any Http.Client) to run the request against.
+inputType:
+  kind: Telo.JsonSchema
+  schema:
+    type: object
+    properties:
+      driveId:
+        type: string
+        description: Track a shared drive instead of the user's corpus.
+      supportsAllDrives:
+        type: boolean
+        description: Whether the caller supports shared drives. Defaults to true.
+      fields:
+        type: string
+        description: Field mask for the response.
+      params:
+        type: object
+        additionalProperties: { type: string }
+        description: Extra query parameters appended verbatim.
+outputType:
+  kind: Telo.JsonSchema
+  schema:
+    type: object
+    required: [status, headers, body]
+    properties:
+      status: { type: integer }
+      headers: { type: object, additionalProperties: { type: string } }
+      body:
+        description: Parsed JSON — { startPageToken, kind }.
+resources:
+  - kind: Http.Request
+    metadata:
+      name: !cel "self.name + '-req'"
+    client: !cel "self.client"
+    throwOnHttpError: true
+invoke:
+  kind: Http.Request
+  name: !cel "self.name + '-req'"
+inputs:
+  method: GET
+  url: !cel >-
+    trimSuffix(trimSuffix(
+      '/drive/v3/changes/startPageToken?' + join([
+        {'k': 'driveId', 'v': inputs.?driveId.orValue('')},
+        {'k': 'supportsAllDrives', 'v': string(inputs.?supportsAllDrives.orValue(true))},
+        {'k': 'fields', 'v': inputs.?fields.orValue('')}
+      ].filter(p, p.v != '').map(p, p.k + '=' + urlEncode(p.v))
+        + keys(inputs.?params.orValue({})).map(k, k + '=' + urlEncode(inputs.?params.orValue({})[k])), '&')
+    , '&'), '?')
+---
+# GET /drive/v3/changes — the changes since a page token. Follow nextPageToken
+# while present; when newStartPageToken appears, store it for the next poll.
+kind: Telo.Definition
+metadata:
+  name: ListChanges
+  description: List changes since a page token (GET /drive/v3/changes).
+capability: Telo.Invocable
+schema:
+  type: object
+  required: [client]
+  properties:
+    client:
+      x-telo-ref:
+        kind: Http.Client
+        use: dependency
+      description: A GoogleDriveClient / GoogleDriveOAuthClient (or any Http.Client) to run the request against.
+inputType:
+  kind: Telo.JsonSchema
+  schema:
+    type: object
+    required: [pageToken]
+    properties:
+      pageToken:
+        type: string
+        description: From GetStartPageToken, or the previous response's nextPageToken / newStartPageToken.
+      pageSize:
+        type: integer
+        description: Maximum changes per page (1-1000, default 100).
+      driveId:
+        type: string
+        description: Track a shared drive instead of the user's corpus.
+      includeRemoved:
+        type: boolean
+        description: Include changes for removed files (default true).
+      includeItemsFromAllDrives:
+        type: boolean
+        description: Include shared drive items.
+      supportsAllDrives:
+        type: boolean
+        description: Whether the caller supports shared drives. Defaults to true.
+      restrictToMyDrive:
+        type: boolean
+        description: Only changes inside My Drive.
+      spaces:
+        type: string
+        description: "Comma-separated spaces: drive, appDataFolder."
+      includeCorpusRemovals:
+        type: boolean
+        description: Include removals from the corpus the user can no longer access.
+      includePermissionsForView:
+        type: string
+        description: "Extra permissions to include (only 'published')."
+      includeLabels:
+        type: string
+        description: Comma-separated label ids to include in labelInfo.
+      fields:
+        type: string
+        description: "Field mask, e.g. \"newStartPageToken,nextPageToken,changes(fileId,removed,file(name))\"."
+      params:
+        type: object
+        additionalProperties: { type: string }
+        description: Extra query parameters appended verbatim.
+outputType:
+  kind: Telo.JsonSchema
+  schema:
+    type: object
+    required: [status, headers, body]
+    properties:
+      status: { type: integer }
+      headers: { type: object, additionalProperties: { type: string } }
+      body:
+        description: Parsed JSON ChangeList — { changes, nextPageToken?, newStartPageToken? }.
+resources:
+  - kind: Http.Request
+    metadata:
+      name: !cel "self.name + '-req'"
+    client: !cel "self.client"
+    throwOnHttpError: true
+invoke:
+  kind: Http.Request
+  name: !cel "self.name + '-req'"
+inputs:
+  method: GET
+  url: !cel >-
+    trimSuffix(trimSuffix(
+      '/drive/v3/changes?' + join([
+        {'k': 'pageToken', 'v': inputs.pageToken},
+        {'k': 'pageSize', 'v': has(inputs.pageSize) ? string(inputs.pageSize) : ''},
+        {'k': 'driveId', 'v': inputs.?driveId.orValue('')},
+        {'k': 'includeRemoved', 'v': has(inputs.includeRemoved) ? string(inputs.includeRemoved) : ''},
+        {'k': 'includeItemsFromAllDrives', 'v': has(inputs.includeItemsFromAllDrives) ? string(inputs.includeItemsFromAllDrives) : ''},
+        {'k': 'supportsAllDrives', 'v': string(inputs.?supportsAllDrives.orValue(true))},
+        {'k': 'restrictToMyDrive', 'v': has(inputs.restrictToMyDrive) ? string(inputs.restrictToMyDrive) : ''},
+        {'k': 'spaces', 'v': inputs.?spaces.orValue('')},
+        {'k': 'includeCorpusRemovals', 'v': has(inputs.includeCorpusRemovals) ? string(inputs.includeCorpusRemovals) : ''},
+        {'k': 'includePermissionsForView', 'v': inputs.?includePermissionsForView.orValue('')},
+        {'k': 'includeLabels', 'v': inputs.?includeLabels.orValue('')},
+        {'k': 'fields', 'v': inputs.?fields.orValue('')}
+      ].filter(p, p.v != '').map(p, p.k + '=' + urlEncode(p.v))
+        + keys(inputs.?params.orValue({})).map(k, k + '=' + urlEncode(inputs.?params.orValue({})[k])), '&')
+    , '&'), '?')
+---
+# POST /drive/v3/changes/watch — subscribe a webhook channel to all changes
+# from a page token onward. Stop it with StopChannel.
+kind: Telo.Definition
+metadata:
+  name: WatchChanges
+  description: Subscribe a webhook channel to the changes feed (POST /drive/v3/changes/watch).
+capability: Telo.Invocable
+schema:
+  type: object
+  required: [client]
+  properties:
+    client:
+      x-telo-ref:
+        kind: Http.Client
+        use: dependency
+      description: A GoogleDriveClient / GoogleDriveOAuthClient (or any Http.Client) to run the request against.
+inputType:
+  kind: Telo.JsonSchema
+  schema:
+    type: object
+    required: [pageToken, channel]
+    properties:
+      pageToken:
+        type: string
+        description: Start watching from this token (GetStartPageToken).
+      channel:
+        type: object
+        additionalProperties: true
+        description: "Channel resource: { id, type: 'web_hook', address, token?, expiration? }."
+      driveId:
+        type: string
+        description: Watch a shared drive instead of the user's corpus.
+      includeRemoved:
+        type: boolean
+        description: Include changes for removed files.
+      includeItemsFromAllDrives:
+        type: boolean
+        description: Include shared drive items.
+      supportsAllDrives:
+        type: boolean
+        description: Whether the caller supports shared drives. Defaults to true.
+      restrictToMyDrive:
+        type: boolean
+        description: Only changes inside My Drive.
+      spaces:
+        type: string
+        description: "Comma-separated spaces: drive, appDataFolder."
+      includeCorpusRemovals:
+        type: boolean
+        description: Include removals from the corpus the user can no longer access.
+      pageSize:
+        type: integer
+        description: Maximum changes per page.
+      fields:
+        type: string
+        description: Field mask for the returned Channel.
+      params:
+        type: object
+        additionalProperties: { type: string }
+        description: Extra query parameters appended verbatim.
+outputType:
+  kind: Telo.JsonSchema
+  schema:
+    type: object
+    required: [status, headers, body]
+    properties:
+      status: { type: integer }
+      headers: { type: object, additionalProperties: { type: string } }
+      body:
+        description: Parsed JSON Channel resource (carries resourceId for StopChannel).
+resources:
+  - kind: Http.Request
+    metadata:
+      name: !cel "self.name + '-req'"
+    client: !cel "self.client"
+    throwOnHttpError: true
+invoke:
+  kind: Http.Request
+  name: !cel "self.name + '-req'"
+inputs:
+  method: POST
+  body: !cel "inputs.channel"
+  url: !cel >-
+    trimSuffix(trimSuffix(
+      '/drive/v3/changes/watch?' + join([
+        {'k': 'pageToken', 'v': inputs.pageToken},
+        {'k': 'driveId', 'v': inputs.?driveId.orValue('')},
+        {'k': 'includeRemoved', 'v': has(inputs.includeRemoved) ? string(inputs.includeRemoved) : ''},
+        {'k': 'includeItemsFromAllDrives', 'v': has(inputs.includeItemsFromAllDrives) ? string(inputs.includeItemsFromAllDrives) : ''},
+        {'k': 'supportsAllDrives', 'v': string(inputs.?supportsAllDrives.orValue(true))},
+        {'k': 'restrictToMyDrive', 'v': has(inputs.restrictToMyDrive) ? string(inputs.restrictToMyDrive) : ''},
+        {'k': 'spaces', 'v': inputs.?spaces.orValue('')},
+        {'k': 'includeCorpusRemovals', 'v': has(inputs.includeCorpusRemovals) ? string(inputs.includeCorpusRemovals) : ''},
+        {'k': 'pageSize', 'v': has(inputs.pageSize) ? string(inputs.pageSize) : ''},
+        {'k': 'fields', 'v': inputs.?fields.orValue('')}
+      ].filter(p, p.v != '').map(p, p.k + '=' + urlEncode(p.v))
+        + keys(inputs.?params.orValue({})).map(k, k + '=' + urlEncode(inputs.?params.orValue({})[k])), '&')
+    , '&'), '?')
+---
+# GET /drive/v3/about — the user, storage quota, import/export formats and
+# limits. `fields` is required by the API; defaults to "*".
+kind: Telo.Definition
+metadata:
+  name: GetAbout
+  description: Read the user's Drive account info — quota, formats, limits (GET /drive/v3/about).
+capability: Telo.Invocable
+schema:
+  type: object
+  required: [client]
+  properties:
+    client:
+      x-telo-ref:
+        kind: Http.Client
+        use: dependency
+      description: A GoogleDriveClient / GoogleDriveOAuthClient (or any Http.Client) to run the request against.
+inputType:
+  kind: Telo.JsonSchema
+  schema:
+    type: object
+    properties:
+      fields:
+        type: string
+        description: "Field mask; required by the API. Defaults to \"*\" (e.g. \"user,storageQuota\")."
+      params:
+        type: object
+        additionalProperties: { type: string }
+        description: Extra query parameters appended verbatim.
+outputType:
+  kind: Telo.JsonSchema
+  schema:
+    type: object
+    required: [status, headers, body]
+    properties:
+      status: { type: integer }
+      headers: { type: object, additionalProperties: { type: string } }
+      body:
+        description: Parsed JSON About resource.
+resources:
+  - kind: Http.Request
+    metadata:
+      name: !cel "self.name + '-req'"
+    client: !cel "self.client"
+    throwOnHttpError: true
+invoke:
+  kind: Http.Request
+  name: !cel "self.name + '-req'"
+inputs:
+  method: GET
+  url: !cel >-
+    trimSuffix(trimSuffix(
+      '/drive/v3/about?' + join([
+        {'k': 'fields', 'v': inputs.?fields.orValue('*')}
+      ].filter(p, p.v != '').map(p, p.k + '=' + urlEncode(p.v))
+        + keys(inputs.?params.orValue({})).map(k, k + '=' + urlEncode(inputs.?params.orValue({})[k])), '&')
+    , '&'), '?')
+---
+# POST /drive/v3/channels/stop — stop a push notification channel opened by
+# WatchFile or WatchChanges. Needs the channel `id` and the `resourceId` from
+# the watch response.
+kind: Telo.Definition
+metadata:
+  name: StopChannel
+  description: Stop a push notification channel (POST /drive/v3/channels/stop).
+capability: Telo.Invocable
+schema:
+  type: object
+  required: [client]
+  properties:
+    client:
+      x-telo-ref:
+        kind: Http.Client
+        use: dependency
+      description: A GoogleDriveClient / GoogleDriveOAuthClient (or any Http.Client) to run the request against.
+inputType:
+  kind: Telo.JsonSchema
+  schema:
+    type: object
+    required: [id, resourceId]
+    properties:
+      id:
+        type: string
+        description: The channel id chosen when it was created.
+      resourceId:
+        type: string
+        description: The resourceId returned by the watch call.
+      params:
+        type: object
+        additionalProperties: { type: string }
+        description: Extra query parameters appended verbatim.
+outputType:
+  kind: Telo.JsonSchema
+  schema:
+    type: object
+    required: [status, headers, body]
+    properties:
+      status: { type: integer }
+      headers: { type: object, additionalProperties: { type: string } }
+      body:
+        description: Empty on success (204).
+resources:
+  - kind: Http.Request
+    metadata:
+      name: !cel "self.name + '-req'"
+    client: !cel "self.client"
+    throwOnHttpError: true
+invoke:
+  kind: Http.Request
+  name: !cel "self.name + '-req'"
+inputs:
+  method: POST
+  body:
+    id: !cel "inputs.id"
+    resourceId: !cel "inputs.resourceId"
+  url: !cel >-
+    trimSuffix(trimSuffix(
+      '/drive/v3/channels/stop?'
+        + join(keys(inputs.?params.orValue({})).map(k, k + '=' + urlEncode(inputs.?params.orValue({})[k])), '&')
+    , '&'), '?')
+---
+# GET /drive/v3/apps — the apps the user has installed or authorized.
+kind: Telo.Definition
+metadata:
+  name: ListApps
+  description: List the user's installed Drive apps (GET /drive/v3/apps).
+capability: Telo.Invocable
+schema:
+  type: object
+  required: [client]
+  properties:
+    client:
+      x-telo-ref:
+        kind: Http.Client
+        use: dependency
+      description: A GoogleDriveClient / GoogleDriveOAuthClient (or any Http.Client) to run the request against.
+inputType:
+  kind: Telo.JsonSchema
+  schema:
+    type: object
+    properties:
+      appFilterExtensions:
+        type: string
+        description: Comma-separated file extensions; only apps that can open them.
+      appFilterMimeTypes:
+        type: string
+        description: Comma-separated MIME types; only apps that can open them.
+      languageCode:
+        type: string
+        description: BCP 47 language for localized names.
+      fields:
+        type: string
+        description: Field mask for the response.
+      params:
+        type: object
+        additionalProperties: { type: string }
+        description: Extra query parameters appended verbatim.
+outputType:
+  kind: Telo.JsonSchema
+  schema:
+    type: object
+    required: [status, headers, body]
+    properties:
+      status: { type: integer }
+      headers: { type: object, additionalProperties: { type: string } }
+      body:
+        description: Parsed JSON AppList — { items, defaultAppIds }.
+resources:
+  - kind: Http.Request
+    metadata:
+      name: !cel "self.name + '-req'"
+    client: !cel "self.client"
+    throwOnHttpError: true
+invoke:
+  kind: Http.Request
+  name: !cel "self.name + '-req'"
+inputs:
+  method: GET
+  url: !cel >-
+    trimSuffix(trimSuffix(
+      '/drive/v3/apps?' + join([
+        {'k': 'appFilterExtensions', 'v': inputs.?appFilterExtensions.orValue('')},
+        {'k': 'appFilterMimeTypes', 'v': inputs.?appFilterMimeTypes.orValue('')},
+        {'k': 'languageCode', 'v': inputs.?languageCode.orValue('')},
+        {'k': 'fields', 'v': inputs.?fields.orValue('')}
+      ].filter(p, p.v != '').map(p, p.k + '=' + urlEncode(p.v))
+        + keys(inputs.?params.orValue({})).map(k, k + '=' + urlEncode(inputs.?params.orValue({})[k])), '&')
+    , '&'), '?')
+---
+# GET /drive/v3/apps/{appId} — one installed app.
+kind: Telo.Definition
+metadata:
+  name: GetApp
+  description: Read one installed Drive app (GET /drive/v3/apps/{appId}).
+capability: Telo.Invocable
+schema:
+  type: object
+  required: [client]
+  properties:
+    client:
+      x-telo-ref:
+        kind: Http.Client
+        use: dependency
+      description: A GoogleDriveClient / GoogleDriveOAuthClient (or any Http.Client) to run the request against.
+inputType:
+  kind: Telo.JsonSchema
+  schema:
+    type: object
+    required: [appId]
+    properties:
+      appId:
+        type: string
+        description: The app id.
+      fields:
+        type: string
+        description: Field mask for the returned App.
+      params:
+        type: object
+        additionalProperties: { type: string }
+        description: Extra query parameters appended verbatim.
+outputType:
+  kind: Telo.JsonSchema
+  schema:
+    type: object
+    required: [status, headers, body]
+    properties:
+      status: { type: integer }
+      headers: { type: object, additionalProperties: { type: string } }
+      body:
+        description: Parsed JSON App resource.
+resources:
+  - kind: Http.Request
+    metadata:
+      name: !cel "self.name + '-req'"
+    client: !cel "self.client"
+    throwOnHttpError: true
+invoke:
+  kind: Http.Request
+  name: !cel "self.name + '-req'"
+inputs:
+  method: GET
+  url: !cel >-
+    trimSuffix(trimSuffix(
+      '/drive/v3/apps/' + urlEncode(inputs.appId) + '?' + join([
+        {'k': 'fields', 'v': inputs.?fields.orValue('')}
+      ].filter(p, p.v != '').map(p, p.k + '=' + urlEncode(p.v))
+        + keys(inputs.?params.orValue({})).map(k, k + '=' + urlEncode(inputs.?params.orValue({})[k])), '&')
+    , '&'), '?')
+---
+# POST https://oauth2.googleapis.com/token — exchange an OAuth2 refresh token for
+# a fresh access token. Pure HTTP (no signing), so it needs no client: it posts a
+# form-encoded body to Google's token endpoint. Feed body.access_token into a
+# GoogleDriveClient. Obtain clientId/clientSecret/refreshToken from a Google
+# Cloud OAuth client + consent grant with a Drive scope
+# (https://www.googleapis.com/auth/drive, …/drive.file, …/drive.readonly).
+# For a long-running process prefer a refreshing Http.Credential on the client.
+kind: Telo.Definition
+metadata:
+  name: RefreshAccessToken
+  description: Exchange an OAuth2 refresh token for a fresh Google access token.
+capability: Telo.Invocable
+schema:
+  type: object
+inputType:
+  kind: Telo.JsonSchema
+  schema:
+    type: object
+    required: [clientId, clientSecret, refreshToken]
+    properties:
+      clientId:
+        type: string
+        description: OAuth2 client id.
+      clientSecret:
+        type: string
+        description: OAuth2 client secret.
+      refreshToken:
+        type: string
+        description: OAuth2 refresh token previously granted for a Drive scope.
+      tokenUrl:
+        type: string
+        description: Override the token endpoint (a proxy or a stub). Defaults to https://oauth2.googleapis.com/token.
+outputType:
+  kind: Telo.JsonSchema
+  schema:
+    type: object
+    required: [status, headers, body]
+    properties:
+      status: { type: integer }
+      headers: { type: object, additionalProperties: { type: string } }
+      body:
+        description: Parsed JSON — { access_token, expires_in, scope, token_type }.
+resources:
+  - kind: Http.Request
+    metadata:
+      name: !cel "self.name + '-req'"
+    throwOnHttpError: true
+invoke:
+  kind: Http.Request
+  name: !cel "self.name + '-req'"
+inputs:
+  method: POST
+  url: !cel "inputs.?tokenUrl.orValue('https://oauth2.googleapis.com/token')"
+  headers:
+    Content-Type: application/x-www-form-urlencoded
+  body: !cel >-
+    'client_id=' + urlEncode(inputs.clientId) +
+    '&client_secret=' + urlEncode(inputs.clientSecret) +
+    '&refresh_token=' + urlEncode(inputs.refreshToken) +
+    '&grant_type=refresh_token'

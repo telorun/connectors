@@ -34,7 +34,7 @@ jobs:
         run: npm install -g @telorun/cli
 
       - name: Static check
-        run: telo check aws/*/telo.yaml
+        run: telo check */*/telo.yaml
 
       - name: Manifest tests
         run: telo ./test-suite.yaml
