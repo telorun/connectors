@@ -1,0 +1,260 @@
+kind: Telo.Application
+metadata:
+  name: GmailSettingsTest
+  version: 1.0.0
+# Mailbox settings: auto-forwarding, IMAP, POP, vacation and language, plus
+# filters and forwarding addresses. Every update is a PUT/POST carrying the
+# resource verbatim, so these assertions mostly pin the paths — which is where
+# Gmail's settings surface is easiest to get wrong.
+imports:
+  Gmail: ../
+  Stub: ./__fixtures__/gmail-stub.yaml
+  Run: oci://ghcr.io/telorun/run@0.26.0#sha256-ZhW56yiMCImqBh0wJ4mVaUvh5WuUVIaWErASFx--wCY
+  Assert: oci://ghcr.io/telorun/assert@0.18.0#sha256-mSy7HGMq_UoQUvt4WbQCIO_uqXcRZwRlmROp6DfLDjY
+  Server: oci://ghcr.io/telorun/http-server@0.29.2#sha256-9MtWZqXF9agsYRx97nLMJZW7YYwXpW2dLYcn_oA4kUs
+ports:
+  http:
+    env: TEST_GMAIL_SETTINGS_PORT
+    default: 34836
+targets:
+  - !ref test
+---
+# The friendly client with a static token, pointed at the stub on
+# this test's own port — derived from `ports.http`, so the two can
+# never disagree. Every request carries
+# `Authorization: Bearer test-token`.
+kind: Gmail.GmailClient
+metadata: { name: stub }
+accessToken: test-token
+baseUrl: !cel "'http://localhost:' + string(dyn(ports.http))"
+---
+kind: Gmail.GetAutoForwarding
+metadata: { name: getAutoForwarding }
+client: !ref stub
+---
+kind: Gmail.UpdateAutoForwarding
+metadata: { name: updateAutoForwarding }
+client: !ref stub
+---
+kind: Gmail.GetImap
+metadata: { name: getImap }
+client: !ref stub
+---
+kind: Gmail.UpdateImap
+metadata: { name: updateImap }
+client: !ref stub
+---
+kind: Gmail.GetPop
+metadata: { name: getPop }
+client: !ref stub
+---
+kind: Gmail.UpdatePop
+metadata: { name: updatePop }
+client: !ref stub
+---
+kind: Gmail.GetVacation
+metadata: { name: getVacation }
+client: !ref stub
+---
+kind: Gmail.UpdateVacation
+metadata: { name: updateVacation }
+client: !ref stub
+---
+kind: Gmail.GetLanguage
+metadata: { name: getLanguage }
+client: !ref stub
+---
+kind: Gmail.UpdateLanguage
+metadata: { name: updateLanguage }
+client: !ref stub
+---
+kind: Gmail.ListFilters
+metadata: { name: listFilters }
+client: !ref stub
+---
+kind: Gmail.GetFilter
+metadata: { name: getFilter }
+client: !ref stub
+---
+kind: Gmail.CreateFilter
+metadata: { name: createFilter }
+client: !ref stub
+---
+kind: Gmail.DeleteFilter
+metadata: { name: deleteFilter }
+client: !ref stub
+---
+kind: Gmail.ListForwardingAddresses
+metadata: { name: listForwardingAddresses }
+client: !ref stub
+---
+kind: Gmail.GetForwardingAddress
+metadata: { name: getForwardingAddress }
+client: !ref stub
+---
+kind: Gmail.CreateForwardingAddress
+metadata: { name: createForwardingAddress }
+client: !ref stub
+---
+kind: Gmail.DeleteForwardingAddress
+metadata: { name: deleteForwardingAddress }
+client: !ref stub
+---
+kind: Run.Sequence
+metadata: { name: test }
+# The stub is mounted inline in the sequence scope, so it starts
+# before the steps and is torn down when they finish.
+with:
+  - kind: Server.Server
+    metadata: { name: StubServer }
+    port: !cel "ports.http"
+    mounts:
+      - path: /
+        mount: !ref Stub.api
+targets:
+  - !ref StubServer
+steps:
+  - name: getAutoForwarding
+    invoke: !ref getAutoForwarding
+    inputs: {}
+  - name: assertGetAutoForwarding
+    invoke: !ref Assert.equals
+    inputs:
+      actual: !cel "steps.getAutoForwarding.result.body.received"
+      expected: {"method": "GET", "path": "/gmail/v1/users/me/settings/autoForwarding", "query": {}, "body": {}, "auth": "Bearer test-token"}
+  - name: updateAutoForwarding
+    invoke: !ref updateAutoForwarding
+    inputs: {"autoForwarding": {"enabled": true, "emailAddress": "fwd@example.com", "disposition": "archive"}}
+  - name: assertUpdateAutoForwarding
+    invoke: !ref Assert.equals
+    inputs:
+      actual: !cel "steps.updateAutoForwarding.result.body.received"
+      expected: {"method": "PUT", "path": "/gmail/v1/users/me/settings/autoForwarding", "query": {}, "body": {"enabled": true, "emailAddress": "fwd@example.com", "disposition": "archive"}, "auth": "Bearer test-token"}
+  - name: getImap
+    invoke: !ref getImap
+    inputs: {}
+  - name: assertGetImap
+    invoke: !ref Assert.equals
+    inputs:
+      actual: !cel "steps.getImap.result.body.received"
+      expected: {"method": "GET", "path": "/gmail/v1/users/me/settings/imap", "query": {}, "body": {}, "auth": "Bearer test-token"}
+  - name: updateImap
+    invoke: !ref updateImap
+    inputs: {"imap": {"enabled": true, "autoExpunge": false}}
+  - name: assertUpdateImap
+    invoke: !ref Assert.equals
+    inputs:
+      actual: !cel "steps.updateImap.result.body.received"
+      expected: {"method": "PUT", "path": "/gmail/v1/users/me/settings/imap", "query": {}, "body": {"enabled": true, "autoExpunge": false}, "auth": "Bearer test-token"}
+  - name: getPop
+    invoke: !ref getPop
+    inputs: {}
+  - name: assertGetPop
+    invoke: !ref Assert.equals
+    inputs:
+      actual: !cel "steps.getPop.result.body.received"
+      expected: {"method": "GET", "path": "/gmail/v1/users/me/settings/pop", "query": {}, "body": {}, "auth": "Bearer test-token"}
+  - name: updatePop
+    invoke: !ref updatePop
+    inputs: {"pop": {"accessWindow": "allMail", "disposition": "leaveInInbox"}}
+  - name: assertUpdatePop
+    invoke: !ref Assert.equals
+    inputs:
+      actual: !cel "steps.updatePop.result.body.received"
+      expected: {"method": "PUT", "path": "/gmail/v1/users/me/settings/pop", "query": {}, "body": {"accessWindow": "allMail", "disposition": "leaveInInbox"}, "auth": "Bearer test-token"}
+  - name: getVacation
+    invoke: !ref getVacation
+    inputs: {}
+  - name: assertGetVacation
+    invoke: !ref Assert.equals
+    inputs:
+      actual: !cel "steps.getVacation.result.body.received"
+      expected: {"method": "GET", "path": "/gmail/v1/users/me/settings/vacation", "query": {}, "body": {}, "auth": "Bearer test-token"}
+  - name: updateVacation
+    invoke: !ref updateVacation
+    inputs: {"vacation": {"enableAutoReply": true, "responseSubject": "Away"}}
+  - name: assertUpdateVacation
+    invoke: !ref Assert.equals
+    inputs:
+      actual: !cel "steps.updateVacation.result.body.received"
+      expected: {"method": "PUT", "path": "/gmail/v1/users/me/settings/vacation", "query": {}, "body": {"enableAutoReply": true, "responseSubject": "Away"}, "auth": "Bearer test-token"}
+  - name: getLanguage
+    invoke: !ref getLanguage
+    inputs: {}
+  - name: assertGetLanguage
+    invoke: !ref Assert.equals
+    inputs:
+      actual: !cel "steps.getLanguage.result.body.received"
+      expected: {"method": "GET", "path": "/gmail/v1/users/me/settings/language", "query": {}, "body": {}, "auth": "Bearer test-token"}
+  - name: updateLanguage
+    invoke: !ref updateLanguage
+    inputs: {"language": {"displayLanguage": "en"}}
+  - name: assertUpdateLanguage
+    invoke: !ref Assert.equals
+    inputs:
+      actual: !cel "steps.updateLanguage.result.body.received"
+      expected: {"method": "PUT", "path": "/gmail/v1/users/me/settings/language", "query": {}, "body": {"displayLanguage": "en"}, "auth": "Bearer test-token"}
+  - name: listFilters
+    invoke: !ref listFilters
+    inputs: {}
+  - name: assertListFilters
+    invoke: !ref Assert.equals
+    inputs:
+      actual: !cel "steps.listFilters.result.body.received"
+      expected: {"method": "GET", "path": "/gmail/v1/users/me/settings/filters", "query": {}, "body": {}, "auth": "Bearer test-token"}
+  - name: getFilter
+    invoke: !ref getFilter
+    inputs: {"id": "f1"}
+  - name: assertGetFilter
+    invoke: !ref Assert.equals
+    inputs:
+      actual: !cel "steps.getFilter.result.body.received"
+      expected: {"method": "GET", "path": "/gmail/v1/users/me/settings/filters/f1", "query": {}, "body": {}, "auth": "Bearer test-token"}
+  - name: createFilter
+    invoke: !ref createFilter
+    inputs: {"filter": {"criteria": {"from": "a@b.com"}, "action": {"addLabelIds": ["Label_1"]}}}
+  - name: assertCreateFilter
+    invoke: !ref Assert.equals
+    inputs:
+      actual: !cel "steps.createFilter.result.body.received"
+      expected: {"method": "POST", "path": "/gmail/v1/users/me/settings/filters", "query": {}, "body": {"criteria": {"from": "a@b.com"}, "action": {"addLabelIds": ["Label_1"]}}, "auth": "Bearer test-token"}
+  - name: deleteFilter
+    invoke: !ref deleteFilter
+    inputs: {"id": "f1"}
+  - name: assertDeleteFilter
+    invoke: !ref Assert.equals
+    inputs:
+      actual: !cel "steps.deleteFilter.result.body.received"
+      expected: {"method": "DELETE", "path": "/gmail/v1/users/me/settings/filters/f1", "query": {}, "body": {}, "auth": "Bearer test-token"}
+  - name: listForwardingAddresses
+    invoke: !ref listForwardingAddresses
+    inputs: {}
+  - name: assertListForwardingAddresses
+    invoke: !ref Assert.equals
+    inputs:
+      actual: !cel "steps.listForwardingAddresses.result.body.received"
+      expected: {"method": "GET", "path": "/gmail/v1/users/me/settings/forwardingAddresses", "query": {}, "body": {}, "auth": "Bearer test-token"}
+  - name: getForwardingAddress
+    invoke: !ref getForwardingAddress
+    inputs: {"forwardingEmail": "fwd@example.com"}
+  - name: assertGetForwardingAddress
+    invoke: !ref Assert.equals
+    inputs:
+      actual: !cel "steps.getForwardingAddress.result.body.received"
+      expected: {"method": "GET", "path": "/gmail/v1/users/me/settings/forwardingAddresses/fwd%40example.com", "query": {}, "body": {}, "auth": "Bearer test-token"}
+  - name: createForwardingAddress
+    invoke: !ref createForwardingAddress
+    inputs: {"forwardingAddress": {"forwardingEmail": "fwd@example.com"}}
+  - name: assertCreateForwardingAddress
+    invoke: !ref Assert.equals
+    inputs:
+      actual: !cel "steps.createForwardingAddress.result.body.received"
+      expected: {"method": "POST", "path": "/gmail/v1/users/me/settings/forwardingAddresses", "query": {}, "body": {"forwardingEmail": "fwd@example.com"}, "auth": "Bearer test-token"}
+  - name: deleteForwardingAddress
+    invoke: !ref deleteForwardingAddress
+    inputs: {"forwardingEmail": "fwd@example.com"}
+  - name: assertDeleteForwardingAddress
+    invoke: !ref Assert.equals
+    inputs:
+      actual: !cel "steps.deleteForwardingAddress.result.body.received"
+      expected: {"method": "DELETE", "path": "/gmail/v1/users/me/settings/forwardingAddresses/fwd%40example.com", "query": {}, "body": {}, "auth": "Bearer test-token"}

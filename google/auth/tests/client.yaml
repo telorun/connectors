@@ -1,0 +1,121 @@
+kind: Telo.Application
+metadata:
+  name: GoogleAuthClientTest
+  version: 1.0.0
+# Both ways to authenticate a GoogleClient, against a stub that echoes the
+# Authorization header it received.
+#
+# This is what justifies one kind rather than two: the static-token path and the
+# credential path both work through the same kind, and the schema's `oneOf`
+# rejects supplying neither or both before the manifest ever loads (see
+# invalid-auth.yaml under __fixtures__, asserted by Assert.Manifest below).
+imports:
+  GoogleAuth: ../
+  Http: oci://ghcr.io/telorun/http-client@0.22.0#sha256-UyC8nQDnKHXyPpPPHC7TS8MicesLsgDUKWBYObf5oQ4
+  Server: oci://ghcr.io/telorun/http-server@0.29.2#sha256-9MtWZqXF9agsYRx97nLMJZW7YYwXpW2dLYcn_oA4kUs
+  Run: oci://ghcr.io/telorun/run@0.26.0#sha256-ZhW56yiMCImqBh0wJ4mVaUvh5WuUVIaWErASFx--wCY
+  Assert: oci://ghcr.io/telorun/assert@0.18.0#sha256-mSy7HGMq_UoQUvt4WbQCIO_uqXcRZwRlmROp6DfLDjY
+ports:
+  http:
+    env: TEST_GOOGLE_AUTH_PORT
+    default: 34841
+targets:
+  - !ref test
+---
+# Path 1: a bare access token. No credential is wired at all.
+kind: GoogleAuth.GoogleClient
+metadata: { name: tokenClient }
+accessToken: static-tok
+baseUrl: !cel "'http://localhost:' + string(dyn(ports.http))"
+---
+kind: Http.BearerToken
+metadata: { name: cred }
+token: cred-tok
+---
+# Path 2: a credential. No accessToken is set.
+kind: GoogleAuth.GoogleClient
+metadata: { name: credClient }
+credential: !ref cred
+baseUrl: !cel "'http://localhost:' + string(dyn(ports.http))"
+---
+# A minimal operation, to prove either client satisfies an Http.Client slot.
+kind: Http.Request
+metadata: { name: viaToken }
+client: !ref tokenClient
+throwOnHttpError: true
+inputs: { url: /ping, method: GET }
+---
+kind: Http.Request
+metadata: { name: viaCred }
+client: !ref credClient
+throwOnHttpError: true
+inputs: { url: /ping, method: GET }
+---
+kind: Run.Value
+metadata: { name: echo }
+inputType:
+  kind: Telo.JsonSchema
+  schema:
+    type: object
+    properties:
+      headers: {}
+value:
+  auth: !cel "inputs.?headers.orValue({}).?authorization.orValue('<none>')"
+---
+kind: Server.Api
+metadata: { name: stubApi }
+routes:
+  - request: { method: GET, path: /ping }
+    inputs:
+      headers: !cel "request.headers"
+    handler: !ref echo
+    returns:
+      - status: 200
+        content:
+          application/json:
+            body:
+              auth: !cel "result.auth"
+---
+kind: Assert.Manifest
+metadata: { name: rejectsBadAuth }
+source: ./__fixtures__/invalid-auth.yaml
+expect:
+  errors:
+    - code: SCHEMA_VIOLATION
+      message: "matches no alternative"
+    - code: SCHEMA_VIOLATION
+      message: "must match exactly one schema in oneOf"
+---
+kind: Run.Sequence
+metadata: { name: test }
+with:
+  - kind: Server.Server
+    metadata: { name: StubServer }
+    port: !cel "ports.http"
+    mounts:
+      - path: /
+        mount: !ref stubApi
+targets:
+  - !ref StubServer
+steps:
+  - name: viaToken
+    invoke: !ref viaToken
+    inputs: {}
+  - name: assertStaticToken
+    invoke: !ref Assert.equals
+    inputs:
+      actual: !cel "steps.viaToken.result.body.auth"
+      expected: Bearer static-tok
+  - name: viaCred
+    invoke: !ref viaCred
+    inputs: {}
+  - name: assertCredential
+    invoke: !ref Assert.equals
+    inputs:
+      actual: !cel "steps.viaCred.result.body.auth"
+      expected: Bearer cred-tok
+  # Neither and both are rejected statically, so the invalid states two sibling
+  # kinds could not express are caught before anything runs.
+  - name: assertRejectsBadAuth
+    invoke: !ref rejectsBadAuth
+    inputs: {}

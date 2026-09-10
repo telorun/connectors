@@ -1,0 +1,435 @@
+kind: Telo.Library
+metadata:
+  name: GoogleAuth
+  version: 0.0.0
+  description: >-
+    OAuth2 for Google's REST APIs, in one place. GoogleClient is a friendly
+    Http.Client carrying the Bearer header and the retry policy Google's
+    usage-limit guidance asks for, authenticated either by a static access token
+    or by an Http.Credential. GoogleCredential is that credential: it wires the
+    oauth-client module's authorization server, registration, token store and
+    refreshing credential into one resource preconfigured for Google, so a token
+    is fetched when needed, renewed before expiry and renewed again after a 401.
+    GoogleAuthServer exposes Google's issuer on its own for the flows that need
+    it, and RefreshAccessToken is a storage-free one-shot exchange for scripts.
+    Every Google connector specializes these and re-exports them, so a consumer
+    imports the connector alone.
+  repository: https://github.com/telorun/connectors
+  license: MIT
+imports:
+  Http: oci://ghcr.io/telorun/http-client@0.22.0#sha256-UyC8nQDnKHXyPpPPHC7TS8MicesLsgDUKWBYObf5oQ4
+  OAuth: oci://ghcr.io/telorun/oauth-client@0.8.0#sha256-wREbvf_KoYtM7gJYN8nA5WmYuC9iN7aibaklxQVt3to
+  KvStore: oci://ghcr.io/telorun/kv-store@0.4.3#sha256-4ZipW0W4fvl3I93kI3PEWc7MzkeTH2LOcnRcQynIAjs
+exports:
+  kinds:
+    - GoogleAuthServer
+    - GoogleAuthClient
+    - GoogleTokenSource
+    - GoogleCredential
+    - GoogleClient
+    - RefreshAccessToken
+---
+# Google's authorization server, named by its issuer so the endpoints come from
+# discovery rather than from constants that go stale. Reading
+# https://accounts.google.com/.well-known/openid-configuration yields:
+#
+#   authorization_endpoint         https://accounts.google.com/o/oauth2/v2/auth
+#   token_endpoint                 https://oauth2.googleapis.com/token
+#   device_authorization_endpoint  https://oauth2.googleapis.com/device/code
+#
+# GoogleCredential wires one of these internally, so most callers never declare
+# it. Declare it directly to drive a flow oauth-client owns — a consent
+# redirect, a device grant, client credentials — against Google.
+kind: Telo.Definition
+metadata:
+  name: GoogleAuthServer
+  description: >-
+    Google's OAuth2 authorization server, identified by its issuer so endpoints
+    are discovered rather than hardcoded.
+extends: OAuth.AuthorizationServer
+schema:
+  type: object
+  properties:
+    issuer:
+      type: string
+      x-telo-eval: compile
+      description: >-
+        Override the issuer. Defaults to https://accounts.google.com; point it
+        at a proxy or a stub server for testing, exactly as a connector's
+        `baseUrl` is pointed.
+    timeout:
+      type: string
+      description: >-
+        How long to wait for any single request to Google — the metadata
+        document, a token exchange, a device poll. Defaults to 30s.
+base:
+  issuer: !cel "self.?issuer.orValue('https://accounts.google.com')"
+  timeout: !cel "self.timeout"
+---
+# The application's registration at Google — its client id and secret, and the
+# scopes it asks for.
+#
+# It bakes in the two things Google requires before it will issue a refresh token
+# at all: `access_type: offline` and `prompt: consent`. Omitting them is the
+# classic reason a Google integration works for an hour and then stops, and it is
+# the single most valuable thing this module knows.
+#
+# Those two are NAMED FIELDS (`accessType`, `prompt`) rather than entries in a
+# free-form `authorizationParams` map, because CEL has no map merge: a map field
+# could only REPLACE the defaults, so adding `login_hint` would silently drop
+# `access_type: offline` and break refresh a week later. Named fields survive any
+# addition. `loginHint` and `includeGrantedScopes` are named for the same reason;
+# anything else Google accepts goes per-call through `OAuth.Authorization`'s own
+# `authorizationParams`, which its controller MERGES over this client's.
+kind: Telo.Definition
+metadata:
+  name: GoogleAuthClient
+  description: >-
+    A Google OAuth2 application registration — client id, secret and scopes,
+    with the parameters Google needs in order to issue a refresh token.
+extends: OAuth.Client
+schema:
+  type: object
+  required: [authorizationServer, clientId]
+  properties:
+    authorizationServer:
+      x-telo-ref:
+        kind: Self.GoogleAuthServer
+        use: dependency
+      description: A GoogleAuthServer. Declare one per application; it takes no configuration.
+    clientId:
+      type: string
+      x-telo-eval: compile
+      description: The OAuth2 client id Google issued for this application.
+    clientSecret:
+      type: string
+      x-telo-eval: compile
+      description: >-
+        The client secret, where one exists. Bind it through `secrets:` rather
+        than writing it inline. A native or CLI client has none and relies on
+        PKCE — set `tokenEndpointAuthMethod: none` alongside, or the token
+        endpoint is called with HTTP Basic and no secret to put in it.
+    scopes:
+      type: array
+      items: { type: string }
+      description: >-
+        Scopes requested at consent, e.g.
+        ["https://www.googleapis.com/auth/gmail.modify"]. Sent space-delimited.
+    tokenEndpointAuthMethod:
+      type: string
+      enum: [client_secret_basic, client_secret_post, none]
+      description: >-
+        How this application proves itself at the token endpoint. Defaults to
+        client_secret_basic; a public client (a CLI, a native app, a SPA) has no
+        secret and sets `none`.
+    pkce:
+      type: string
+      enum: [S256, plain, none]
+      description: >-
+        Proof Key for Code Exchange, which binds an authorization code to the
+        program that requested it. Defaults to S256; `none` disables the
+        protection entirely.
+    accessType:
+      type: string
+      enum: [offline, online]
+      description: >-
+        Whether Google may issue a refresh token. Defaults to "offline", which
+        is what makes one come back at all — "online" means re-consenting every
+        hour.
+    prompt:
+      type: string
+      description: >-
+        Which consent screens to force. Defaults to "consent", which is what
+        makes Google re-issue a refresh token on a repeat authorization instead
+        of returning an access token alone. Also takes "none", "select_account",
+        or a space-delimited combination.
+    loginHint:
+      type: string
+      description: >-
+        Preselect an account — an email address or an `sub` identifier. Sent as
+        `login_hint`; omitted when unset.
+    includeGrantedScopes:
+      type: boolean
+      description: >-
+        Incremental authorization: ask for new scopes while keeping those
+        already granted. Sent as `include_granted_scopes`; omitted when unset.
+base:
+  authorizationServer: !cel "self.authorizationServer"
+  clientId: !cel "self.clientId"
+  clientSecret: !cel "self.clientSecret"
+  scopes: !cel "self.?scopes.orValue([])"
+  tokenEndpointAuthMethod: !cel "self.tokenEndpointAuthMethod"
+  pkce: !cel "self.pkce"
+  # `compact` drops the entries left empty, so an unset optional is absent from
+  # the consent URL rather than sent blank. The two defaults are inside the map
+  # and cannot be displaced by anything a caller adds.
+  authorizationParams: !cel >-
+    compact({
+      'access_type': self.?accessType.orValue('offline'),
+      'prompt': self.?prompt.orValue('consent'),
+      'login_hint': self.?loginHint.orValue(''),
+      'include_granted_scopes': has(self.includeGrantedScopes) ? string(self.includeGrantedScopes) : ''
+    })
+---
+# Where grants are kept, and which one to use by default. This is the resource
+# every oauth-client operation takes as its `source:` — GoogleCredential to
+# authenticate calls, and, imported from oauth-client directly,
+# Authorization/Callback for a consent flow, DeviceAuthorization/DeviceToken for
+# a headless one, ClientCredentials for service-to-service, and
+# TokenRefresh/AccessToken/GrantRead/GrantWrite/GrantClear to manage what is
+# stored.
+#
+# `store` has to outlive the process — a refresh token is a long-lived
+# credential, so an in-memory store means signing in again on every restart.
+kind: Telo.Definition
+metadata:
+  name: GoogleTokenSource
+  description: >-
+    Durable grant storage for a Google OAuth2 application — the resource every
+    oauth-client flow and GoogleCredential draw tokens from.
+extends: OAuth.TokenSource
+schema:
+  type: object
+  required: [client, store]
+  properties:
+    client:
+      x-telo-ref:
+        kind: Self.GoogleAuthClient
+        use: dependency
+      description: The GoogleAuthClient whose grants this source holds.
+    store:
+      x-telo-ref:
+        kind: KvStore.Store
+        use: dependency
+      description: >-
+        Durable storage for grants. Use one that outlives the process — not an
+        in-memory one, outside tests.
+    key:
+      type: string
+      x-telo-eval: compile
+      description: >-
+        The grant key used when a caller supplies none. Defaults to "default";
+        a multi-account application passes its own per call.
+    refreshSkew:
+      type: string
+      description: >-
+        How far before expiry an access token is treated as already expired.
+        Defaults to 60s.
+    grantTtl:
+      type: string
+      description: >-
+        How long a stored grant is retained without being touched. Every refresh
+        restarts the clock, so this bounds only how long an abandoned account
+        stays signed in. Defaults to 8760h — roughly where Google expires an
+        unused refresh token anyway.
+    claimTtl:
+      type: string
+      description: >-
+        How long one refresh may hold its key before another caller may take
+        over. Defaults to 30s; raise it above the slowest token-endpoint
+        response you expect, or two callers both refresh.
+base:
+  client: !cel "self.client"
+  store: !cel "self.store"
+  key: !cel "self.?key.orValue('default')"
+  refreshSkew: !cel "self.refreshSkew"
+  grantTtl: !cel "self.grantTtl"
+  claimTtl: !cel "self.claimTtl"
+---
+# The refreshing credential. Attach it to a GoogleClient and every call carries a
+# valid token:
+#
+#   - the token is CACHED, renewed before expiry, and renewed again after a 401
+#   - a rotated refresh token replaces the stored one
+#   - only one refresh per grant key runs at a time
+#
+# It INHERITS OAuth.Credential (`extends` + `base:`) rather than composing one
+# in a template body. Since `source` is supplied by the caller there is nothing
+# internal left to compose, so inheritance is the simpler of the two forms and
+# the narrowing comes for free.
+kind: Telo.Definition
+metadata:
+  name: GoogleCredential
+  description: >-
+    Refreshing OAuth2 credential for Google APIs — fetches a token when needed,
+    renews before expiry and again after a 401.
+extends: OAuth.Credential
+schema:
+  type: object
+  required: [source]
+  properties:
+    source:
+      x-telo-ref:
+        kind: Self.GoogleTokenSource
+        use: dependency
+      description: The GoogleTokenSource to draw tokens from.
+    key:
+      type: string
+      x-telo-eval: compile
+      description: >-
+        Which stored grant to authenticate as. Defaults to the source's key. A
+        multi-account application declares one credential per account.
+base:
+  source: !cel "self.source"
+  key: !cel "self.key"
+---
+# The Google API client. Inherits the Http.Client controller (and its Provider
+# capability), so a GoogleClient IS an Http.Client at runtime and drops into any
+# `x-telo-ref: Http.Client` slot.
+#
+# ONE kind with two ways to authenticate, not two kinds:
+#
+#   accessToken — a bare OAuth2 access token, baked into an Authorization
+#                 header. Right for a script or a short-lived run; Google's
+#                 expire about an hour after issue.
+#   credential  — any Http.Credential, and GoogleCredential is the one to
+#                 reach for: it keeps a valid token there without the caller
+#                 thinking about expiry. Right for a long-lived process.
+#
+# `oneOf` makes supplying neither, or both, a `telo check` error rather than a
+# runtime surprise — which is the argument for one kind over two. Two sibling
+# kinds cannot express "exactly one of these"; a caller who wires neither gets a
+# manifest that loads and then 401s against Google.
+#
+# `baseUrl` is REQUIRED and has no default, which is the difference between this
+# and a connector's client: this module knows how to authenticate a Google
+# request, not which Google API you are calling. Google publishes each API on
+# its own host (gmail.googleapis.com, sheets.googleapis.com/v4) and Drive on the
+# generic one, so any default here would be wrong for everyone but one caller. A
+# connector supplies its host through `base:` and re-exports the result under
+# its own name; use this kind directly for a Google API no connector wraps yet.
+#
+# The retry curve — 500 ms initial, 16 s cap, honouring Retry-After, retrying
+# 408/429/5xx — is a property of Google rather than of any one API, and stating
+# it once is what stops connectors drifting apart on it.
+kind: Telo.Definition
+metadata:
+  name: GoogleClient
+  description: >-
+    Google API Http.Client — a static OAuth2 access token or an Http.Credential,
+    Google's retry policy, caller-supplied API host.
+extends: Http.Client
+schema:
+  type: object
+  required: [baseUrl]
+  oneOf:
+    - required: [accessToken]
+    - required: [credential]
+  properties:
+    baseUrl:
+      type: string
+      description: >-
+        The API origin, no trailing slash — e.g. https://gmail.googleapis.com,
+        https://www.googleapis.com, https://sheets.googleapis.com/v4. Required:
+        this kind authenticates a Google request without assuming which Google
+        API it is for.
+    accessToken:
+      type: string
+      description: >-
+        OAuth2 access token (the bare token, no "Bearer " prefix). Sent as
+        `Authorization: Bearer <accessToken>` on every request. Mutually
+        exclusive with `credential`.
+    credential:
+      x-telo-ref:
+        kind: Http.Credential
+        use: call
+      description: >-
+        The credential consulted on every request, re-consulted with
+        forceRefresh and the request retried once on a 401. GoogleCredential is
+        the Google-shaped one. Mutually exclusive with `accessToken`.
+    timeout:
+      type: integer
+      minimum: 1
+      description: Per-request timeout in milliseconds. Defaults to 60000.
+    retryAttempts:
+      type: integer
+      minimum: 0
+      description: >-
+        Re-attempts after the first try for retryable failures (network errors,
+        408, 429, 5xx). Defaults to 3; 0 disables retrying.
+base:
+  baseUrl: !cel "self.baseUrl"
+  # Tagged as a whole map, against the usual "only dynamic leaves" rule, because
+  # what varies is whether the header exists at all — an empty Authorization
+  # would be sent rather than omitted.
+  headers: !cel "has(self.accessToken) ? {'Authorization': 'Bearer ' + self.accessToken} : {}"
+  credential: !cel "self.credential"
+  timeout: !cel "self.?timeout.orValue(60000)"
+  retry:
+    attempts: !cel "self.?retryAttempts.orValue(3)"
+    initialDelay: 500
+    maxDelay: 16000
+    honorRetryAfter: true
+---
+# POST https://oauth2.googleapis.com/token — a storage-free exchange of a
+# refresh token for an access token.
+#
+# The lesser of two tools, kept for the case it genuinely fits: a script or a CI
+# job that holds a refresh token in a secret, wants one access token, and has no
+# durable store to point a GoogleCredential at. It does NOT cache, does NOT
+# store the result, does NOT handle a rotated refresh token, and does NOT
+# serialize concurrent refreshes.
+#
+# For anything long-lived use GoogleCredential — or oauth-client's TokenRefresh
+# directly — which do all four.
+kind: Telo.Definition
+metadata:
+  name: RefreshAccessToken
+  description: >-
+    One-shot exchange of an OAuth2 refresh token for a Google access token, with
+    no storage. Prefer GoogleCredential for anything long-lived.
+capability: Telo.Invocable
+schema:
+  type: object
+inputType:
+  kind: Telo.JsonSchema
+  schema:
+    type: object
+    required: [clientId, clientSecret, refreshToken]
+    properties:
+      clientId:
+        type: string
+        description: OAuth2 client id.
+      clientSecret:
+        type: string
+        description: OAuth2 client secret.
+      refreshToken:
+        type: string
+        description: >-
+          OAuth2 refresh token previously granted for the scopes the calling API
+          needs.
+      tokenUrl:
+        type: string
+        description: >-
+          Override the token endpoint (a proxy or a stub). Defaults to
+          https://oauth2.googleapis.com/token — the endpoint GoogleAuthServer
+          discovers, hardcoded here because this kind deliberately does no
+          discovery.
+outputType:
+  kind: Telo.JsonSchema
+  schema:
+    type: object
+    required: [status, headers, body]
+    properties:
+      status: { type: integer }
+      headers: { type: object, additionalProperties: { type: string } }
+      body:
+        description: Parsed JSON — { access_token, expires_in, scope, token_type }.
+resources:
+  - kind: Http.Request
+    metadata:
+      name: !cel "self.name + '-req'"
+    throwOnHttpError: true
+invoke:
+  kind: Http.Request
+  name: !cel "self.name + '-req'"
+inputs:
+  method: POST
+  url: !cel "inputs.?tokenUrl.orValue('https://oauth2.googleapis.com/token')"
+  headers:
+    Content-Type: application/x-www-form-urlencoded
+  body: !cel >-
+    'client_id=' + urlEncode(inputs.clientId) +
+    '&client_secret=' + urlEncode(inputs.clientSecret) +
+    '&refresh_token=' + urlEncode(inputs.refreshToken) +
+    '&grant_type=refresh_token'

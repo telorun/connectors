@@ -1,0 +1,115 @@
+kind: Telo.Application
+metadata:
+  name: GmailDraftsTest
+  version: 1.0.0
+# Draft operations. `SendDraft` posts to `/drafts/send` with the draft id in the
+# body rather than the path — a shape worth pinning, since it reads like it should
+# be `/drafts/{id}/send`.
+imports:
+  Gmail: ../
+  Stub: ./__fixtures__/gmail-stub.yaml
+  Run: oci://ghcr.io/telorun/run@0.26.0#sha256-ZhW56yiMCImqBh0wJ4mVaUvh5WuUVIaWErASFx--wCY
+  Assert: oci://ghcr.io/telorun/assert@0.18.0#sha256-mSy7HGMq_UoQUvt4WbQCIO_uqXcRZwRlmROp6DfLDjY
+  Server: oci://ghcr.io/telorun/http-server@0.29.2#sha256-9MtWZqXF9agsYRx97nLMJZW7YYwXpW2dLYcn_oA4kUs
+ports:
+  http:
+    env: TEST_GMAIL_DRAFTS_PORT
+    default: 34834
+targets:
+  - !ref test
+---
+# The friendly client with a static token, pointed at the stub on
+# this test's own port — derived from `ports.http`, so the two can
+# never disagree. Every request carries
+# `Authorization: Bearer test-token`.
+kind: Gmail.GmailClient
+metadata: { name: stub }
+accessToken: test-token
+baseUrl: !cel "'http://localhost:' + string(dyn(ports.http))"
+---
+kind: Gmail.ListDrafts
+metadata: { name: listDrafts }
+client: !ref stub
+---
+kind: Gmail.GetDraft
+metadata: { name: getDraft }
+client: !ref stub
+---
+kind: Gmail.CreateDraft
+metadata: { name: createDraft }
+client: !ref stub
+---
+kind: Gmail.UpdateDraft
+metadata: { name: updateDraft }
+client: !ref stub
+---
+kind: Gmail.SendDraft
+metadata: { name: sendDraft }
+client: !ref stub
+---
+kind: Gmail.DeleteDraft
+metadata: { name: deleteDraft }
+client: !ref stub
+---
+kind: Run.Sequence
+metadata: { name: test }
+# The stub is mounted inline in the sequence scope, so it starts
+# before the steps and is torn down when they finish.
+with:
+  - kind: Server.Server
+    metadata: { name: StubServer }
+    port: !cel "ports.http"
+    mounts:
+      - path: /
+        mount: !ref Stub.api
+targets:
+  - !ref StubServer
+steps:
+  - name: listDrafts
+    invoke: !ref listDrafts
+    inputs: {"maxResults": 3, "includeSpamTrash": false}
+  - name: assertListDrafts
+    invoke: !ref Assert.equals
+    inputs:
+      actual: !cel "steps.listDrafts.result.body.received"
+      expected: {"method": "GET", "path": "/gmail/v1/users/me/drafts", "query": {"maxResults": "3", "includeSpamTrash": "false"}, "body": {}, "auth": "Bearer test-token"}
+  - name: getDraft
+    invoke: !ref getDraft
+    inputs: {"id": "d1", "format": "raw"}
+  - name: assertGetDraft
+    invoke: !ref Assert.equals
+    inputs:
+      actual: !cel "steps.getDraft.result.body.received"
+      expected: {"method": "GET", "path": "/gmail/v1/users/me/drafts/d1", "query": {"format": "raw"}, "body": {}, "auth": "Bearer test-token"}
+  - name: createDraft
+    invoke: !ref createDraft
+    inputs: {"draft": {"message": {"raw": "cmF3"}}}
+  - name: assertCreateDraft
+    invoke: !ref Assert.equals
+    inputs:
+      actual: !cel "steps.createDraft.result.body.received"
+      expected: {"method": "POST", "path": "/gmail/v1/users/me/drafts", "query": {}, "body": {"message": {"raw": "cmF3"}}, "auth": "Bearer test-token"}
+  - name: updateDraft
+    invoke: !ref updateDraft
+    inputs: {"id": "d1", "draft": {"message": {"raw": "bmV3"}}}
+  - name: assertUpdateDraft
+    invoke: !ref Assert.equals
+    inputs:
+      actual: !cel "steps.updateDraft.result.body.received"
+      expected: {"method": "PUT", "path": "/gmail/v1/users/me/drafts/d1", "query": {}, "body": {"message": {"raw": "bmV3"}}, "auth": "Bearer test-token"}
+  - name: sendDraft
+    invoke: !ref sendDraft
+    inputs: {"draft": {"id": "d1"}}
+  - name: assertSendDraft
+    invoke: !ref Assert.equals
+    inputs:
+      actual: !cel "steps.sendDraft.result.body.received"
+      expected: {"method": "POST", "path": "/gmail/v1/users/me/drafts/send", "query": {}, "body": {"id": "d1"}, "auth": "Bearer test-token"}
+  - name: deleteDraft
+    invoke: !ref deleteDraft
+    inputs: {"id": "d1"}
+  - name: assertDeleteDraft
+    invoke: !ref Assert.equals
+    inputs:
+      actual: !cel "steps.deleteDraft.result.body.received"
+      expected: {"method": "DELETE", "path": "/gmail/v1/users/me/drafts/d1", "query": {}, "body": {}, "auth": "Bearer test-token"}

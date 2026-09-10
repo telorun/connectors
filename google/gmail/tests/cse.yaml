@@ -1,0 +1,180 @@
+kind: Telo.Application
+metadata:
+  name: GmailCseTest
+  version: 1.0.0
+# Client-side encryption: identities and key pairs. The key-pair lifecycle uses
+# Google's `resource:verb` custom-method spelling (`{keyPairId}:enable`), where the
+# colon must survive URL-encoding of the id beside it, and each verb sends an empty
+# JSON body by contract.
+#
+# Note the path parameter Gmail names `cseEmailAddress` on get/delete but
+# `emailAddress` on patch; the connector mirrors that inconsistency, and these
+# cases hold it in place.
+imports:
+  Gmail: ../
+  Stub: ./__fixtures__/gmail-stub.yaml
+  Run: oci://ghcr.io/telorun/run@0.26.0#sha256-ZhW56yiMCImqBh0wJ4mVaUvh5WuUVIaWErASFx--wCY
+  Assert: oci://ghcr.io/telorun/assert@0.18.0#sha256-mSy7HGMq_UoQUvt4WbQCIO_uqXcRZwRlmROp6DfLDjY
+  Server: oci://ghcr.io/telorun/http-server@0.29.2#sha256-9MtWZqXF9agsYRx97nLMJZW7YYwXpW2dLYcn_oA4kUs
+ports:
+  http:
+    env: TEST_GMAIL_CSE_PORT
+    default: 34838
+targets:
+  - !ref test
+---
+# The friendly client with a static token, pointed at the stub on
+# this test's own port — derived from `ports.http`, so the two can
+# never disagree. Every request carries
+# `Authorization: Bearer test-token`.
+kind: Gmail.GmailClient
+metadata: { name: stub }
+accessToken: test-token
+baseUrl: !cel "'http://localhost:' + string(dyn(ports.http))"
+---
+kind: Gmail.ListCseIdentities
+metadata: { name: listCseIdentities }
+client: !ref stub
+---
+kind: Gmail.GetCseIdentity
+metadata: { name: getCseIdentity }
+client: !ref stub
+---
+kind: Gmail.CreateCseIdentity
+metadata: { name: createCseIdentity }
+client: !ref stub
+---
+kind: Gmail.PatchCseIdentity
+metadata: { name: patchCseIdentity }
+client: !ref stub
+---
+kind: Gmail.DeleteCseIdentity
+metadata: { name: deleteCseIdentity }
+client: !ref stub
+---
+kind: Gmail.ListCseKeyPairs
+metadata: { name: listCseKeyPairs }
+client: !ref stub
+---
+kind: Gmail.GetCseKeyPair
+metadata: { name: getCseKeyPair }
+client: !ref stub
+---
+kind: Gmail.CreateCseKeyPair
+metadata: { name: createCseKeyPair }
+client: !ref stub
+---
+kind: Gmail.EnableCseKeyPair
+metadata: { name: enableCseKeyPair }
+client: !ref stub
+---
+kind: Gmail.DisableCseKeyPair
+metadata: { name: disableCseKeyPair }
+client: !ref stub
+---
+kind: Gmail.ObliterateCseKeyPair
+metadata: { name: obliterateCseKeyPair }
+client: !ref stub
+---
+kind: Run.Sequence
+metadata: { name: test }
+# The stub is mounted inline in the sequence scope, so it starts
+# before the steps and is torn down when they finish.
+with:
+  - kind: Server.Server
+    metadata: { name: StubServer }
+    port: !cel "ports.http"
+    mounts:
+      - path: /
+        mount: !ref Stub.api
+targets:
+  - !ref StubServer
+steps:
+  - name: listCseIdentities
+    invoke: !ref listCseIdentities
+    inputs: {"pageSize": 10, "pageToken": "p1"}
+  - name: assertListCseIdentities
+    invoke: !ref Assert.equals
+    inputs:
+      actual: !cel "steps.listCseIdentities.result.body.received"
+      expected: {"method": "GET", "path": "/gmail/v1/users/me/settings/cse/identities", "query": {"pageSize": "10", "pageToken": "p1"}, "body": {}, "auth": "Bearer test-token"}
+  - name: getCseIdentity
+    invoke: !ref getCseIdentity
+    inputs: {"cseEmailAddress": "cse@example.com"}
+  - name: assertGetCseIdentity
+    invoke: !ref Assert.equals
+    inputs:
+      actual: !cel "steps.getCseIdentity.result.body.received"
+      expected: {"method": "GET", "path": "/gmail/v1/users/me/settings/cse/identities/cse%40example.com", "query": {}, "body": {}, "auth": "Bearer test-token"}
+  - name: createCseIdentity
+    invoke: !ref createCseIdentity
+    inputs: {"cseIdentity": {"emailAddress": "cse@example.com", "primaryKeyPairId": "kp1"}}
+  - name: assertCreateCseIdentity
+    invoke: !ref Assert.equals
+    inputs:
+      actual: !cel "steps.createCseIdentity.result.body.received"
+      expected: {"method": "POST", "path": "/gmail/v1/users/me/settings/cse/identities", "query": {}, "body": {"emailAddress": "cse@example.com", "primaryKeyPairId": "kp1"}, "auth": "Bearer test-token"}
+  - name: patchCseIdentity
+    invoke: !ref patchCseIdentity
+    inputs: {"emailAddress": "cse@example.com", "cseIdentity": {"primaryKeyPairId": "kp2"}}
+  - name: assertPatchCseIdentity
+    invoke: !ref Assert.equals
+    inputs:
+      actual: !cel "steps.patchCseIdentity.result.body.received"
+      expected: {"method": "PATCH", "path": "/gmail/v1/users/me/settings/cse/identities/cse%40example.com", "query": {}, "body": {"primaryKeyPairId": "kp2"}, "auth": "Bearer test-token"}
+  - name: deleteCseIdentity
+    invoke: !ref deleteCseIdentity
+    inputs: {"cseEmailAddress": "cse@example.com"}
+  - name: assertDeleteCseIdentity
+    invoke: !ref Assert.equals
+    inputs:
+      actual: !cel "steps.deleteCseIdentity.result.body.received"
+      expected: {"method": "DELETE", "path": "/gmail/v1/users/me/settings/cse/identities/cse%40example.com", "query": {}, "body": {}, "auth": "Bearer test-token"}
+  - name: listCseKeyPairs
+    invoke: !ref listCseKeyPairs
+    inputs: {"pageSize": 5}
+  - name: assertListCseKeyPairs
+    invoke: !ref Assert.equals
+    inputs:
+      actual: !cel "steps.listCseKeyPairs.result.body.received"
+      expected: {"method": "GET", "path": "/gmail/v1/users/me/settings/cse/keypairs", "query": {"pageSize": "5"}, "body": {}, "auth": "Bearer test-token"}
+  - name: getCseKeyPair
+    invoke: !ref getCseKeyPair
+    inputs: {"keyPairId": "kp1"}
+  - name: assertGetCseKeyPair
+    invoke: !ref Assert.equals
+    inputs:
+      actual: !cel "steps.getCseKeyPair.result.body.received"
+      expected: {"method": "GET", "path": "/gmail/v1/users/me/settings/cse/keypairs/kp1", "query": {}, "body": {}, "auth": "Bearer test-token"}
+  - name: createCseKeyPair
+    invoke: !ref createCseKeyPair
+    inputs: {"keyPair": {"pkcs7": "MIIB"}, "chainValidation": "all"}
+  - name: assertCreateCseKeyPair
+    invoke: !ref Assert.equals
+    inputs:
+      actual: !cel "steps.createCseKeyPair.result.body.received"
+      expected: {"method": "POST", "path": "/gmail/v1/users/me/settings/cse/keypairs", "query": {"chainValidation": "all"}, "body": {"pkcs7": "MIIB"}, "auth": "Bearer test-token"}
+  - name: enableCseKeyPair
+    invoke: !ref enableCseKeyPair
+    inputs: {"keyPairId": "kp1"}
+  - name: assertEnableCseKeyPair
+    invoke: !ref Assert.equals
+    inputs:
+      actual: !cel "steps.enableCseKeyPair.result.body.received"
+      expected: {"method": "POST", "path": "/gmail/v1/users/me/settings/cse/keypairs/kp1:enable", "query": {}, "body": {}, "auth": "Bearer test-token"}
+  - name: disableCseKeyPair
+    invoke: !ref disableCseKeyPair
+    inputs: {"keyPairId": "kp1"}
+  - name: assertDisableCseKeyPair
+    invoke: !ref Assert.equals
+    inputs:
+      actual: !cel "steps.disableCseKeyPair.result.body.received"
+      expected: {"method": "POST", "path": "/gmail/v1/users/me/settings/cse/keypairs/kp1:disable", "query": {}, "body": {}, "auth": "Bearer test-token"}
+  - name: obliterateCseKeyPair
+    invoke: !ref obliterateCseKeyPair
+    inputs: {"keyPairId": "kp1"}
+  - name: assertObliterateCseKeyPair
+    invoke: !ref Assert.equals
+    inputs:
+      actual: !cel "steps.obliterateCseKeyPair.result.body.received"
+      expected: {"method": "POST", "path": "/gmail/v1/users/me/settings/cse/keypairs/kp1:obliterate", "query": {}, "body": {}, "auth": "Bearer test-token"}

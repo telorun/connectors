@@ -1,0 +1,272 @@
+kind: Telo.Library
+metadata:
+  name: GmailStub
+  version: 1.0.0
+  description: |
+    Test fixture: a stand-in for the Gmail REST surface, shared by every test in
+    this module. It exports one `Server.Api` that the test mounts on its own
+    port; each test then asserts on what the stub reports back.
+
+    Three families of route, because the operations divide into three shapes:
+
+      /gmail/v1/*        — echoes the request (method, path, query, body, auth),
+                           so a test can assert exactly what an operation put on
+                           the wire. One wildcard route per method covers every
+                           depth, from `/users/me/profile` to
+                           `/users/me/settings/sendAs/{email}/smimeInfo/{id}/setDefault`.
+      /upload/gmail/v1/* — decodes the multipart/related body a media upload
+                           framed, reporting both parts back.
+      /token             — Google's OAuth token endpoint, echoing the
+                           form-encoded grant so RefreshAccessToken can be
+                           checked against it.
+
+    A test mounts it with:
+
+      with:
+        - kind: Server.Server
+          metadata: { name: StubServer }
+          port: !cel "ports.http"
+          mounts:
+            - { path: /, mount: !ref Stub.api }
+
+    Add `contentTypeParsers` for `multipart/related` (uploads) or
+    `application/x-www-form-urlencoded` (the token endpoint) when the test
+    exercises those routes — both bodies must reach the handler as streams.
+imports:
+  Multipart: oci://ghcr.io/telorun/multipart@0.2.2#sha256-RCqiT4UMwrVeRq1hU1xxkysRSxX4NC5DzsdrbbEBxv8
+  Ptc: oci://ghcr.io/telorun/plain-text-codec@0.10.4#sha256-Z1My-TDPdE13s63NSi5rT0Qg0CZf-7tAXbJBRcBGCOQ
+  Server: oci://ghcr.io/telorun/http-server@0.29.2#sha256-9MtWZqXF9agsYRx97nLMJZW7YYwXpW2dLYcn_oA4kUs
+  Run: oci://ghcr.io/telorun/run@0.26.0#sha256-ZhW56yiMCImqBh0wJ4mVaUvh5WuUVIaWErASFx--wCY
+exports:
+  resources:
+    - api
+---
+# Generic echo handler: returns the request context it is fed, so a route can
+# reflect what the operation actually sent back into the response body.
+kind: Run.Value
+metadata: { name: echo }
+inputType:
+  kind: Telo.JsonSchema
+  schema:
+    type: object
+    properties:
+      path: {}
+      method: {}
+      query: {}
+      body: {}
+      headers: {}
+value:
+  received:
+    method: !cel "inputs.?method.orValue('')"
+    path: !cel "inputs.?path.orValue('').split('?')[0]"
+    query: !cel "inputs.?query.orValue({})"
+    body: !cel "inputs.?body.orValue({})"
+    auth: !cel "inputs.?headers.orValue({}).?authorization.orValue('')"
+---
+kind: Multipart.Decoder
+metadata: { name: mpDecode }
+---
+# Collects a streamed request body into text — used to read the token endpoint's
+# form-encoded payload back.
+kind: Ptc.Decoder
+metadata: { name: collect }
+---
+# Media-upload handler: splits the multipart/related body the operation framed
+# back into its metadata + content parts.
+kind: Run.Sequence
+metadata: { name: multipartUpload }
+inputType:
+  kind: Telo.JsonSchema
+  schema:
+    type: object
+    properties:
+      path: {}
+      method: {}
+      query: {}
+      headers: {}
+      body: {}
+steps:
+  - name: decode
+    invoke: !ref mpDecode
+    inputs:
+      input: !cel "inputs.body"
+      contentType: !cel "inputs.headers['content-type']"
+outputs:
+  received:
+    method: !cel "inputs.method"
+    path: !cel "inputs.path.split('?')[0]"
+    query: !cel "inputs.query"
+    auth: !cel "inputs.headers.authorization"
+  framing: !cel "inputs.headers['content-type'].split(';')[0]"
+  metadata: !cel "parseJson(string(steps.decode.result.parts[0].content))"
+  metadataContentType: !cel "steps.decode.result.parts[0].contentType"
+  content: !cel "string(steps.decode.result.parts[1].content)"
+  contentType: !cel "steps.decode.result.parts[1].contentType"
+---
+# OAuth token handler: collects the form-encoded body so a test can check the
+# grant RefreshAccessToken builds.
+kind: Run.Sequence
+metadata: { name: tokenHandler }
+inputType:
+  kind: Telo.JsonSchema
+  schema:
+    type: object
+    properties:
+      headers: {}
+      body: {}
+steps:
+  - name: collect
+    invoke: !ref collect
+    inputs:
+      input: !cel "inputs.body"
+outputs:
+  form: !cel "steps.collect.result.text"
+  contentType: !cel "inputs.headers['content-type']"
+---
+kind: Server.Api
+metadata:
+  name: api
+  description: The stub Gmail surface — mount it on a Server.Server in a test.
+routes:
+  - request: { method: GET, path: /gmail/v1/* }
+    inputs:
+      path: !cel "request.path"
+      method: !cel "request.method"
+      query: !cel "request.query"
+      headers: !cel "request.headers"
+    handler: !ref echo
+    returns:
+      - status: 200
+        content:
+          application/json:
+            body:
+              id: stub-id
+              received: !cel "result.received"
+  - request: { method: POST, path: /gmail/v1/* }
+    inputs:
+      path: !cel "request.path"
+      method: !cel "request.method"
+      query: !cel "request.query"
+      body: !cel "request.?body.orValue({})"
+      headers: !cel "request.headers"
+    handler: !ref echo
+    returns:
+      - status: 200
+        content:
+          application/json:
+            body:
+              id: stub-id
+              received: !cel "result.received"
+  - request: { method: PUT, path: /gmail/v1/* }
+    inputs:
+      path: !cel "request.path"
+      method: !cel "request.method"
+      query: !cel "request.query"
+      body: !cel "request.?body.orValue({})"
+      headers: !cel "request.headers"
+    handler: !ref echo
+    returns:
+      - status: 200
+        content:
+          application/json:
+            body:
+              id: stub-id
+              received: !cel "result.received"
+  - request: { method: PATCH, path: /gmail/v1/* }
+    inputs:
+      path: !cel "request.path"
+      method: !cel "request.method"
+      query: !cel "request.query"
+      body: !cel "request.?body.orValue({})"
+      headers: !cel "request.headers"
+    handler: !ref echo
+    returns:
+      - status: 200
+        content:
+          application/json:
+            body:
+              id: stub-id
+              received: !cel "result.received"
+  - request: { method: DELETE, path: /gmail/v1/* }
+    inputs:
+      path: !cel "request.path"
+      method: !cel "request.method"
+      query: !cel "request.query"
+      headers: !cel "request.headers"
+    handler: !ref echo
+    returns:
+      - status: 200
+        content:
+          application/json:
+            body:
+              id: stub-id
+              received: !cel "result.received"
+  # Media uploads live under /upload and carry a multipart/related body.
+  - request:
+      method: POST
+      path: /upload/gmail/v1/*
+      schema:
+        body: { x-telo-type: Telo.Stream }
+    inputs:
+      path: !cel "request.path"
+      method: !cel "request.method"
+      query: !cel "request.query"
+      headers: !cel "request.headers"
+      body: !cel "request.body"
+    handler: !ref multipartUpload
+    returns:
+      - status: 200
+        content:
+          application/json:
+            body:
+              id: uploaded-1
+              received: !cel "result.received"
+              framing: !cel "result.framing"
+              metadata: !cel "result.metadata"
+              metadataContentType: !cel "result.metadataContentType"
+              content: !cel "result.content"
+              contentType: !cel "result.contentType"
+  - request:
+      method: PUT
+      path: /upload/gmail/v1/*
+      schema:
+        body: { x-telo-type: Telo.Stream }
+    inputs:
+      path: !cel "request.path"
+      method: !cel "request.method"
+      query: !cel "request.query"
+      headers: !cel "request.headers"
+      body: !cel "request.body"
+    handler: !ref multipartUpload
+    returns:
+      - status: 200
+        content:
+          application/json:
+            body:
+              id: uploaded-1
+              received: !cel "result.received"
+              framing: !cel "result.framing"
+              metadata: !cel "result.metadata"
+              metadataContentType: !cel "result.metadataContentType"
+              content: !cel "result.content"
+              contentType: !cel "result.contentType"
+  # Google's OAuth token endpoint.
+  - request:
+      method: POST
+      path: /token
+      schema:
+        body: { x-telo-type: Telo.Stream }
+    inputs:
+      headers: !cel "request.headers"
+      body: !cel "request.body"
+    handler: !ref tokenHandler
+    returns:
+      - status: 200
+        content:
+          application/json:
+            body:
+              access_token: fresh-token
+              expires_in: 3599
+              token_type: Bearer
+              form: !cel "result.form"
+              contentType: !cel "result.contentType"

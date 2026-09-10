@@ -15,14 +15,23 @@ metadata:
   repository: https://github.com/telorun/connectors
   license: MIT
 imports:
+  GoogleAuth: ../auth
   Http: oci://ghcr.io/telorun/http-client@0.22.0#sha256-UyC8nQDnKHXyPpPPHC7TS8MicesLsgDUKWBYObf5oQ4
   Multipart: oci://ghcr.io/telorun/multipart@0.2.2#sha256-RCqiT4UMwrVeRq1hU1xxkysRSxX4NC5DzsdrbbEBxv8
   Run: oci://ghcr.io/telorun/run@0.26.0#sha256-ZhW56yiMCImqBh0wJ4mVaUvh5WuUVIaWErASFx--wCY
 exports:
   kinds:
-    # Clients
     - GoogleDriveClient
     - GoogleDriveOAuthClient
+    # Auth, re-exported from google/auth so a consumer imports this connector
+    # alone. `<Alias>.<Kind>` in `exports.kinds` re-exports an imported kind
+    # under THIS module's prefix — no local subtype needed. A bare name here
+    # would name nothing.
+    - GoogleAuth.GoogleAuthServer
+    - GoogleAuth.GoogleAuthClient
+    - GoogleAuth.GoogleTokenSource
+    - GoogleAuth.GoogleCredential
+    - GoogleAuth.RefreshAccessToken
     # Files
     - ListFiles
     - GetFile
@@ -84,48 +93,50 @@ exports:
     - StopChannel
     - ListApps
     - GetApp
-    - RefreshAccessToken
 ---
-# The service clients. Both inherit the Http.Client controller (and its Provider
-# capability), so either IS an Http.Client at runtime and drops into any
-# `x-telo-ref: Http.Client` slot — every operation below takes either.
+# The service client. It specializes GoogleAuth.GoogleClient — which owns the
+# Bearer header, the credential handling, the timeout and Google's retry curve —
+# and adds the one thing that is Drive's: the API host. Still an Http.Client at
+# runtime, so it drops into any `x-telo-ref: Http.Client` slot.
 #
-# Two kinds rather than one optional field: a credential is a live resource
-# reference, and a reference cannot be produced conditionally by an expression,
-# so an "either/or" auth field would resolve to an empty object whenever it was
-# left out. Which one to use:
-#
-#   - GoogleDriveClient — a bare OAuth2 access token. Google's expire about an
-#     hour after issue; RefreshAccessToken exchanges a refresh token for a new
-#     one. Right for a script or a short-lived run.
-#   - GoogleDriveOAuthClient — any Http.Credential: Http.BearerToken for a fixed
-#     token, or a refreshing credential (e.g. from the oauth-client module) that
-#     re-acquires before expiry and again after a 401. Right for a long-lived
-#     process.
+# Authenticate it one of two ways, and exactly one: a bare `accessToken`, or a
+# `credential` (GoogleCredential is the Google-shaped one, re-exported below).
+# `oneOf` makes supplying neither, or both, a `telo check` error rather than a
+# 401 from Google at runtime.
 #
 # Both hosts Drive uses hang off the same origin (`/drive/v3` for metadata,
-# `/upload/drive/v3` for content), so baseUrl is the origin. The default retry
-# policy backs off on 408/429/5xx and honours Retry-After, which is what
-# Google's usage-limit guidance asks for. Requests with a streamed body cannot
-# be replayed; those operations disable retry themselves (see UploadFile).
+# `/upload/drive/v3` for content), so baseUrl is the origin.
 kind: Telo.Definition
 metadata:
   name: GoogleDriveClient
   description: >-
-    Preconfigured Google Drive Http.Client — Bearer OAuth2 access token,
-    baseUrl https://www.googleapis.com, retry with backoff.
-extends: Http.Client
+    Preconfigured Google Drive Http.Client — a static OAuth2 access token or an
+    Http.Credential, baseUrl https://www.googleapis.com, retry with backoff.
+extends: GoogleAuth.GoogleClient
 schema:
   type: object
-  required: [accessToken]
+  oneOf:
+    - required: [accessToken]
+    - required: [credential]
   properties:
     accessToken:
       type: string
+      x-telo-eval: compile
       description: >-
         OAuth2 access token (the bare token, no "Bearer " prefix). Sent as
-        `Authorization: Bearer <accessToken>` on every request.
+        `Authorization: Bearer <accessToken>` on every request. Mutually
+        exclusive with `credential`.
+    credential:
+      x-telo-ref:
+        kind: Http.Credential
+        use: call
+      description: >-
+        The credential consulted on every request, re-consulted with
+        forceRefresh and the request retried once on a 401. Mutually exclusive
+        with `accessToken`.
     baseUrl:
       type: string
+      x-telo-eval: compile
       description: >-
         Override the API origin (no trailing slash). Defaults to
         https://www.googleapis.com. Point it at a proxy or a stub server for
@@ -142,25 +153,21 @@ schema:
         408, 429, 5xx). Defaults to 3; 0 disables retrying.
 base:
   baseUrl: !cel "self.?baseUrl.orValue('https://www.googleapis.com')"
-  headers:
-    Authorization: !cel "'Bearer ' + self.accessToken"
-  timeout: !cel "self.?timeout.orValue(60000)"
-  retry:
-    attempts: !cel "self.?retryAttempts.orValue(3)"
-    initialDelay: 500
-    maxDelay: 16000
-    honorRetryAfter: true
+  accessToken: !cel "self.accessToken"
+  credential: !cel "self.credential"
+  timeout: !cel "self.timeout"
+  retryAttempts: !cel "self.retryAttempts"
 ---
-# The same client authenticated by an Http.Credential — the production shape for
-# a long-lived process, since the credential is re-consulted with forceRefresh
-# and the request retried once when Google answers 401.
+# Kept for compatibility: GoogleDriveClient now accepts a `credential` directly,
+# so this adds nothing but the name. It is the credential-only spelling, which is
+# what every 0.1.0 manifest wired, and it stays valid.
 kind: Telo.Definition
 metadata:
   name: GoogleDriveOAuthClient
   description: >-
-    Google Drive Http.Client authenticated by an Http.Credential (a refreshing
-    OAuth credential, or Http.BearerToken).
-extends: Http.Client
+    Google Drive Http.Client authenticated by an Http.Credential. Equivalent to
+    a GoogleDriveClient with `credential:` set.
+extends: GoogleAuth.GoogleClient
 schema:
   type: object
   required: [credential]
@@ -174,6 +181,7 @@ schema:
         forceRefresh and the request retried once on a 401.
     baseUrl:
       type: string
+      x-telo-eval: compile
       description: >-
         Override the API origin (no trailing slash). Defaults to
         https://www.googleapis.com.
@@ -190,12 +198,8 @@ schema:
 base:
   baseUrl: !cel "self.?baseUrl.orValue('https://www.googleapis.com')"
   credential: !cel "self.credential"
-  timeout: !cel "self.?timeout.orValue(60000)"
-  retry:
-    attempts: !cel "self.?retryAttempts.orValue(3)"
-    initialDelay: 500
-    maxDelay: 16000
-    honorRetryAfter: true
+  timeout: !cel "self.timeout"
+  retryAttempts: !cel "self.retryAttempts"
 ---
 # GET /drive/v3/files — list or search files. `q` is the Drive search grammar
 # (e.g. "'folderId' in parents and trashed = false"). Page with pageToken.
@@ -282,7 +286,7 @@ invoke:
 inputs:
   method: GET
   url: !cel >-
-    trimSuffix(trimSuffix(
+    trimSuffix(
       '/drive/v3/files?' + join([
         {'k': 'q', 'v': inputs.?q.orValue('')},
         {'k': 'pageSize', 'v': has(inputs.pageSize) ? string(inputs.pageSize) : ''},
@@ -298,7 +302,7 @@ inputs:
         {'k': 'includeLabels', 'v': inputs.?includeLabels.orValue('')}
       ].filter(p, p.v != '').map(p, p.k + '=' + urlEncode(p.v))
         + keys(inputs.?params.orValue({})).map(k, k + '=' + urlEncode(inputs.?params.orValue({})[k])), '&')
-    , '&'), '?')
+    , '?')
 ---
 # GET /drive/v3/files/{fileId} — read a file's metadata. Use `fields` to
 # choose the projection ("*" for everything); Drive returns a small default set.
@@ -366,7 +370,7 @@ invoke:
 inputs:
   method: GET
   url: !cel >-
-    trimSuffix(trimSuffix(
+    trimSuffix(
       '/drive/v3/files/' + urlEncode(inputs.fileId) + '?' + join([
         {'k': 'fields', 'v': inputs.?fields.orValue('')},
         {'k': 'supportsAllDrives', 'v': string(inputs.?supportsAllDrives.orValue(true))},
@@ -375,7 +379,7 @@ inputs:
         {'k': 'includeLabels', 'v': inputs.?includeLabels.orValue('')}
       ].filter(p, p.v != '').map(p, p.k + '=' + urlEncode(p.v))
         + keys(inputs.?params.orValue({})).map(k, k + '=' + urlEncode(inputs.?params.orValue({})[k])), '&')
-    , '&'), '?')
+    , '?')
 ---
 # GET /drive/v3/files/{fileId}?alt=media — download a binary file's content.
 # Only for files with binary content (not Google Docs/Sheets/Slides — use
@@ -451,13 +455,13 @@ inputs:
   responseType: !cel "inputs.?responseType.orValue('bytes')"
   headers: !cel "has(inputs.range) ? {'Range': inputs.range} : {}"
   url: !cel >-
-    trimSuffix(trimSuffix(
+    trimSuffix(
       '/drive/v3/files/' + urlEncode(inputs.fileId) + '?alt=media&' + join([
         {'k': 'supportsAllDrives', 'v': string(inputs.?supportsAllDrives.orValue(true))},
         {'k': 'acknowledgeAbuse', 'v': has(inputs.acknowledgeAbuse) ? string(inputs.acknowledgeAbuse) : ''}
       ].filter(p, p.v != '').map(p, p.k + '=' + urlEncode(p.v))
         + keys(inputs.?params.orValue({})).map(k, k + '=' + urlEncode(inputs.?params.orValue({})[k])), '&')
-    , '&'), '?')
+    , '?')
 ---
 # GET /drive/v3/files/{fileId}/export?mimeType=… — export a Google Workspace
 # document (Docs, Sheets, Slides, Drawings) to another format, e.g.
@@ -524,10 +528,10 @@ inputs:
   method: GET
   responseType: !cel "inputs.?responseType.orValue('bytes')"
   url: !cel >-
-    trimSuffix(trimSuffix(
+    trimSuffix(
       '/drive/v3/files/' + urlEncode(inputs.fileId) + '/export?mimeType=' + urlEncode(inputs.mimeType)
         + join([''] + keys(inputs.?params.orValue({})).map(k, k + '=' + urlEncode(inputs.?params.orValue({})[k])), '&')
-    , '&'), '?')
+    , '?')
 ---
 # POST /drive/v3/files — create a file from metadata only: a folder
 # (mimeType application/vnd.google-apps.folder), a shortcut, an empty Google
@@ -607,7 +611,7 @@ inputs:
   method: POST
   body: !cel "inputs.metadata"
   url: !cel >-
-    trimSuffix(trimSuffix(
+    trimSuffix(
       '/drive/v3/files?' + join([
         {'k': 'supportsAllDrives', 'v': string(inputs.?supportsAllDrives.orValue(true))},
         {'k': 'ignoreDefaultVisibility', 'v': has(inputs.ignoreDefaultVisibility) ? string(inputs.ignoreDefaultVisibility) : ''},
@@ -619,7 +623,7 @@ inputs:
         {'k': 'includeLabels', 'v': inputs.?includeLabels.orValue('')}
       ].filter(p, p.v != '').map(p, p.k + '=' + urlEncode(p.v))
         + keys(inputs.?params.orValue({})).map(k, k + '=' + urlEncode(inputs.?params.orValue({})[k])), '&')
-    , '&'), '?')
+    , '?')
 ---
 # PATCH /drive/v3/files/{fileId} — update metadata: rename, describe, star,
 # trash/untrash (`trashed`), set properties, or move between folders with
@@ -705,7 +709,7 @@ inputs:
   method: PATCH
   body: !cel "inputs.?metadata.orValue({})"
   url: !cel >-
-    trimSuffix(trimSuffix(
+    trimSuffix(
       '/drive/v3/files/' + urlEncode(inputs.fileId) + '?' + join([
         {'k': 'addParents', 'v': inputs.?addParents.orValue('')},
         {'k': 'removeParents', 'v': inputs.?removeParents.orValue('')},
@@ -718,7 +722,7 @@ inputs:
         {'k': 'includeLabels', 'v': inputs.?includeLabels.orValue('')}
       ].filter(p, p.v != '').map(p, p.k + '=' + urlEncode(p.v))
         + keys(inputs.?params.orValue({})).map(k, k + '=' + urlEncode(inputs.?params.orValue({})[k])), '&')
-    , '&'), '?')
+    , '?')
 ---
 # POST /drive/v3/files/{fileId}/copy — copy a file, optionally renaming it or
 # placing the copy in other parents via `metadata`. Folders cannot be copied.
@@ -797,7 +801,7 @@ inputs:
   method: POST
   body: !cel "inputs.?metadata.orValue({})"
   url: !cel >-
-    trimSuffix(trimSuffix(
+    trimSuffix(
       '/drive/v3/files/' + urlEncode(inputs.fileId) + '/copy?' + join([
         {'k': 'supportsAllDrives', 'v': string(inputs.?supportsAllDrives.orValue(true))},
         {'k': 'ignoreDefaultVisibility', 'v': has(inputs.ignoreDefaultVisibility) ? string(inputs.ignoreDefaultVisibility) : ''},
@@ -808,7 +812,7 @@ inputs:
         {'k': 'includeLabels', 'v': inputs.?includeLabels.orValue('')}
       ].filter(p, p.v != '').map(p, p.k + '=' + urlEncode(p.v))
         + keys(inputs.?params.orValue({})).map(k, k + '=' + urlEncode(inputs.?params.orValue({})[k])), '&')
-    , '&'), '?')
+    , '?')
 ---
 # DELETE /drive/v3/files/{fileId} — permanently delete a file, skipping the
 # trash. For a folder, everything inside goes too. To trash instead, use
@@ -865,12 +869,12 @@ invoke:
 inputs:
   method: DELETE
   url: !cel >-
-    trimSuffix(trimSuffix(
+    trimSuffix(
       '/drive/v3/files/' + urlEncode(inputs.fileId) + '?' + join([
         {'k': 'supportsAllDrives', 'v': string(inputs.?supportsAllDrives.orValue(true))}
       ].filter(p, p.v != '').map(p, p.k + '=' + urlEncode(p.v))
         + keys(inputs.?params.orValue({})).map(k, k + '=' + urlEncode(inputs.?params.orValue({})[k])), '&')
-    , '&'), '?')
+    , '?')
 ---
 # DELETE /drive/v3/files/trash — permanently delete everything in the user's
 # trash, or in a shared drive's trash when `driveId` is given.
@@ -922,12 +926,12 @@ invoke:
 inputs:
   method: DELETE
   url: !cel >-
-    trimSuffix(trimSuffix(
+    trimSuffix(
       '/drive/v3/files/trash?' + join([
         {'k': 'driveId', 'v': inputs.?driveId.orValue('')}
       ].filter(p, p.v != '').map(p, p.k + '=' + urlEncode(p.v))
         + keys(inputs.?params.orValue({})).map(k, k + '=' + urlEncode(inputs.?params.orValue({})[k])), '&')
-    , '&'), '?')
+    , '?')
 ---
 # GET /drive/v3/files/generateIds — reserve file ids ahead of creation, so an
 # upload can be retried idempotently by passing the same `id` in its metadata.
@@ -985,14 +989,14 @@ invoke:
 inputs:
   method: GET
   url: !cel >-
-    trimSuffix(trimSuffix(
+    trimSuffix(
       '/drive/v3/files/generateIds?' + join([
         {'k': 'count', 'v': has(inputs.count) ? string(inputs.count) : ''},
         {'k': 'space', 'v': inputs.?space.orValue('')},
         {'k': 'type', 'v': inputs.?type.orValue('')}
       ].filter(p, p.v != '').map(p, p.k + '=' + urlEncode(p.v))
         + keys(inputs.?params.orValue({})).map(k, k + '=' + urlEncode(inputs.?params.orValue({})[k])), '&')
-    , '&'), '?')
+    , '?')
 ---
 # POST /drive/v3/files/{fileId}/watch — subscribe to push notifications for a
 # file. `channel` is a Channel resource: { id, type: "web_hook", address, token?,
@@ -1066,7 +1070,7 @@ inputs:
   method: POST
   body: !cel "inputs.channel"
   url: !cel >-
-    trimSuffix(trimSuffix(
+    trimSuffix(
       '/drive/v3/files/' + urlEncode(inputs.fileId) + '/watch?' + join([
         {'k': 'supportsAllDrives', 'v': string(inputs.?supportsAllDrives.orValue(true))},
         {'k': 'acknowledgeAbuse', 'v': has(inputs.acknowledgeAbuse) ? string(inputs.acknowledgeAbuse) : ''},
@@ -1075,7 +1079,7 @@ inputs:
         {'k': 'includeLabels', 'v': inputs.?includeLabels.orValue('')}
       ].filter(p, p.v != '').map(p, p.k + '=' + urlEncode(p.v))
         + keys(inputs.?params.orValue({})).map(k, k + '=' + urlEncode(inputs.?params.orValue({})[k])), '&')
-    , '&'), '?')
+    , '?')
 ---
 # GET /drive/v3/files/{fileId}/listLabels — the labels applied to a file.
 kind: Telo.Definition
@@ -1133,13 +1137,13 @@ invoke:
 inputs:
   method: GET
   url: !cel >-
-    trimSuffix(trimSuffix(
+    trimSuffix(
       '/drive/v3/files/' + urlEncode(inputs.fileId) + '/listLabels?' + join([
         {'k': 'maxResults', 'v': has(inputs.maxResults) ? string(inputs.maxResults) : ''},
         {'k': 'pageToken', 'v': inputs.?pageToken.orValue('')}
       ].filter(p, p.v != '').map(p, p.k + '=' + urlEncode(p.v))
         + keys(inputs.?params.orValue({})).map(k, k + '=' + urlEncode(inputs.?params.orValue({})[k])), '&')
-    , '&'), '?')
+    , '?')
 ---
 # POST /drive/v3/files/{fileId}/modifyLabels — apply, update or remove labels
 # on a file. `labelModifications` is a list of LabelModification objects
@@ -1201,10 +1205,10 @@ inputs:
   body:
     labelModifications: !cel "inputs.labelModifications"
   url: !cel >-
-    trimSuffix(trimSuffix(
+    trimSuffix(
       '/drive/v3/files/' + urlEncode(inputs.fileId) + '/modifyLabels?'
         + join(keys(inputs.?params.orValue({})).map(k, k + '=' + urlEncode(inputs.?params.orValue({})[k])), '&')
-    , '&'), '?')
+    , '?')
 ---
 # POST /upload/drive/v3/files?uploadType=multipart — create a file WITH content
 # in one request: a JSON metadata part plus the content part, framed as
@@ -1340,7 +1344,7 @@ resources:
             Content-Type: !cel "steps.encode.result.contentType"
           body: !cel "steps.encode.result.output"
           url: !cel >-
-            trimSuffix(trimSuffix(
+            trimSuffix(
               '/upload/drive/v3/files?uploadType=multipart&' + join([
                 {'k': 'supportsAllDrives', 'v': string(inputs.?supportsAllDrives.orValue(true))},
                 {'k': 'ignoreDefaultVisibility', 'v': inputs.?ignoreDefaultVisibility.orValue(false) ? 'true' : ''},
@@ -1350,7 +1354,7 @@ resources:
                 {'k': 'fields', 'v': inputs.?fields.orValue('')}
               ].filter(p, p.v != '').map(p, p.k + '=' + urlEncode(p.v))
                 + keys(inputs.?params.orValue({})).map(k, k + '=' + urlEncode(inputs.?params.orValue({})[k])), '&')
-            , '&'), '?')
+            , '?')
     outputs:
       status: !cel "steps.send.result.status"
       headers: !cel "steps.send.result.headers"
@@ -1507,7 +1511,7 @@ resources:
             Content-Type: !cel "steps.encode.result.contentType"
           body: !cel "steps.encode.result.output"
           url: !cel >-
-            trimSuffix(trimSuffix(
+            trimSuffix(
               '/upload/drive/v3/files/' + urlEncode(inputs.fileId) + '?uploadType=multipart&' + join([
                 {'k': 'addParents', 'v': inputs.?addParents.orValue('')},
                 {'k': 'removeParents', 'v': inputs.?removeParents.orValue('')},
@@ -1518,7 +1522,7 @@ resources:
                 {'k': 'fields', 'v': inputs.?fields.orValue('')}
               ].filter(p, p.v != '').map(p, p.k + '=' + urlEncode(p.v))
                 + keys(inputs.?params.orValue({})).map(k, k + '=' + urlEncode(inputs.?params.orValue({})[k])), '&')
-            , '&'), '?')
+            , '?')
     outputs:
       status: !cel "steps.send.result.status"
       headers: !cel "steps.send.result.headers"
@@ -1638,7 +1642,7 @@ inputs:
          'X-Upload-Content-Length': string(inputs.contentLength)}
       : {'X-Upload-Content-Type': inputs.?contentType.orValue('application/octet-stream')}
   url: !cel >-
-    trimSuffix(trimSuffix(
+    trimSuffix(
       '/upload/drive/v3/files' + (has(inputs.fileId) ? '/' + urlEncode(inputs.fileId) : '')
         + '?uploadType=resumable&' + join([
         {'k': 'addParents', 'v': inputs.?addParents.orValue('')},
@@ -1651,7 +1655,7 @@ inputs:
         {'k': 'fields', 'v': inputs.?fields.orValue('')}
       ].filter(p, p.v != '').map(p, p.k + '=' + urlEncode(p.v))
         + keys(inputs.?params.orValue({})).map(k, k + '=' + urlEncode(inputs.?params.orValue({})[k])), '&')
-    , '&'), '?')
+    , '?')
 ---
 # PUT <session URI> — send content to a resumable upload session opened by
 # StartResumableUpload. Send everything in one request (no contentRange), or a
@@ -1890,7 +1894,7 @@ resources:
                  'X-Upload-Content-Length': string(inputs.contentLength)}
               : {'X-Upload-Content-Type': inputs.?contentType.orValue('application/octet-stream')}
           url: !cel >-
-            trimSuffix(trimSuffix(
+            trimSuffix(
               '/upload/drive/v3/files' + (inputs.?fileId.orValue('') != '' ? '/' + urlEncode(inputs.fileId) : '')
                 + '?uploadType=resumable&' + join([
                 {'k': 'addParents', 'v': inputs.?addParents.orValue('')},
@@ -1903,7 +1907,7 @@ resources:
                 {'k': 'fields', 'v': inputs.?fields.orValue('')}
               ].filter(p, p.v != '').map(p, p.k + '=' + urlEncode(p.v))
                 + keys(inputs.?params.orValue({})).map(k, k + '=' + urlEncode(inputs.?params.orValue({})[k])), '&')
-            , '&'), '?')
+            , '?')
       - name: put
         invoke:
           kind: Http.Request
@@ -2011,7 +2015,7 @@ invoke:
 inputs:
   method: GET
   url: !cel >-
-    trimSuffix(trimSuffix(
+    trimSuffix(
       '/drive/v3/files/' + urlEncode(inputs.fileId) + '/permissions?' + join([
         {'k': 'pageSize', 'v': has(inputs.pageSize) ? string(inputs.pageSize) : ''},
         {'k': 'pageToken', 'v': inputs.?pageToken.orValue('')},
@@ -2021,7 +2025,7 @@ inputs:
         {'k': 'includePermissionsForView', 'v': inputs.?includePermissionsForView.orValue('')}
       ].filter(p, p.v != '').map(p, p.k + '=' + urlEncode(p.v))
         + keys(inputs.?params.orValue({})).map(k, k + '=' + urlEncode(inputs.?params.orValue({})[k])), '&')
-    , '&'), '?')
+    , '?')
 ---
 # GET /drive/v3/files/{fileId}/permissions/{permissionId} — read one permission.
 kind: Telo.Definition
@@ -2085,14 +2089,14 @@ invoke:
 inputs:
   method: GET
   url: !cel >-
-    trimSuffix(trimSuffix(
+    trimSuffix(
       '/drive/v3/files/' + urlEncode(inputs.fileId) + '/permissions/' + urlEncode(inputs.permissionId) + '?' + join([
         {'k': 'fields', 'v': inputs.?fields.orValue('')},
         {'k': 'supportsAllDrives', 'v': string(inputs.?supportsAllDrives.orValue(true))},
         {'k': 'useDomainAdminAccess', 'v': has(inputs.useDomainAdminAccess) ? string(inputs.useDomainAdminAccess) : ''}
       ].filter(p, p.v != '').map(p, p.k + '=' + urlEncode(p.v))
         + keys(inputs.?params.orValue({})).map(k, k + '=' + urlEncode(inputs.?params.orValue({})[k])), '&')
-    , '&'), '?')
+    , '?')
 ---
 # POST /drive/v3/files/{fileId}/permissions — share a file or shared drive.
 # `permission` is { role: reader|commenter|writer|fileOrganizer|organizer|owner,
@@ -2173,7 +2177,7 @@ inputs:
   method: POST
   body: !cel "inputs.permission"
   url: !cel >-
-    trimSuffix(trimSuffix(
+    trimSuffix(
       '/drive/v3/files/' + urlEncode(inputs.fileId) + '/permissions?' + join([
         {'k': 'emailMessage', 'v': inputs.?emailMessage.orValue('')},
         {'k': 'sendNotificationEmail', 'v': has(inputs.sendNotificationEmail) ? string(inputs.sendNotificationEmail) : ''},
@@ -2184,7 +2188,7 @@ inputs:
         {'k': 'fields', 'v': inputs.?fields.orValue('')}
       ].filter(p, p.v != '').map(p, p.k + '=' + urlEncode(p.v))
         + keys(inputs.?params.orValue({})).map(k, k + '=' + urlEncode(inputs.?params.orValue({})[k])), '&')
-    , '&'), '?')
+    , '?')
 ---
 # PATCH /drive/v3/files/{fileId}/permissions/{permissionId} — change a
 # permission's role or expiration.
@@ -2260,7 +2264,7 @@ inputs:
   method: PATCH
   body: !cel "inputs.permission"
   url: !cel >-
-    trimSuffix(trimSuffix(
+    trimSuffix(
       '/drive/v3/files/' + urlEncode(inputs.fileId) + '/permissions/' + urlEncode(inputs.permissionId) + '?' + join([
         {'k': 'removeExpiration', 'v': has(inputs.removeExpiration) ? string(inputs.removeExpiration) : ''},
         {'k': 'transferOwnership', 'v': has(inputs.transferOwnership) ? string(inputs.transferOwnership) : ''},
@@ -2269,7 +2273,7 @@ inputs:
         {'k': 'fields', 'v': inputs.?fields.orValue('')}
       ].filter(p, p.v != '').map(p, p.k + '=' + urlEncode(p.v))
         + keys(inputs.?params.orValue({})).map(k, k + '=' + urlEncode(inputs.?params.orValue({})[k])), '&')
-    , '&'), '?')
+    , '?')
 ---
 # DELETE /drive/v3/files/{fileId}/permissions/{permissionId} — revoke access.
 kind: Telo.Definition
@@ -2330,13 +2334,13 @@ invoke:
 inputs:
   method: DELETE
   url: !cel >-
-    trimSuffix(trimSuffix(
+    trimSuffix(
       '/drive/v3/files/' + urlEncode(inputs.fileId) + '/permissions/' + urlEncode(inputs.permissionId) + '?' + join([
         {'k': 'supportsAllDrives', 'v': string(inputs.?supportsAllDrives.orValue(true))},
         {'k': 'useDomainAdminAccess', 'v': has(inputs.useDomainAdminAccess) ? string(inputs.useDomainAdminAccess) : ''}
       ].filter(p, p.v != '').map(p, p.k + '=' + urlEncode(p.v))
         + keys(inputs.?params.orValue({})).map(k, k + '=' + urlEncode(inputs.?params.orValue({})[k])), '&')
-    , '&'), '?')
+    , '?')
 ---
 # GET /drive/v3/files/{fileId}/comments — list a file's comments. The Comments
 # API requires a `fields` mask; it defaults to "*" here.
@@ -2404,7 +2408,7 @@ invoke:
 inputs:
   method: GET
   url: !cel >-
-    trimSuffix(trimSuffix(
+    trimSuffix(
       '/drive/v3/files/' + urlEncode(inputs.fileId) + '/comments?' + join([
         {'k': 'includeDeleted', 'v': has(inputs.includeDeleted) ? string(inputs.includeDeleted) : ''},
         {'k': 'pageSize', 'v': has(inputs.pageSize) ? string(inputs.pageSize) : ''},
@@ -2413,7 +2417,7 @@ inputs:
         {'k': 'fields', 'v': inputs.?fields.orValue('*')}
       ].filter(p, p.v != '').map(p, p.k + '=' + urlEncode(p.v))
         + keys(inputs.?params.orValue({})).map(k, k + '=' + urlEncode(inputs.?params.orValue({})[k])), '&')
-    , '&'), '?')
+    , '?')
 ---
 # GET /drive/v3/files/{fileId}/comments/{commentId} — read one comment.
 kind: Telo.Definition
@@ -2474,13 +2478,13 @@ invoke:
 inputs:
   method: GET
   url: !cel >-
-    trimSuffix(trimSuffix(
+    trimSuffix(
       '/drive/v3/files/' + urlEncode(inputs.fileId) + '/comments/' + urlEncode(inputs.commentId) + '?' + join([
         {'k': 'includeDeleted', 'v': has(inputs.includeDeleted) ? string(inputs.includeDeleted) : ''},
         {'k': 'fields', 'v': inputs.?fields.orValue('*')}
       ].filter(p, p.v != '').map(p, p.k + '=' + urlEncode(p.v))
         + keys(inputs.?params.orValue({})).map(k, k + '=' + urlEncode(inputs.?params.orValue({})[k])), '&')
-    , '&'), '?')
+    , '?')
 ---
 # POST /drive/v3/files/{fileId}/comments — add a comment. `comment` is
 # { content, anchor?, quotedFileContent? }.
@@ -2541,12 +2545,12 @@ inputs:
   method: POST
   body: !cel "inputs.comment"
   url: !cel >-
-    trimSuffix(trimSuffix(
+    trimSuffix(
       '/drive/v3/files/' + urlEncode(inputs.fileId) + '/comments?' + join([
         {'k': 'fields', 'v': inputs.?fields.orValue('*')}
       ].filter(p, p.v != '').map(p, p.k + '=' + urlEncode(p.v))
         + keys(inputs.?params.orValue({})).map(k, k + '=' + urlEncode(inputs.?params.orValue({})[k])), '&')
-    , '&'), '?')
+    , '?')
 ---
 # PATCH /drive/v3/files/{fileId}/comments/{commentId} — edit a comment's
 # content or resolve it ({ resolved: true }).
@@ -2610,12 +2614,12 @@ inputs:
   method: PATCH
   body: !cel "inputs.comment"
   url: !cel >-
-    trimSuffix(trimSuffix(
+    trimSuffix(
       '/drive/v3/files/' + urlEncode(inputs.fileId) + '/comments/' + urlEncode(inputs.commentId) + '?' + join([
         {'k': 'fields', 'v': inputs.?fields.orValue('*')}
       ].filter(p, p.v != '').map(p, p.k + '=' + urlEncode(p.v))
         + keys(inputs.?params.orValue({})).map(k, k + '=' + urlEncode(inputs.?params.orValue({})[k])), '&')
-    , '&'), '?')
+    , '?')
 ---
 # DELETE /drive/v3/files/{fileId}/comments/{commentId} — delete a comment.
 kind: Telo.Definition
@@ -2670,10 +2674,10 @@ invoke:
 inputs:
   method: DELETE
   url: !cel >-
-    trimSuffix(trimSuffix(
+    trimSuffix(
       '/drive/v3/files/' + urlEncode(inputs.fileId) + '/comments/' + urlEncode(inputs.commentId) + '?'
         + join(keys(inputs.?params.orValue({})).map(k, k + '=' + urlEncode(inputs.?params.orValue({})[k])), '&')
-    , '&'), '?')
+    , '?')
 ---
 # GET /drive/v3/files/{fileId}/comments/{commentId}/replies — list a comment's
 # replies. `fields` is required by the API and defaults to "*".
@@ -2741,7 +2745,7 @@ invoke:
 inputs:
   method: GET
   url: !cel >-
-    trimSuffix(trimSuffix(
+    trimSuffix(
       '/drive/v3/files/' + urlEncode(inputs.fileId) + '/comments/' + urlEncode(inputs.commentId) + '/replies?' + join([
         {'k': 'includeDeleted', 'v': has(inputs.includeDeleted) ? string(inputs.includeDeleted) : ''},
         {'k': 'pageSize', 'v': has(inputs.pageSize) ? string(inputs.pageSize) : ''},
@@ -2749,7 +2753,7 @@ inputs:
         {'k': 'fields', 'v': inputs.?fields.orValue('*')}
       ].filter(p, p.v != '').map(p, p.k + '=' + urlEncode(p.v))
         + keys(inputs.?params.orValue({})).map(k, k + '=' + urlEncode(inputs.?params.orValue({})[k])), '&')
-    , '&'), '?')
+    , '?')
 ---
 # GET /drive/v3/files/{fileId}/comments/{commentId}/replies/{replyId} — read one reply.
 kind: Telo.Definition
@@ -2813,14 +2817,14 @@ invoke:
 inputs:
   method: GET
   url: !cel >-
-    trimSuffix(trimSuffix(
+    trimSuffix(
       '/drive/v3/files/' + urlEncode(inputs.fileId) + '/comments/' + urlEncode(inputs.commentId)
         + '/replies/' + urlEncode(inputs.replyId) + '?' + join([
         {'k': 'includeDeleted', 'v': has(inputs.includeDeleted) ? string(inputs.includeDeleted) : ''},
         {'k': 'fields', 'v': inputs.?fields.orValue('*')}
       ].filter(p, p.v != '').map(p, p.k + '=' + urlEncode(p.v))
         + keys(inputs.?params.orValue({})).map(k, k + '=' + urlEncode(inputs.?params.orValue({})[k])), '&')
-    , '&'), '?')
+    , '?')
 ---
 # POST /drive/v3/files/{fileId}/comments/{commentId}/replies — reply to a
 # comment. `reply` is { content } or { action: resolve|reopen, content? }.
@@ -2884,12 +2888,12 @@ inputs:
   method: POST
   body: !cel "inputs.reply"
   url: !cel >-
-    trimSuffix(trimSuffix(
+    trimSuffix(
       '/drive/v3/files/' + urlEncode(inputs.fileId) + '/comments/' + urlEncode(inputs.commentId) + '/replies?' + join([
         {'k': 'fields', 'v': inputs.?fields.orValue('*')}
       ].filter(p, p.v != '').map(p, p.k + '=' + urlEncode(p.v))
         + keys(inputs.?params.orValue({})).map(k, k + '=' + urlEncode(inputs.?params.orValue({})[k])), '&')
-    , '&'), '?')
+    , '?')
 ---
 # PATCH /drive/v3/files/{fileId}/comments/{commentId}/replies/{replyId} — edit a reply.
 kind: Telo.Definition
@@ -2955,13 +2959,13 @@ inputs:
   method: PATCH
   body: !cel "inputs.reply"
   url: !cel >-
-    trimSuffix(trimSuffix(
+    trimSuffix(
       '/drive/v3/files/' + urlEncode(inputs.fileId) + '/comments/' + urlEncode(inputs.commentId)
         + '/replies/' + urlEncode(inputs.replyId) + '?' + join([
         {'k': 'fields', 'v': inputs.?fields.orValue('*')}
       ].filter(p, p.v != '').map(p, p.k + '=' + urlEncode(p.v))
         + keys(inputs.?params.orValue({})).map(k, k + '=' + urlEncode(inputs.?params.orValue({})[k])), '&')
-    , '&'), '?')
+    , '?')
 ---
 # DELETE /drive/v3/files/{fileId}/comments/{commentId}/replies/{replyId} — delete a reply.
 kind: Telo.Definition
@@ -3019,11 +3023,11 @@ invoke:
 inputs:
   method: DELETE
   url: !cel >-
-    trimSuffix(trimSuffix(
+    trimSuffix(
       '/drive/v3/files/' + urlEncode(inputs.fileId) + '/comments/' + urlEncode(inputs.commentId)
         + '/replies/' + urlEncode(inputs.replyId) + '?'
         + join(keys(inputs.?params.orValue({})).map(k, k + '=' + urlEncode(inputs.?params.orValue({})[k])), '&')
-    , '&'), '?')
+    , '?')
 ---
 # GET /drive/v3/files/{fileId}/revisions — list a file's revisions.
 kind: Telo.Definition
@@ -3084,14 +3088,14 @@ invoke:
 inputs:
   method: GET
   url: !cel >-
-    trimSuffix(trimSuffix(
+    trimSuffix(
       '/drive/v3/files/' + urlEncode(inputs.fileId) + '/revisions?' + join([
         {'k': 'pageSize', 'v': has(inputs.pageSize) ? string(inputs.pageSize) : ''},
         {'k': 'pageToken', 'v': inputs.?pageToken.orValue('')},
         {'k': 'fields', 'v': inputs.?fields.orValue('')}
       ].filter(p, p.v != '').map(p, p.k + '=' + urlEncode(p.v))
         + keys(inputs.?params.orValue({})).map(k, k + '=' + urlEncode(inputs.?params.orValue({})[k])), '&')
-    , '&'), '?')
+    , '?')
 ---
 # GET /drive/v3/files/{fileId}/revisions/{revisionId} — read a revision's metadata.
 kind: Telo.Definition
@@ -3152,13 +3156,13 @@ invoke:
 inputs:
   method: GET
   url: !cel >-
-    trimSuffix(trimSuffix(
+    trimSuffix(
       '/drive/v3/files/' + urlEncode(inputs.fileId) + '/revisions/' + urlEncode(inputs.revisionId) + '?' + join([
         {'k': 'fields', 'v': inputs.?fields.orValue('')},
         {'k': 'acknowledgeAbuse', 'v': has(inputs.acknowledgeAbuse) ? string(inputs.acknowledgeAbuse) : ''}
       ].filter(p, p.v != '').map(p, p.k + '=' + urlEncode(p.v))
         + keys(inputs.?params.orValue({})).map(k, k + '=' + urlEncode(inputs.?params.orValue({})[k])), '&')
-    , '&'), '?')
+    , '?')
 ---
 # GET /drive/v3/files/{fileId}/revisions/{revisionId}?alt=media — download a
 # revision's binary content (binary files only).
@@ -3227,12 +3231,12 @@ inputs:
   method: GET
   responseType: !cel "inputs.?responseType.orValue('bytes')"
   url: !cel >-
-    trimSuffix(trimSuffix(
+    trimSuffix(
       '/drive/v3/files/' + urlEncode(inputs.fileId) + '/revisions/' + urlEncode(inputs.revisionId) + '?alt=media&' + join([
         {'k': 'acknowledgeAbuse', 'v': has(inputs.acknowledgeAbuse) ? string(inputs.acknowledgeAbuse) : ''}
       ].filter(p, p.v != '').map(p, p.k + '=' + urlEncode(p.v))
         + keys(inputs.?params.orValue({})).map(k, k + '=' + urlEncode(inputs.?params.orValue({})[k])), '&')
-    , '&'), '?')
+    , '?')
 ---
 # PATCH /drive/v3/files/{fileId}/revisions/{revisionId} — pin a revision
 # ({ keepForever: true }) or change its publish settings.
@@ -3296,12 +3300,12 @@ inputs:
   method: PATCH
   body: !cel "inputs.revision"
   url: !cel >-
-    trimSuffix(trimSuffix(
+    trimSuffix(
       '/drive/v3/files/' + urlEncode(inputs.fileId) + '/revisions/' + urlEncode(inputs.revisionId) + '?' + join([
         {'k': 'fields', 'v': inputs.?fields.orValue('')}
       ].filter(p, p.v != '').map(p, p.k + '=' + urlEncode(p.v))
         + keys(inputs.?params.orValue({})).map(k, k + '=' + urlEncode(inputs.?params.orValue({})[k])), '&')
-    , '&'), '?')
+    , '?')
 ---
 # DELETE /drive/v3/files/{fileId}/revisions/{revisionId} — permanently delete a
 # revision (binary files only; the head revision cannot be deleted).
@@ -3357,10 +3361,10 @@ invoke:
 inputs:
   method: DELETE
   url: !cel >-
-    trimSuffix(trimSuffix(
+    trimSuffix(
       '/drive/v3/files/' + urlEncode(inputs.fileId) + '/revisions/' + urlEncode(inputs.revisionId) + '?'
         + join(keys(inputs.?params.orValue({})).map(k, k + '=' + urlEncode(inputs.?params.orValue({})[k])), '&')
-    , '&'), '?')
+    , '?')
 ---
 # GET /drive/v3/drives — list the shared drives the user can access (or all,
 # as a domain admin with useDomainAdminAccess and a `q` filter).
@@ -3424,7 +3428,7 @@ invoke:
 inputs:
   method: GET
   url: !cel >-
-    trimSuffix(trimSuffix(
+    trimSuffix(
       '/drive/v3/drives?' + join([
         {'k': 'pageSize', 'v': has(inputs.pageSize) ? string(inputs.pageSize) : ''},
         {'k': 'pageToken', 'v': inputs.?pageToken.orValue('')},
@@ -3433,7 +3437,7 @@ inputs:
         {'k': 'fields', 'v': inputs.?fields.orValue('')}
       ].filter(p, p.v != '').map(p, p.k + '=' + urlEncode(p.v))
         + keys(inputs.?params.orValue({})).map(k, k + '=' + urlEncode(inputs.?params.orValue({})[k])), '&')
-    , '&'), '?')
+    , '?')
 ---
 # GET /drive/v3/drives/{driveId} — read a shared drive's metadata.
 kind: Telo.Definition
@@ -3491,13 +3495,13 @@ invoke:
 inputs:
   method: GET
   url: !cel >-
-    trimSuffix(trimSuffix(
+    trimSuffix(
       '/drive/v3/drives/' + urlEncode(inputs.driveId) + '?' + join([
         {'k': 'useDomainAdminAccess', 'v': has(inputs.useDomainAdminAccess) ? string(inputs.useDomainAdminAccess) : ''},
         {'k': 'fields', 'v': inputs.?fields.orValue('')}
       ].filter(p, p.v != '').map(p, p.k + '=' + urlEncode(p.v))
         + keys(inputs.?params.orValue({})).map(k, k + '=' + urlEncode(inputs.?params.orValue({})[k])), '&')
-    , '&'), '?')
+    , '?')
 ---
 # POST /drive/v3/drives?requestId=… — create a shared drive. `requestId` is a
 # caller-chosen idempotency key: repeating it returns the drive already created.
@@ -3558,13 +3562,13 @@ inputs:
   method: POST
   body: !cel "inputs.drive"
   url: !cel >-
-    trimSuffix(trimSuffix(
+    trimSuffix(
       '/drive/v3/drives?' + join([
         {'k': 'requestId', 'v': inputs.requestId},
         {'k': 'fields', 'v': inputs.?fields.orValue('')}
       ].filter(p, p.v != '').map(p, p.k + '=' + urlEncode(p.v))
         + keys(inputs.?params.orValue({})).map(k, k + '=' + urlEncode(inputs.?params.orValue({})[k])), '&')
-    , '&'), '?')
+    , '?')
 ---
 # PATCH /drive/v3/drives/{driveId} — rename a shared drive, change its theme or
 # restrictions.
@@ -3628,13 +3632,13 @@ inputs:
   method: PATCH
   body: !cel "inputs.drive"
   url: !cel >-
-    trimSuffix(trimSuffix(
+    trimSuffix(
       '/drive/v3/drives/' + urlEncode(inputs.driveId) + '?' + join([
         {'k': 'useDomainAdminAccess', 'v': has(inputs.useDomainAdminAccess) ? string(inputs.useDomainAdminAccess) : ''},
         {'k': 'fields', 'v': inputs.?fields.orValue('')}
       ].filter(p, p.v != '').map(p, p.k + '=' + urlEncode(p.v))
         + keys(inputs.?params.orValue({})).map(k, k + '=' + urlEncode(inputs.?params.orValue({})[k])), '&')
-    , '&'), '?')
+    , '?')
 ---
 # DELETE /drive/v3/drives/{driveId} — permanently delete a shared drive. It
 # must be empty unless allowItemDeletion is set (domain admin only).
@@ -3693,13 +3697,13 @@ invoke:
 inputs:
   method: DELETE
   url: !cel >-
-    trimSuffix(trimSuffix(
+    trimSuffix(
       '/drive/v3/drives/' + urlEncode(inputs.driveId) + '?' + join([
         {'k': 'useDomainAdminAccess', 'v': has(inputs.useDomainAdminAccess) ? string(inputs.useDomainAdminAccess) : ''},
         {'k': 'allowItemDeletion', 'v': has(inputs.allowItemDeletion) ? string(inputs.allowItemDeletion) : ''}
       ].filter(p, p.v != '').map(p, p.k + '=' + urlEncode(p.v))
         + keys(inputs.?params.orValue({})).map(k, k + '=' + urlEncode(inputs.?params.orValue({})[k])), '&')
-    , '&'), '?')
+    , '?')
 ---
 # POST /drive/v3/drives/{driveId}/hide — hide a shared drive from the default view.
 kind: Telo.Definition
@@ -3751,10 +3755,10 @@ invoke:
 inputs:
   method: POST
   url: !cel >-
-    trimSuffix(trimSuffix(
+    trimSuffix(
       '/drive/v3/drives/' + urlEncode(inputs.driveId) + '/hide?'
         + join(keys(inputs.?params.orValue({})).map(k, k + '=' + urlEncode(inputs.?params.orValue({})[k])), '&')
-    , '&'), '?')
+    , '?')
 ---
 # POST /drive/v3/drives/{driveId}/unhide — restore a shared drive to the default view.
 kind: Telo.Definition
@@ -3806,10 +3810,10 @@ invoke:
 inputs:
   method: POST
   url: !cel >-
-    trimSuffix(trimSuffix(
+    trimSuffix(
       '/drive/v3/drives/' + urlEncode(inputs.driveId) + '/unhide?'
         + join(keys(inputs.?params.orValue({})).map(k, k + '=' + urlEncode(inputs.?params.orValue({})[k])), '&')
-    , '&'), '?')
+    , '?')
 ---
 # GET /drive/v3/changes/startPageToken — the token to start tracking changes
 # from "now". Store it and feed it to ListChanges later.
@@ -3867,14 +3871,14 @@ invoke:
 inputs:
   method: GET
   url: !cel >-
-    trimSuffix(trimSuffix(
+    trimSuffix(
       '/drive/v3/changes/startPageToken?' + join([
         {'k': 'driveId', 'v': inputs.?driveId.orValue('')},
         {'k': 'supportsAllDrives', 'v': string(inputs.?supportsAllDrives.orValue(true))},
         {'k': 'fields', 'v': inputs.?fields.orValue('')}
       ].filter(p, p.v != '').map(p, p.k + '=' + urlEncode(p.v))
         + keys(inputs.?params.orValue({})).map(k, k + '=' + urlEncode(inputs.?params.orValue({})[k])), '&')
-    , '&'), '?')
+    , '?')
 ---
 # GET /drive/v3/changes — the changes since a page token. Follow nextPageToken
 # while present; when newStartPageToken appears, store it for the next poll.
@@ -3960,7 +3964,7 @@ invoke:
 inputs:
   method: GET
   url: !cel >-
-    trimSuffix(trimSuffix(
+    trimSuffix(
       '/drive/v3/changes?' + join([
         {'k': 'pageToken', 'v': inputs.pageToken},
         {'k': 'pageSize', 'v': has(inputs.pageSize) ? string(inputs.pageSize) : ''},
@@ -3976,7 +3980,7 @@ inputs:
         {'k': 'fields', 'v': inputs.?fields.orValue('')}
       ].filter(p, p.v != '').map(p, p.k + '=' + urlEncode(p.v))
         + keys(inputs.?params.orValue({})).map(k, k + '=' + urlEncode(inputs.?params.orValue({})[k])), '&')
-    , '&'), '?')
+    , '?')
 ---
 # POST /drive/v3/changes/watch — subscribe a webhook channel to all changes
 # from a page token onward. Stop it with StopChannel.
@@ -4061,7 +4065,7 @@ inputs:
   method: POST
   body: !cel "inputs.channel"
   url: !cel >-
-    trimSuffix(trimSuffix(
+    trimSuffix(
       '/drive/v3/changes/watch?' + join([
         {'k': 'pageToken', 'v': inputs.pageToken},
         {'k': 'driveId', 'v': inputs.?driveId.orValue('')},
@@ -4075,7 +4079,7 @@ inputs:
         {'k': 'fields', 'v': inputs.?fields.orValue('')}
       ].filter(p, p.v != '').map(p, p.k + '=' + urlEncode(p.v))
         + keys(inputs.?params.orValue({})).map(k, k + '=' + urlEncode(inputs.?params.orValue({})[k])), '&')
-    , '&'), '?')
+    , '?')
 ---
 # GET /drive/v3/about — the user, storage quota, import/export formats and
 # limits. `fields` is required by the API; defaults to "*".
@@ -4127,12 +4131,12 @@ invoke:
 inputs:
   method: GET
   url: !cel >-
-    trimSuffix(trimSuffix(
+    trimSuffix(
       '/drive/v3/about?' + join([
         {'k': 'fields', 'v': inputs.?fields.orValue('*')}
       ].filter(p, p.v != '').map(p, p.k + '=' + urlEncode(p.v))
         + keys(inputs.?params.orValue({})).map(k, k + '=' + urlEncode(inputs.?params.orValue({})[k])), '&')
-    , '&'), '?')
+    , '?')
 ---
 # POST /drive/v3/channels/stop — stop a push notification channel opened by
 # WatchFile or WatchChanges. Needs the channel `id` and the `resourceId` from
@@ -4192,10 +4196,10 @@ inputs:
     id: !cel "inputs.id"
     resourceId: !cel "inputs.resourceId"
   url: !cel >-
-    trimSuffix(trimSuffix(
+    trimSuffix(
       '/drive/v3/channels/stop?'
         + join(keys(inputs.?params.orValue({})).map(k, k + '=' + urlEncode(inputs.?params.orValue({})[k])), '&')
-    , '&'), '?')
+    , '?')
 ---
 # GET /drive/v3/apps — the apps the user has installed or authorized.
 kind: Telo.Definition
@@ -4255,7 +4259,7 @@ invoke:
 inputs:
   method: GET
   url: !cel >-
-    trimSuffix(trimSuffix(
+    trimSuffix(
       '/drive/v3/apps?' + join([
         {'k': 'appFilterExtensions', 'v': inputs.?appFilterExtensions.orValue('')},
         {'k': 'appFilterMimeTypes', 'v': inputs.?appFilterMimeTypes.orValue('')},
@@ -4263,7 +4267,7 @@ inputs:
         {'k': 'fields', 'v': inputs.?fields.orValue('')}
       ].filter(p, p.v != '').map(p, p.k + '=' + urlEncode(p.v))
         + keys(inputs.?params.orValue({})).map(k, k + '=' + urlEncode(inputs.?params.orValue({})[k])), '&')
-    , '&'), '?')
+    , '?')
 ---
 # GET /drive/v3/apps/{appId} — one installed app.
 kind: Telo.Definition
@@ -4318,70 +4322,9 @@ invoke:
 inputs:
   method: GET
   url: !cel >-
-    trimSuffix(trimSuffix(
+    trimSuffix(
       '/drive/v3/apps/' + urlEncode(inputs.appId) + '?' + join([
         {'k': 'fields', 'v': inputs.?fields.orValue('')}
       ].filter(p, p.v != '').map(p, p.k + '=' + urlEncode(p.v))
         + keys(inputs.?params.orValue({})).map(k, k + '=' + urlEncode(inputs.?params.orValue({})[k])), '&')
-    , '&'), '?')
----
-# POST https://oauth2.googleapis.com/token — exchange an OAuth2 refresh token for
-# a fresh access token. Pure HTTP (no signing), so it needs no client: it posts a
-# form-encoded body to Google's token endpoint. Feed body.access_token into a
-# GoogleDriveClient. Obtain clientId/clientSecret/refreshToken from a Google
-# Cloud OAuth client + consent grant with a Drive scope
-# (https://www.googleapis.com/auth/drive, …/drive.file, …/drive.readonly).
-# For a long-running process prefer a refreshing Http.Credential on the client.
-kind: Telo.Definition
-metadata:
-  name: RefreshAccessToken
-  description: Exchange an OAuth2 refresh token for a fresh Google access token.
-capability: Telo.Invocable
-schema:
-  type: object
-inputType:
-  kind: Telo.JsonSchema
-  schema:
-    type: object
-    required: [clientId, clientSecret, refreshToken]
-    properties:
-      clientId:
-        type: string
-        description: OAuth2 client id.
-      clientSecret:
-        type: string
-        description: OAuth2 client secret.
-      refreshToken:
-        type: string
-        description: OAuth2 refresh token previously granted for a Drive scope.
-      tokenUrl:
-        type: string
-        description: Override the token endpoint (a proxy or a stub). Defaults to https://oauth2.googleapis.com/token.
-outputType:
-  kind: Telo.JsonSchema
-  schema:
-    type: object
-    required: [status, headers, body]
-    properties:
-      status: { type: integer }
-      headers: { type: object, additionalProperties: { type: string } }
-      body:
-        description: Parsed JSON — { access_token, expires_in, scope, token_type }.
-resources:
-  - kind: Http.Request
-    metadata:
-      name: !cel "self.name + '-req'"
-    throwOnHttpError: true
-invoke:
-  kind: Http.Request
-  name: !cel "self.name + '-req'"
-inputs:
-  method: POST
-  url: !cel "inputs.?tokenUrl.orValue('https://oauth2.googleapis.com/token')"
-  headers:
-    Content-Type: application/x-www-form-urlencoded
-  body: !cel >-
-    'client_id=' + urlEncode(inputs.clientId) +
-    '&client_secret=' + urlEncode(inputs.clientSecret) +
-    '&refresh_token=' + urlEncode(inputs.refreshToken) +
-    '&grant_type=refresh_token'
+    , '?')

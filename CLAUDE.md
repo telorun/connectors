@@ -65,9 +65,16 @@ Capabilities a kind can have (the lifecycle role):
     Http: oci://ghcr.io/telorun/http-client@0.19.0#sha256-rDyxrt23Z4u9H1_dwOgI3ajoMwEm6i9h-HbMmEQlRxg
   ```
 
-  A relative path (`../`, `../../`) is still the way to import a sibling module in
-  this repo from its own tests. Get the exact ref + digest from
-  `telo module search` / `telo module manifest`; never hand-write a digest.
+  A relative path is the way to import a sibling module in this repo — and it
+  must carry **no trailing slash and no `/telo.yaml`** (`../auth`, not `../auth/`).
+  All three spellings pass `telo check`, but the latter two make `telo release`
+  see two publish destinations for one module and fail.
+
+  **Never hand-write or derive a digest — run `telo upgrade <file>`.** It pins an
+  unpinned import in place without changing the version (`already at 0.4.3,
+  pinned`). `telo module digest` prints a *different* digest in a different
+  encoding and is not the one imports use; `IMPORT_UNRESOLVED` also reports the
+  correct value when a wrong one is supplied.
   Object form `{ source, variables?, secrets? }` forwards values into the
   imported library. Reference an imported kind as `kind: <Alias>.<KindName>`,
   and an imported instance as `!ref <Alias>.<name>`.
@@ -84,6 +91,25 @@ Capabilities a kind can have (the lifecycle role):
 - `exports:` (Library only) — `kinds:` (kind names importers may use) and
   `resources:` (instance names importers may `!ref`). The gate is the list: a kind
   or instance not listed is unreachable by importers.
+
+  **Re-export an imported kind or instance by listing it alias-qualified** —
+  `<Alias>.<Kind>` — and it becomes available under THIS module's prefix, with no
+  local subtype:
+
+  ```yaml
+  imports:
+    GoogleAuth: ../auth
+  exports:
+    kinds:
+      - GmailClient                    # declared here
+      - GoogleAuth.GoogleCredential    # re-exported; consumers write Gmail.GoogleCredential
+    resources:
+      - GoogleAuth.sharedThing         # same form for instances
+  ```
+
+  This is what lets a connector be used standalone — the consumer imports the
+  connector and never its dependencies. A **bare** name (`GoogleCredential`)
+  names nothing and is rejected with `EXPORT_KIND_UNKNOWN`.
 
 ## References and CEL — strict rules
 
@@ -161,12 +187,31 @@ Key `x-telo-*` annotations:
   (`telo module manifest`) rather than guessing a `use`.
 - `x-telo-eval: "compile" | "runtime"` — when `${{}}`/`!cel` in the field is
   evaluated. CEL-bearing fields MUST carry this (or sit under a context region).
+  This includes any schema field a CONSUMER will fill with `!cel` — a
+  `clientSecret` bound as `!cel "secrets.x"` needs `x-telo-eval: compile`, or
+  `telo check` raises `CEL_IN_NON_EVAL_FIELD`.
 - `x-telo-context: <schema>` — declares the CEL variables in scope inside a
   handler field (analyzer-only).
 
 Inside a `Telo.Definition` body, CEL sees `self` (typed from this kind's own
 `schema:`) and, for Invocable/Runnable kinds, `inputs` (the caller's invoke args,
 typed from `inputType:`).
+
+**Mutually exclusive fields belong in one kind with a `oneOf`, not two sibling
+kinds.** Two kinds cannot express "exactly one of these"; a `oneOf` makes both
+mistakes `telo check` errors with usable messages (`matches no alternative —
+expected one with 'accessToken', or one with 'credential'` / `must match exactly
+one schema in oneOf`).
+
+```yaml
+schema:
+  type: object
+  required: [baseUrl]
+  oneOf:
+    - required: [accessToken]
+    - required: [credential]
+  properties: { ... }
+```
 
 ## Two ways to build on an existing kind
 
@@ -188,6 +233,18 @@ runtime and is accepted at every `!ref` slot the parent is (Liskov-substitutable
   fixed or per-call-overridable is the parent controller's contract (fixed for
   `create()`-consuming kinds like `Http.Client`; overridable defaults for
   `invoke()`-layering kinds like `Http.Request`).
+- **An absent optional stays absent through `base:`.** `timeout: !cel "self.timeout"`
+  on an unset field forwards nothing, so the PARENT's default applies. Forward
+  rather than re-defaulting (`self.?timeout.orValue(60000)`), and a shared default
+  lives in exactly one place.
+- **`base:` may NOT name a resource declared alongside it.** That shape passes
+  `telo check` and fails at runtime with `Resource must have 'kind' property`,
+  reported against the *consumer's* manifest. A kind therefore cannot both narrow
+  its schema and wire its own internals — take the dependency as a `!ref` field
+  instead and let the consumer wire it.
+- `extends` chains across module boundaries, transitively: `GmailClient extends
+  GoogleAuth.GoogleClient extends Http.Client` works, and the grandchild is
+  accepted at every `Http.Client` slot.
 
 This is the canonical way to build a **service client** — specialize the
 http-client module's `Client` into a friendly, preconfigured client:
@@ -238,8 +295,31 @@ inputs:                              # dispatch-site inputs, from the caller's i
   method: GET
 ```
 
+A template may also **implement an abstract** by dispatching to a concrete
+resource — this is how you satisfy a contract like `Http.Credential` with no
+controller code:
+
+```yaml
+kind: Telo.Definition
+metadata: { name: MyCredential }
+capability: Telo.Invocable
+extends: Http.Credential             # the contract it satisfies
+schema: { type: object, required: [token], properties: { token: { type: string, x-telo-eval: compile } } }
+resources:
+  - kind: Http.BearerToken
+    metadata: { name: !cel "self.name + '-inner'" }
+    token: !cel "self.token"
+invoke:
+  kind: Http.BearerToken
+  name: !cel "self.name + '-inner'"
+inputs:
+  request: !cel "inputs.request"
+  forceRefresh: !cel "inputs.?forceRefresh.orValue(false)"
+```
+
 Use **inheritance** for the client and for fixed/config-driven operations; use
-**composition** for operations whose URL/body depend on per-invocation inputs.
+**composition** for operations whose URL/body depend on per-invocation inputs,
+and to implement an abstract over an existing concrete kind.
 Either way, an operation's `client` slot is typed `Http.Client` (the alias this
 file imports http-client under), so a specialized client (a `GithubClient`)
 drops straight in.
@@ -249,7 +329,8 @@ drops straight in.
 You have telo CLI at your disposal. Use it
 before writing any resource from a module you did not author:
 
-- `telo module search "some phrase"` — performs semantic search to find appropriate module.
+- `telo search "some phrase"` — semantic search for a kind across federated
+  modules. (There is no `telo module search`.)
 - `telo module manifest <ref>` — fetch a module's `telo.yaml`.
   Its `Telo.Definition` docs ARE JSON Schemas: the EXACT field names, types, and
   required fields. Read `schema` / `inputType` / `outputType` — never invent a
@@ -260,6 +341,33 @@ before writing any resource from a module you did not author:
 Also useful: `https://telo.run/llms.txt` (guide + kind reference),
 `https://telo.run/examples.md` (working manifests), `https://telo.run/cel.md`
 (CEL function reference).
+
+`telo cel functions` lists what the RUNTIME actually registers and
+`telo cel eval "<expr>"` evaluates one — check there rather than trusting the
+docs page, which has run ahead of the runtime before.
+
+## CEL in practice — verified traps
+
+- **A `!cel` containing a backslash MUST use a folded block (`!cel >-`).** In a
+  double-quoted YAML scalar, `"...\r\n..."` is turned into real CR/LF by the YAML
+  parser before CEL ever sees it, and `join(x, '` + newline + `')` is a syntax
+  error. In `>-` the backslashes survive.
+- **`type(x) == type('')`, not `type(x) == string`.** The bare type identifier
+  resolves in `telo cel eval` but is NOT in a manifest's analyzer scope, where it
+  fails with `'string' is not defined`.
+- **There is no map merge** — `+`, `merge(a,b)` and `a.merge(b)` are all
+  unregistered. A child kind can only REPLACE a parent's map field, so document a
+  map-valued override as replacing rather than merging.
+- **A port is `Telo.TcpPort`, not an int**: `string(ports.http)` has no overload.
+  Write `string(dyn(ports.http))` — and derive a test's `baseUrl` from
+  `ports.http` that way so the client and the server can never disagree.
+- Base64: `base64Encode`/`base64Decode` for text, `bytesToBase64`/`bytesFromBase64`
+  for bytes. There is no base64url — translate with
+  `replace(replace(x, '+', '-'), '/', '_')` and strip `=`.
+- Fixed-width chunking (e.g. RFC 2045 76-char lines):
+  `join(range((size(s) + 75) / 76).map(i, slice(s, i * 76, int(min([(i + 1) * 76, size(s)])))), '\r\n')`.
+- `Run.Value` `bindings:` are the way to keep a long expression readable — named
+  intermediates, evaluated on demand, referenced bare by later bindings.
 
 ## Validation & testing
 
@@ -272,6 +380,32 @@ Also useful: `https://telo.run/llms.txt` (guide + kind reference),
   the repo's test runner). Fixtures go under `__fixtures__/` (excluded from
   discovery). A test asserts behavior with kinds from the `assert` + `test`
   modules (`oci://ghcr.io/telorun/assert@…`, `oci://ghcr.io/telorun/test@…`).
+- **One Application per subject area, not one per module.** A connector's tests
+  split by what they cover (`messages.yaml`, `auth.yaml`, `uploads.yaml`), each
+  with a header comment saying what that area actually pins.
+- **The suite runs files in PARALLEL, so every Application needs its own port**
+  — its own `ports:` entry AND its own `env:` name. Two tests defaulting to the
+  same port fail intermittently.
+- **Share a stub across tests as a `Telo.Library` under `__fixtures__/`** that
+  exports a `Server.Api`; each test mounts it on its own `Server.Server`. A
+  route `path: /prefix/*` matches at any depth, so one wildcard route per method
+  covers a whole REST surface.
+- **Assert what went ON THE WIRE, written out literally** — the exact method,
+  path, query map and body — so a mistake in a CEL URL builder shows up as a diff
+  rather than being re-derived from the manifest under test. Where a value is
+  generated (a MIME boundary), normalize it with `regexReplace` and keep the
+  comparison exact.
+- `Assert.Manifest` pins that an invalid manifest IS rejected: it takes
+  `source:` (a path) and `expect: { errors: [ { code, message } ] }`, where
+  `message` is a substring. Point it at a deliberately-broken fixture under
+  `__fixtures__/`.
+
+**`telo check` passing is necessary, not sufficient — always run the manifest.**
+Several shapes check clean and fail at runtime: `base:` naming a sibling
+resource, an `Http.Client` with a `credential` declared inside a scope, and an
+`exports:` entry that names nothing (which fails in the CONSUMER's file, not
+yours). Treat a green check on something structural as unproven until it has
+run.
 
 ## Versioning — every module change needs a release fragment
 
@@ -372,3 +506,7 @@ merging it makes `publish-modules` push the artifacts.
 - `scripts/release.mjs` — a `telo release` subcommand across every vendor;
   `scripts/publish-modules.mjs` — the OCI/npm push pass, gated on version movement
   and per-version presence.
+
+## General rules
+
+- Never use AskUserQuestion tool, ask questions directly;

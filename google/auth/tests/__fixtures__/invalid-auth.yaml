@@ -1,0 +1,25 @@
+kind: Telo.Application
+metadata: { name: InvalidAuthFixture, version: 1.0.0 }
+# Test fixture: the two auth mistakes GoogleClient's `oneOf` must catch.
+# Never runs — it is asserted against by ../client.yaml and is expected to fail
+# `telo check` with exactly two SCHEMA_VIOLATIONs.
+imports:
+  GoogleAuth: ../../
+  Http: oci://ghcr.io/telorun/http-client@0.22.0#sha256-UyC8nQDnKHXyPpPPHC7TS8MicesLsgDUKWBYObf5oQ4
+targets: []
+---
+# no auth at all
+kind: GoogleAuth.GoogleClient
+metadata: { name: noAuth }
+baseUrl: https://example.googleapis.com
+---
+kind: Http.BearerToken
+metadata: { name: c }
+token: t
+---
+# both at once
+kind: GoogleAuth.GoogleClient
+metadata: { name: bothAuth }
+baseUrl: https://example.googleapis.com
+accessToken: tok
+credential: !ref c

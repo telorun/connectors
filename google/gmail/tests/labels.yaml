@@ -1,0 +1,115 @@
+kind: Telo.Application
+metadata:
+  name: GmailLabelsTest
+  version: 1.0.0
+# Label operations, including the PUT/PATCH pair: `UpdateLabel` replaces a label
+# wholesale and `PatchLabel` merges, so the two must reach Gmail under different
+# HTTP methods on the same path.
+imports:
+  Gmail: ../
+  Stub: ./__fixtures__/gmail-stub.yaml
+  Run: oci://ghcr.io/telorun/run@0.26.0#sha256-ZhW56yiMCImqBh0wJ4mVaUvh5WuUVIaWErASFx--wCY
+  Assert: oci://ghcr.io/telorun/assert@0.18.0#sha256-mSy7HGMq_UoQUvt4WbQCIO_uqXcRZwRlmROp6DfLDjY
+  Server: oci://ghcr.io/telorun/http-server@0.29.2#sha256-9MtWZqXF9agsYRx97nLMJZW7YYwXpW2dLYcn_oA4kUs
+ports:
+  http:
+    env: TEST_GMAIL_LABELS_PORT
+    default: 34833
+targets:
+  - !ref test
+---
+# The friendly client with a static token, pointed at the stub on
+# this test's own port — derived from `ports.http`, so the two can
+# never disagree. Every request carries
+# `Authorization: Bearer test-token`.
+kind: Gmail.GmailClient
+metadata: { name: stub }
+accessToken: test-token
+baseUrl: !cel "'http://localhost:' + string(dyn(ports.http))"
+---
+kind: Gmail.ListLabels
+metadata: { name: listLabels }
+client: !ref stub
+---
+kind: Gmail.GetLabel
+metadata: { name: getLabel }
+client: !ref stub
+---
+kind: Gmail.CreateLabel
+metadata: { name: createLabel }
+client: !ref stub
+---
+kind: Gmail.UpdateLabel
+metadata: { name: updateLabel }
+client: !ref stub
+---
+kind: Gmail.PatchLabel
+metadata: { name: patchLabel }
+client: !ref stub
+---
+kind: Gmail.DeleteLabel
+metadata: { name: deleteLabel }
+client: !ref stub
+---
+kind: Run.Sequence
+metadata: { name: test }
+# The stub is mounted inline in the sequence scope, so it starts
+# before the steps and is torn down when they finish.
+with:
+  - kind: Server.Server
+    metadata: { name: StubServer }
+    port: !cel "ports.http"
+    mounts:
+      - path: /
+        mount: !ref Stub.api
+targets:
+  - !ref StubServer
+steps:
+  - name: listLabels
+    invoke: !ref listLabels
+    inputs: {}
+  - name: assertListLabels
+    invoke: !ref Assert.equals
+    inputs:
+      actual: !cel "steps.listLabels.result.body.received"
+      expected: {"method": "GET", "path": "/gmail/v1/users/me/labels", "query": {}, "body": {}, "auth": "Bearer test-token"}
+  - name: getLabel
+    invoke: !ref getLabel
+    inputs: {"id": "Label_1"}
+  - name: assertGetLabel
+    invoke: !ref Assert.equals
+    inputs:
+      actual: !cel "steps.getLabel.result.body.received"
+      expected: {"method": "GET", "path": "/gmail/v1/users/me/labels/Label_1", "query": {}, "body": {}, "auth": "Bearer test-token"}
+  - name: createLabel
+    invoke: !ref createLabel
+    inputs: {"label": {"name": "Clients/Acme", "labelListVisibility": "labelShow"}}
+  - name: assertCreateLabel
+    invoke: !ref Assert.equals
+    inputs:
+      actual: !cel "steps.createLabel.result.body.received"
+      expected: {"method": "POST", "path": "/gmail/v1/users/me/labels", "query": {}, "body": {"name": "Clients/Acme", "labelListVisibility": "labelShow"}, "auth": "Bearer test-token"}
+  - name: updateLabel
+    invoke: !ref updateLabel
+    inputs: {"id": "Label_1", "label": {"name": "Renamed"}}
+  - name: assertUpdateLabel
+    invoke: !ref Assert.equals
+    inputs:
+      actual: !cel "steps.updateLabel.result.body.received"
+      expected: {"method": "PUT", "path": "/gmail/v1/users/me/labels/Label_1", "query": {}, "body": {"name": "Renamed"}, "auth": "Bearer test-token"}
+  - name: patchLabel
+    invoke: !ref patchLabel
+    inputs: {"id": "Label_1", "label": {"color": {"textColor": "#ffffff"}}}
+  - name: assertPatchLabel
+    invoke: !ref Assert.equals
+    inputs:
+      actual: !cel "steps.patchLabel.result.body.received"
+      expected: {"method": "PATCH", "path": "/gmail/v1/users/me/labels/Label_1", "query": {}, "body": {"color": {"textColor": "#ffffff"}}, "auth": "Bearer test-token"}
+  - name: deleteLabel
+    invoke: !ref deleteLabel
+    inputs: {"id": "Label_1"}
+  - name: assertDeleteLabel
+    invoke: !ref Assert.equals
+    inputs:
+      actual: !cel "steps.deleteLabel.result.body.received"
+      expected: {"method": "DELETE", "path": "/gmail/v1/users/me/labels/Label_1", "query": {}, "body": {}, "auth": "Bearer test-token"}

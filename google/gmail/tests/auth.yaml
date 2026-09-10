@@ -1,0 +1,121 @@
+kind: Telo.Application
+metadata:
+  name: GmailAuthTest
+  version: 1.0.0
+# How a request gets authenticated, which is the one thing every other test takes
+# for granted.
+#
+# GmailClient adds nothing to auth itself — it specializes GoogleAuth.GoogleClient
+# and supplies Gmail's host. What these cases pin is that the specialization did
+# not lose anything on the way down: a static `accessToken` still reaches the wire
+# as a Bearer header, a `credential` still overrides it, and the same GetProfile
+# kind is satisfied by a client configured either way.
+#
+# The neither/both mistakes are rejected by `telo check` rather than tested here
+# — GmailClient carries the same `oneOf` as its parent, and google/auth's own
+# tests assert the diagnostics.
+#
+# Gmail.RefreshAccessToken — re-exported from google/auth — is the third piece: it needs no client at all,
+# posting a form-encoded grant to Google's token endpoint, so the assertion is on
+# the form body it builds.
+imports:
+  Gmail: ../
+  Stub: ./__fixtures__/gmail-stub.yaml
+  Http: oci://ghcr.io/telorun/http-client@0.22.0#sha256-UyC8nQDnKHXyPpPPHC7TS8MicesLsgDUKWBYObf5oQ4
+  Run: oci://ghcr.io/telorun/run@0.26.0#sha256-ZhW56yiMCImqBh0wJ4mVaUvh5WuUVIaWErASFx--wCY
+  Assert: oci://ghcr.io/telorun/assert@0.18.0#sha256-mSy7HGMq_UoQUvt4WbQCIO_uqXcRZwRlmROp6DfLDjY
+  Server: oci://ghcr.io/telorun/http-server@0.29.2#sha256-9MtWZqXF9agsYRx97nLMJZW7YYwXpW2dLYcn_oA4kUs
+ports:
+  http:
+    env: TEST_GMAIL_AUTH_PORT
+    default: 34830
+targets:
+  - !ref test
+---
+# The friendly client with a static token, pointed at the stub on
+# this test's own port — derived from `ports.http`, so the two can
+# never disagree. Every request carries
+# `Authorization: Bearer test-token`.
+kind: Gmail.GmailClient
+metadata: { name: stub }
+accessToken: test-token
+baseUrl: !cel "'http://localhost:' + string(dyn(ports.http))"
+---
+# The same client kind, authenticated through an Http.Credential instead
+# — the shape a refreshing OAuth credential plugs into.
+kind: Http.BearerToken
+metadata: { name: credToken }
+token: cred-token
+---
+kind: Gmail.GmailClient
+metadata: { name: stubCred }
+credential: !ref credToken
+baseUrl: !cel "'http://localhost:' + string(dyn(ports.http))"
+---
+kind: Gmail.GetProfile
+metadata: { name: getProfile }
+client: !ref stub
+---
+kind: Gmail.GetProfile
+metadata: { name: getProfileCred }
+client: !ref stubCred
+---
+kind: Gmail.RefreshAccessToken
+metadata: { name: refreshAccessToken }
+---
+kind: Run.Sequence
+metadata: { name: test }
+# The stub is mounted inline in the sequence scope, so it starts
+# before the steps and is torn down when they finish.
+with:
+  - kind: Server.Server
+    metadata: { name: StubServer }
+    port: !cel "ports.http"
+    contentTypeParsers:
+      - { contentType: application/x-www-form-urlencoded, stream: true }
+    mounts:
+      - path: /
+        mount: !ref Stub.api
+targets:
+  - !ref StubServer
+steps:
+  - name: getProfile
+    invoke: !ref getProfile
+    inputs: {}
+  - name: assertStaticToken
+    invoke: !ref Assert.equals
+    inputs:
+      actual: !cel "steps.getProfile.result.body.received"
+      expected: {"method": "GET", "path": "/gmail/v1/users/me/profile", "query": {}, "body": {}, "auth": "Bearer test-token"}
+  - name: getProfileCred
+    invoke: !ref getProfileCred
+    inputs: {}
+  - name: assertCredentialToken
+    invoke: !ref Assert.equals
+    inputs:
+      actual: !cel "steps.getProfileCred.result.body.received.auth"
+      expected: Bearer cred-token
+
+  # RefreshAccessToken posts the grant as a form, not as JSON.
+  - name: refreshAccessToken
+    invoke: !ref refreshAccessToken
+    inputs:
+      clientId: cid
+      clientSecret: csecret
+      refreshToken: rtok
+      tokenUrl: !cel "'http://localhost:' + string(dyn(ports.http)) + '/token'"
+  - name: assertRefreshForm
+    invoke: !ref Assert.equals
+    inputs:
+      actual: !cel "steps.refreshAccessToken.result.body.form"
+      expected: "client_id=cid&client_secret=csecret&refresh_token=rtok&grant_type=refresh_token"
+  - name: assertRefreshContentType
+    invoke: !ref Assert.equals
+    inputs:
+      actual: !cel "steps.refreshAccessToken.result.body.contentType"
+      expected: application/x-www-form-urlencoded
+  - name: assertRefreshToken
+    invoke: !ref Assert.equals
+    inputs:
+      actual: !cel "steps.refreshAccessToken.result.body.access_token"
+      expected: fresh-token
