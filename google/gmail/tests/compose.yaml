@@ -1,0 +1,211 @@
+kind: Telo.Application
+metadata:
+  name: GmailComposeTest
+  version: 1.0.0
+# BuildRawMessage, compared byte for byte against MIME documents written out
+# below. The generated boundaries are normalized away with regexReplace so the
+# comparison can be exact rather than structural — a weaker assertion here would
+# miss precisely the mistakes that produce mail no client renders.
+#
+# The four cases are the four shapes the builder can emit:
+#
+#   plain     text only, ASCII subject, one recipient given as a bare string
+#   rich      text + html as multipart/alternative, non-ASCII subject as an
+#             RFC 2047 encoded-word, address lists, an extra header
+#   inline    html + an inline image, which makes the container multipart/related
+#   mixed     text + an attachment whose non-ASCII name takes the RFC 2231
+#             filename* form, and whose base64 runs past one 76-character line
+#
+# SendEmail then covers the composed path end to end: the same fields in, the
+# base64url of the same message out on the wire.
+imports:
+  Gmail: ../
+  Stub: ./__fixtures__/gmail-stub.yaml
+  Run: oci://ghcr.io/telorun/run@0.26.0#sha256-ZhW56yiMCImqBh0wJ4mVaUvh5WuUVIaWErASFx--wCY
+  Assert: oci://ghcr.io/telorun/assert@0.18.0#sha256-mSy7HGMq_UoQUvt4WbQCIO_uqXcRZwRlmROp6DfLDjY
+  Server: oci://ghcr.io/telorun/http-server@0.29.2#sha256-9MtWZqXF9agsYRx97nLMJZW7YYwXpW2dLYcn_oA4kUs
+ports:
+  http:
+    env: TEST_GMAIL_COMPOSE_PORT
+    default: 34840
+targets:
+  - !ref test
+---
+# The friendly client with a static token, pointed at the stub on
+# this test's own port — derived from `ports.http`, so the two can
+# never disagree. Every request carries
+# `Authorization: Bearer test-token`.
+kind: Gmail.GmailClient
+metadata: { name: stub }
+accessToken: test-token
+baseUrl: !cel "'http://localhost:' + string(dyn(ports.http))"
+---
+kind: Gmail.BuildRawMessage
+metadata: { name: build }
+---
+kind: Gmail.SendEmail
+metadata: { name: sendEmail }
+client: !ref stub
+---
+kind: Run.Sequence
+metadata: { name: test }
+# The stub is mounted inline in the sequence scope, so it starts
+# before the steps and is torn down when they finish.
+with:
+  - kind: Server.Server
+    metadata: { name: StubServer }
+    port: !cel "ports.http"
+    mounts:
+      - path: /
+        mount: !ref Stub.api
+targets:
+  - !ref StubServer
+steps:
+  - name: buildPlain
+    invoke: !ref build
+    inputs:
+      to: ann@example.com
+      subject: Weekly report
+      text: "Numbers are up.\nSee attached next week."
+  - name: assertBuildPlain
+    invoke: !ref Assert.equals
+    inputs:
+      actual: !cel "steps.buildPlain.result.mime"
+      expected: "MIME-Version: 1.0\r\nTo: ann@example.com\r\nSubject: Weekly report\r\nContent-Type: text/plain; charset=\"UTF-8\"\r\nContent-Transfer-Encoding: base64\r\n\r\nTnVtYmVycyBhcmUgdXAuDQpTZWUgYXR0YWNoZWQgbmV4dCB3ZWVrLg==\r\n"
+  - name: assertBuildPlainRaw
+    invoke: !ref Assert.equals
+    inputs:
+      actual: !cel "steps.buildPlain.result.raw"
+      expected: "TUlNRS1WZXJzaW9uOiAxLjANClRvOiBhbm5AZXhhbXBsZS5jb20NClN1YmplY3Q6IFdlZWtseSByZXBvcnQNCkNvbnRlbnQtVHlwZTogdGV4dC9wbGFpbjsgY2hhcnNldD0iVVRGLTgiDQpDb250ZW50LVRyYW5zZmVyLUVuY29kaW5nOiBiYXNlNjQNCg0KVG5WdFltVnljeUJoY21VZ2RYQXVEUXBUWldVZ1lYUjBZV05vWldRZ2JtVjRkQ0IzWldWckxnPT0NCg"
+
+  - name: buildRich
+    invoke: !ref build
+    inputs:
+      to: [ann@example.com, bob@example.com]
+      cc: carol@example.com
+      from: Team <team@example.com>
+      replyTo: noreply@example.com
+      subject: "Wynikí — tydzień 12"
+      text: Plain fallback.
+      html: "<p>Rich <b>body</b>.</p>"
+      headers: { In-Reply-To: "<parent@example.com>" }
+  - name: assertBuildRich
+    invoke: !ref Assert.equals
+    inputs:
+      actual: !cel "regexReplace(steps.buildRich.result.mime, 'alt_[0-9a-f]{32}', 'ALT')"
+      expected: "MIME-Version: 1.0\r\nFrom: Team <team@example.com>\r\nTo: ann@example.com, bob@example.com\r\nCc: carol@example.com\r\nReply-To: noreply@example.com\r\nSubject: =?UTF-8?B?V3luaWvDrSDigJQgdHlkemllxYQgMTI=?=\r\nIn-Reply-To: <parent@example.com>\r\nContent-Type: multipart/alternative; boundary=\"ALT\"\r\n\r\n--ALT\r\nContent-Type: text/plain; charset=\"UTF-8\"\r\nContent-Transfer-Encoding: base64\r\n\r\nUGxhaW4gZmFsbGJhY2su\r\n--ALT\r\nContent-Type: text/html; charset=\"UTF-8\"\r\nContent-Transfer-Encoding: base64\r\n\r\nPHA+UmljaCA8Yj5ib2R5PC9iPi48L3A+\r\n--ALT--\r\n"
+  # The base64url `raw` must be exactly the `mime` the same call reports.
+  - name: assertBuildRichRoundTrip
+    invoke: !ref Assert.equals
+    inputs:
+      actual: !cel "base64Decode(replace(replace(steps.buildRich.result.raw, '-', '+'), '_', '/'))"
+      expected: !cel "steps.buildRich.result.mime"
+
+  - name: buildInline
+    invoke: !ref build
+    inputs:
+      to: ann@example.com
+      subject: Logo
+      html: "<p><img src=\"cid:logo1\"></p>"
+      attachments:
+        - filename: logo.png
+          content: "UE5HREFUQQ=="
+          contentType: image/png
+          contentId: logo1
+          inline: true
+  - name: assertBuildInline
+    invoke: !ref Assert.equals
+    inputs:
+      actual: !cel "regexReplace(steps.buildInline.result.mime, 'mix_[0-9a-f]{32}', 'MIX')"
+      expected: "MIME-Version: 1.0\r\nTo: ann@example.com\r\nSubject: Logo\r\nContent-Type: multipart/related; boundary=\"MIX\"; type=\"text/html\"\r\n\r\n--MIX\r\nContent-Type: text/html; charset=\"UTF-8\"\r\nContent-Transfer-Encoding: base64\r\n\r\nPHA+PGltZyBzcmM9ImNpZDpsb2dvMSI+PC9wPg==\r\n--MIX\r\nContent-Type: image/png\r\nContent-Disposition: inline; filename=\"logo.png\"\r\nContent-ID: <logo1>\r\nContent-Transfer-Encoding: base64\r\n\r\nUE5HREFUQQ==\r\n--MIX--\r\n"
+
+  - name: buildMixed
+    invoke: !ref build
+    inputs:
+      to: ann@example.com
+      subject: Invoice
+      text: Attached.
+      attachments:
+        - filename: "faktura-wrzesień.pdf"
+          content: "UERGREFUQVBERkRBVEFQREZEQVRBUERGREFUQVBERkRBVEFQREZEQVRBUERGREFUQVBERkRBVEFQREZEQVRBUERGREFUQVBERkRBVEFQREZEQVRBUERGREFUQVBERkRBVEFQREZEQVRBUERGREFUQVBERkRBVEFQREZEQVRBUERGREFUQVBERkRBVEE="
+          contentType: application/pdf
+  - name: assertBuildMixed
+    invoke: !ref Assert.equals
+    inputs:
+      actual: !cel "regexReplace(steps.buildMixed.result.mime, 'mix_[0-9a-f]{32}', 'MIX')"
+      expected: "MIME-Version: 1.0\r\nTo: ann@example.com\r\nSubject: Invoice\r\nContent-Type: multipart/mixed; boundary=\"MIX\"\r\n\r\n--MIX\r\nContent-Type: text/plain; charset=\"UTF-8\"\r\nContent-Transfer-Encoding: base64\r\n\r\nQXR0YWNoZWQu\r\n--MIX\r\nContent-Type: application/pdf\r\nContent-Disposition: attachment; filename*=UTF-8''faktura-wrzesie%C5%84.pdf\r\nContent-Transfer-Encoding: base64\r\n\r\nUERGREFUQVBERkRBVEFQREZEQVRBUERGREFUQVBERkRBVEFQREZEQVRBUERGREFUQVBERkRBVEFQ\r\nREZEQVRBUERGREFUQVBERkRBVEFQREZEQVRBUERGREFUQVBERkRBVEFQREZEQVRBUERGREFUQVBE\r\nRkRBVEFQREZEQVRBUERGREFUQVBERkRBVEE=\r\n--MIX--\r\n"
+
+  # Header injection. RFC 5322 lets no header value escape a line break, so a CR
+  # or LF in one ENDS it — an unfiltered `from` here would add a Bcc of the
+  # attacker's choosing, and an unfiltered extra header would terminate the block
+  # and let the caller write the body. Each run of CR/LF plus following
+  # whitespace collapses to a single space, so every injected byte stays inside
+  # the value it arrived in. The legitimately-folded `References` is the same
+  # transformation read the other way: RFC 5322 unfolding.
+  - name: buildInjection
+    invoke: !ref build
+    inputs:
+      to: "ann@example.com\r\nBcc: attacker@evil.com"
+      from: "Team <team@example.com>\nX-Spoofed: yes"
+      subject: Injection
+      text: Body.
+      headers:
+        In-Reply-To: "<parent@example.com>\r\nX-Injected: yes"
+        References: "<a@example.com>\r\n <b@example.com>"
+  - name: assertBuildInjection
+    invoke: !ref Assert.equals
+    inputs:
+      actual: !cel "steps.buildInjection.result.mime"
+      expected: "MIME-Version: 1.0\r\nFrom: Team <team@example.com> X-Spoofed: yes\r\nTo: ann@example.com Bcc: attacker@evil.com\r\nSubject: Injection\r\nIn-Reply-To: <parent@example.com> X-Injected: yes\r\nReferences: <a@example.com> <b@example.com>\r\nContent-Type: text/plain; charset=\"UTF-8\"\r\nContent-Transfer-Encoding: base64\r\n\r\nQm9keS4=\r\n"
+
+  # An ASCII filename goes in a quoted-string, so `"` and `\` are escaped
+  # (RFC 2822 §3.2.5). Unescaped, the first quote closes the parameter: the
+  # recipient sees `report` and the rest is reparsed as parameters of its own.
+  # contentId is a header value and gets the same CR/LF collapse.
+  - name: buildQuotedFilename
+    invoke: !ref build
+    inputs:
+      to: ann@example.com
+      subject: Quoting
+      text: See attached.
+      attachments:
+        - filename: 'report"v2\final.pdf'
+          content: "UERGREFUQQ=="
+          contentType: application/pdf
+  - name: assertBuildQuotedFilename
+    invoke: !ref Assert.equals
+    inputs:
+      actual: !cel "regexReplace(steps.buildQuotedFilename.result.mime, 'mix_[0-9a-f]{32}', 'MIX')"
+      expected: "MIME-Version: 1.0\r\nTo: ann@example.com\r\nSubject: Quoting\r\nContent-Type: multipart/mixed; boundary=\"MIX\"\r\n\r\n--MIX\r\nContent-Type: text/plain; charset=\"UTF-8\"\r\nContent-Transfer-Encoding: base64\r\n\r\nU2VlIGF0dGFjaGVkLg==\r\n--MIX\r\nContent-Type: application/pdf\r\nContent-Disposition: attachment; filename=\"report\\\"v2\\\\final.pdf\"\r\nContent-Transfer-Encoding: base64\r\n\r\nUERGREFUQQ==\r\n--MIX--\r\n"
+
+  # SendEmail = BuildRawMessage + SendMessage: same fields in, the base64url of
+  # the same message on the wire.
+  - name: sendEmail
+    invoke: !ref sendEmail
+    inputs:
+      to: ann@example.com
+      subject: Weekly report
+      text: "Numbers are up.\nSee attached next week."
+  - name: assertSendEmailRequest
+    invoke: !ref Assert.equals
+    inputs:
+      actual: !cel "steps.sendEmail.result.body.received"
+      expected: { method: POST, path: /gmail/v1/users/me/messages/send, query: {}, body: { raw: "TUlNRS1WZXJzaW9uOiAxLjANClRvOiBhbm5AZXhhbXBsZS5jb20NClN1YmplY3Q6IFdlZWtseSByZXBvcnQNCkNvbnRlbnQtVHlwZTogdGV4dC9wbGFpbjsgY2hhcnNldD0iVVRGLTgiDQpDb250ZW50LVRyYW5zZmVyLUVuY29kaW5nOiBiYXNlNjQNCg0KVG5WdFltVnljeUJoY21VZ2RYQXVEUXBUWldVZ1lYUjBZV05vWldRZ2JtVjRkQ0IzWldWckxnPT0NCg" }, auth: "Bearer test-token" }
+  - name: assertSendEmailRaw
+    invoke: !ref Assert.equals
+    inputs:
+      actual: !cel "steps.sendEmail.result.raw"
+      expected: "TUlNRS1WZXJzaW9uOiAxLjANClRvOiBhbm5AZXhhbXBsZS5jb20NClN1YmplY3Q6IFdlZWtseSByZXBvcnQNCkNvbnRlbnQtVHlwZTogdGV4dC9wbGFpbjsgY2hhcnNldD0iVVRGLTgiDQpDb250ZW50LVRyYW5zZmVyLUVuY29kaW5nOiBiYXNlNjQNCg0KVG5WdFltVnljeUJoY21VZ2RYQXVEUXBUWldVZ1lYUjBZV05vWldRZ2JtVjRkQ0IzWldWckxnPT0NCg"
+  # threadId is carried into the Message only when the caller supplies one.
+  - name: sendEmailThreaded
+    invoke: !ref sendEmail
+    inputs:
+      to: ann@example.com
+      subject: "Re: Weekly report"
+      text: Ack.
+      threadId: t1
+  - name: assertSendEmailThreaded
+    invoke: !ref Assert.equals
+    inputs:
+      actual: !cel "steps.sendEmailThreaded.result.body.received.body.threadId"
+      expected: t1

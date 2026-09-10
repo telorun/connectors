@@ -1,0 +1,147 @@
+kind: Telo.Application
+metadata:
+  name: GmailUploadsTest
+  version: 1.0.0
+# The six media-upload operations, exercised for real: the stub decodes the
+# multipart/related body each one framed and reports both parts back, so these
+# assertions cover the framing as well as the URL.
+#
+# What has to hold for every one of them: the request goes to the `/upload` prefix
+# with `uploadType=multipart`, the first part is the metadata as JSON, and the
+# second is the message itself under `message/rfc822` — never base64url-encoded,
+# which is the whole point of this path over the JSON one.
+imports:
+  Gmail: ../
+  Stub: ./__fixtures__/gmail-stub.yaml
+  Run: oci://ghcr.io/telorun/run@0.26.0#sha256-ZhW56yiMCImqBh0wJ4mVaUvh5WuUVIaWErASFx--wCY
+  Assert: oci://ghcr.io/telorun/assert@0.18.0#sha256-mSy7HGMq_UoQUvt4WbQCIO_uqXcRZwRlmROp6DfLDjY
+  Server: oci://ghcr.io/telorun/http-server@0.29.2#sha256-9MtWZqXF9agsYRx97nLMJZW7YYwXpW2dLYcn_oA4kUs
+ports:
+  http:
+    env: TEST_GMAIL_UPLOADS_PORT
+    default: 34839
+targets:
+  - !ref test
+---
+# The friendly client with a static token, pointed at the stub on
+# this test's own port — derived from `ports.http`, so the two can
+# never disagree. Every request carries
+# `Authorization: Bearer test-token`.
+kind: Gmail.GmailClient
+metadata: { name: stub }
+accessToken: test-token
+baseUrl: !cel "'http://localhost:' + string(dyn(ports.http))"
+---
+kind: Gmail.SendMessageUpload
+metadata: { name: sendMessageUpload }
+client: !ref stub
+---
+kind: Gmail.InsertMessageUpload
+metadata: { name: insertMessageUpload }
+client: !ref stub
+---
+kind: Gmail.ImportMessageUpload
+metadata: { name: importMessageUpload }
+client: !ref stub
+---
+kind: Gmail.CreateDraftUpload
+metadata: { name: createDraftUpload }
+client: !ref stub
+---
+kind: Gmail.UpdateDraftUpload
+metadata: { name: updateDraftUpload }
+client: !ref stub
+---
+kind: Gmail.SendDraftUpload
+metadata: { name: sendDraftUpload }
+client: !ref stub
+---
+kind: Run.Sequence
+metadata: { name: test }
+# The stub is mounted inline in the sequence scope, so it starts
+# before the steps and is torn down when they finish.
+with:
+  - kind: Server.Server
+    metadata: { name: StubServer }
+    port: !cel "ports.http"
+    contentTypeParsers:
+      - { contentType: multipart/related, stream: true }
+    mounts:
+      - path: /
+        mount: !ref Stub.api
+targets:
+  - !ref StubServer
+steps:
+  - name: sendMessageUpload
+    invoke: !ref sendMessageUpload
+    inputs: { message: { threadId: t1 }, content: "From: a@b.com\r\n\r\nhi" }
+  # The whole response at once: URL, framing and both decoded parts.
+  - name: assertSendMessageUpload
+    invoke: !ref Assert.equals
+    inputs:
+      actual: !cel "steps.sendMessageUpload.result.body"
+      expected:
+        id: uploaded-1
+        received: { method: POST, path: /upload/gmail/v1/users/me/messages/send, query: { uploadType: multipart }, auth: "Bearer test-token" }
+        framing: multipart/related
+        metadata: { threadId: t1 }
+        metadataContentType: "application/json; charset=UTF-8"
+        content: "From: a@b.com\r\n\r\nhi"
+        contentType: message/rfc822
+  - name: insertMessageUpload
+    invoke: !ref insertMessageUpload
+    inputs: { message: { labelIds: [INBOX] }, content: "raw-1", deleted: false, internalDateSource: dateHeader }
+  - name: assertInsertMessageUpload
+    invoke: !ref Assert.equals
+    inputs:
+      actual: !cel "steps.insertMessageUpload.result.body.received"
+      expected: { method: POST, path: /upload/gmail/v1/users/me/messages, query: { uploadType: multipart, deleted: "false", internalDateSource: dateHeader }, auth: "Bearer test-token" }
+  # An unset boolean is ABSENT from the query, not sent as `false` — the same
+  # rule the non-upload InsertMessage/ImportMessage follow. Only `neverMarkSpam`
+  # was passed, so only `neverMarkSpam` is on the wire; `deleted=false` here
+  # would tell Google to Vault-delete on an import that asked for nothing of the
+  # sort.
+  - name: importMessageUpload
+    invoke: !ref importMessageUpload
+    inputs: { content: "raw-2", neverMarkSpam: true }
+  - name: assertImportMessageUpload
+    invoke: !ref Assert.equals
+    inputs:
+      actual: !cel "steps.importMessageUpload.result.body.received"
+      expected: { method: POST, path: /upload/gmail/v1/users/me/messages/import, query: { uploadType: multipart, neverMarkSpam: "true" }, auth: "Bearer test-token" }
+  # Metadata is optional: omitting it still frames a well-formed JSON part.
+  - name: assertImportMessageUploadMetadata
+    invoke: !ref Assert.equals
+    inputs:
+      actual: !cel "steps.importMessageUpload.result.body.metadata"
+      expected: {}
+  # `contentEncoding: base64` decodes a string body to bytes before framing.
+  - name: createDraftUpload
+    invoke: !ref createDraftUpload
+    inputs: { draft: { message: { threadId: t9 } }, content: "cmF3LWJ5dGVz", contentEncoding: base64 }
+  - name: assertCreateDraftUploadContent
+    invoke: !ref Assert.equals
+    inputs:
+      actual: !cel "steps.createDraftUpload.result.body.content"
+      expected: raw-bytes
+  - name: assertCreateDraftUpload
+    invoke: !ref Assert.equals
+    inputs:
+      actual: !cel "steps.createDraftUpload.result.body.received"
+      expected: { method: POST, path: /upload/gmail/v1/users/me/drafts, query: { uploadType: multipart }, auth: "Bearer test-token" }
+  - name: updateDraftUpload
+    invoke: !ref updateDraftUpload
+    inputs: { id: d1, content: "raw-3" }
+  - name: assertUpdateDraftUpload
+    invoke: !ref Assert.equals
+    inputs:
+      actual: !cel "steps.updateDraftUpload.result.body.received"
+      expected: { method: PUT, path: /upload/gmail/v1/users/me/drafts/d1, query: { uploadType: multipart }, auth: "Bearer test-token" }
+  - name: sendDraftUpload
+    invoke: !ref sendDraftUpload
+    inputs: { draft: { id: d1 }, content: "raw-4" }
+  - name: assertSendDraftUpload
+    invoke: !ref Assert.equals
+    inputs:
+      actual: !cel "steps.sendDraftUpload.result.body.received"
+      expected: { method: POST, path: /upload/gmail/v1/users/me/drafts/send, query: { uploadType: multipart }, auth: "Bearer test-token" }

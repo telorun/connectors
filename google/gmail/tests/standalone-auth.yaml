@@ -1,0 +1,138 @@
+kind: Telo.Application
+metadata:
+  name: GmailStandaloneAuthTest
+  version: 1.0.0
+# The whole point of re-exporting: this app imports Gmail and NEVER google/auth.
+# It builds the full OAuth chain out of Gmail.* kinds alone, seeds an EXPIRED
+# grant, and makes a Gmail call — which must refresh the token and carry the new
+# one.
+#
+# oauth-client appears only for the grant-seeding operations, which is honest:
+# driving a sign-in flow is oauth-client's job, and a consumer that merely makes
+# calls needs none of it. kv-store-memory stands in for a durable store; real
+# deployments bring one that outlives the process.
+imports:
+  Gmail: ../
+  OAuth: oci://ghcr.io/telorun/oauth-client@0.8.0#sha256-wREbvf_KoYtM7gJYN8nA5WmYuC9iN7aibaklxQVt3to
+  Mem: oci://ghcr.io/telorun/kv-store-memory@0.7.0#sha256-i1Nen64mCl25XONkoBGRqiTptxBSBA8zBcW6om9autg
+  Server: oci://ghcr.io/telorun/http-server@0.29.2#sha256-9MtWZqXF9agsYRx97nLMJZW7YYwXpW2dLYcn_oA4kUs
+  Run: oci://ghcr.io/telorun/run@0.26.0#sha256-ZhW56yiMCImqBh0wJ4mVaUvh5WuUVIaWErASFx--wCY
+  Assert: oci://ghcr.io/telorun/assert@0.18.0#sha256-mSy7HGMq_UoQUvt4WbQCIO_uqXcRZwRlmROp6DfLDjY
+ports:
+  http:
+    env: TEST_GMAIL_STANDALONE_PORT
+    default: 34842
+targets:
+  - !ref test
+---
+kind: Mem.Store
+metadata: { name: store }
+---
+# Every one of these is a Gmail.* kind — no google/auth import anywhere.
+kind: Gmail.GoogleAuthServer
+metadata: { name: goog }
+issuer: !cel "'http://localhost:' + string(dyn(ports.http))"
+---
+kind: Gmail.GoogleAuthClient
+metadata: { name: app }
+authorizationServer: !ref goog
+clientId: cid
+clientSecret: csecret
+scopes: ["https://www.googleapis.com/auth/gmail.modify"]
+---
+kind: Gmail.GoogleTokenSource
+metadata: { name: tokens }
+client: !ref app
+store: !ref store
+---
+kind: Gmail.GoogleCredential
+metadata: { name: cred }
+source: !ref tokens
+---
+kind: Gmail.GmailClient
+metadata: { name: mail }
+credential: !ref cred
+baseUrl: !cel "'http://localhost:' + string(dyn(ports.http))"
+---
+kind: Gmail.GetProfile
+metadata: { name: getProfile }
+client: !ref mail
+---
+kind: OAuth.GrantWrite
+metadata: { name: seed }
+source: !ref tokens
+---
+kind: Run.Value
+metadata: { name: echo }
+inputType:
+  kind: Telo.JsonSchema
+  schema:
+    type: object
+    properties:
+      h: {}
+value:
+  auth: !cel "inputs.?h.orValue({}).?authorization.orValue('<none>')"
+---
+kind: Server.Api
+metadata: { name: stub }
+routes:
+  - request: { method: GET, path: /.well-known/openid-configuration }
+    inputs: { h: !cel "request.headers" }
+    handler: !ref echo
+    returns:
+      - status: 200
+        content:
+          application/json:
+            body:
+              issuer: !cel "'http://localhost:' + string(dyn(ports.http))"
+              authorization_endpoint: !cel "'http://localhost:' + string(dyn(ports.http)) + '/auth'"
+              token_endpoint: !cel "'http://localhost:' + string(dyn(ports.http)) + '/token'"
+  - request: { method: POST, path: /token }
+    inputs: { h: !cel "request.headers" }
+    handler: !ref echo
+    returns:
+      - status: 200
+        content:
+          application/json:
+            body: { access_token: fresh-gmail-token, token_type: Bearer, expires_in: 3600 }
+  - request: { method: GET, path: /gmail/v1/* }
+    inputs: { h: !cel "request.headers" }
+    handler: !ref echo
+    returns:
+      - status: 200
+        content:
+          application/json:
+            body: { emailAddress: me@example.com, auth: !cel "result.auth" }
+---
+kind: Run.Sequence
+metadata: { name: test }
+with:
+  - kind: Server.Server
+    metadata: { name: StubServer }
+    port: !cel "ports.http"
+    contentTypeParsers:
+      - { contentType: application/x-www-form-urlencoded, stream: true }
+    mounts:
+      - path: /
+        mount: !ref stub
+targets:
+  - !ref StubServer
+steps:
+  # A grant whose access token expired long ago, but which holds a refresh token.
+  - name: seed
+    invoke: !ref seed
+    inputs:
+      tokens:
+        accessToken: stale-token
+        refreshToken: rtok
+        expiresAt: 1000
+        scope: "https://www.googleapis.com/auth/gmail.modify"
+  - name: getProfile
+    invoke: !ref getProfile
+    inputs: {}
+  # The stale token must never reach the wire — the credential refreshed first.
+  - name: assertRefreshedTokenUsed
+    invoke: !ref Assert.equals
+    inputs:
+      actual: !cel "steps.getProfile.result.body.auth"
+      expected: Bearer fresh-gmail-token

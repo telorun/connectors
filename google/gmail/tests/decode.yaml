@@ -1,0 +1,97 @@
+kind: Telo.Application
+metadata:
+  name: GmailDecodeTest
+  version: 1.0.0
+# Reading a message back, and the base64url codecs underneath it. Nothing here
+# touches the network, so this test needs no stub server.
+#
+# DecodeMessageBody is fed a Message shaped exactly as Gmail returns one with
+# `format: full` — multipart/mixed wrapping a multipart/alternative pair plus an
+# attachment — and must find the text and HTML bodies two levels down, decode
+# their base64url (including a non-BMP character, which a byte-wise decode would
+# mangle), pull the threading headers out of a list of name/value pairs, and list
+# the attachment without mistaking either body part for one.
+imports:
+  Gmail: ../
+  Run: oci://ghcr.io/telorun/run@0.26.0#sha256-ZhW56yiMCImqBh0wJ4mVaUvh5WuUVIaWErASFx--wCY
+  Assert: oci://ghcr.io/telorun/assert@0.18.0#sha256-mSy7HGMq_UoQUvt4WbQCIO_uqXcRZwRlmROp6DfLDjY
+targets:
+  - !ref test
+---
+kind: Gmail.DecodeMessageBody
+metadata: { name: decodeMessage }
+---
+kind: Gmail.DecodeBase64Url
+metadata: { name: decodeB64 }
+---
+kind: Gmail.EncodeBase64Url
+metadata: { name: encodeB64 }
+---
+kind: Run.Sequence
+metadata: { name: test }
+steps:
+  - name: decodeMessage
+    invoke: !ref decodeMessage
+    inputs:
+      message: {"id": "m1", "threadId": "t1", "labelIds": ["INBOX", "UNREAD"], "snippet": "Numbers are up.", "payload": {"partId": "", "mimeType": "multipart/mixed", "filename": "", "headers": [{"name": "Delivered-To", "value": "me@example.com"}, {"name": "Subject", "value": "Weekly report"}, {"name": "From", "value": "Ann <ann@example.com>"}, {"name": "To", "value": "me@example.com"}, {"name": "Cc", "value": "bob@example.com"}, {"name": "Date", "value": "Tue, 9 Sep 2026 09:00:00 +0000"}, {"name": "Message-ID", "value": "<abc@example.com>"}, {"name": "In-Reply-To", "value": "<parent@example.com>"}, {"name": "References", "value": "<root@example.com> <parent@example.com>"}], "body": {"size": 0}, "parts": [{"partId": "0", "mimeType": "multipart/alternative", "filename": "", "body": {"size": 0}, "parts": [{"partId": "0.0", "mimeType": "text/plain", "filename": "", "body": {"size": 20, "data": "TnVtYmVycyBhcmUgdXAuIPCfk4g"}}, {"partId": "0.1", "mimeType": "text/html", "filename": "", "body": {"size": 30, "data": "PHA-TnVtYmVycyBhcmUgPGI-dXA8L2I-LjwvcD4"}}]}, {"partId": "1", "mimeType": "application/pdf", "filename": "report.pdf", "body": {"size": 4096, "attachmentId": "ANGjdJ_att1"}}]}}
+  - name: assertDecodeText
+    invoke: !ref Assert.equals
+    inputs:
+      actual: !cel "steps.decodeMessage.result.text"
+      expected: "Numbers are up. 📈"
+  - name: assertDecodeHtml
+    invoke: !ref Assert.equals
+    inputs:
+      actual: !cel "steps.decodeMessage.result.html"
+      expected: "<p>Numbers are <b>up</b>.</p>"
+  - name: assertDecodeHeaders
+    invoke: !ref Assert.equals
+    inputs:
+      actual: !cel >-
+        {'subject': steps.decodeMessage.result.subject,
+          'from': steps.decodeMessage.result.from,
+          'to': steps.decodeMessage.result.to,
+          'cc': steps.decodeMessage.result.cc,
+          'date': steps.decodeMessage.result.date,
+          'messageId': steps.decodeMessage.result.messageId,
+          'inReplyTo': steps.decodeMessage.result.inReplyTo,
+          'references': steps.decodeMessage.result.references}
+      expected: {"subject": "Weekly report", "from": "Ann <ann@example.com>", "to": "me@example.com", "cc": "bob@example.com", "date": "Tue, 9 Sep 2026 09:00:00 +0000", "messageId": "<abc@example.com>", "inReplyTo": "<parent@example.com>", "references": "<root@example.com> <parent@example.com>"}
+  # Body parts carry no filename, so only the PDF counts as an attachment.
+  - name: assertDecodeAttachments
+    invoke: !ref Assert.equals
+    inputs:
+      actual: !cel "steps.decodeMessage.result.attachments"
+      expected: [{"partId": "1", "filename": "report.pdf", "mimeType": "application/pdf", "size": 4096, "attachmentId": "ANGjdJ_att1", "data": ""}]
+
+  # base64url in, padded standard base64 and UTF-8 text out.
+  - name: decodeB64
+    invoke: !ref decodeB64
+    inputs: { data: "Q3plxZvEhywgxZt3aWVjaWU_IH4" }
+  - name: assertDecodeB64Text
+    invoke: !ref Assert.equals
+    inputs:
+      actual: !cel "steps.decodeB64.result.text"
+      expected: "Cześć, świecie? ~"
+  - name: assertDecodeB64Padded
+    invoke: !ref Assert.equals
+    inputs:
+      actual: !cel "steps.decodeB64.result.base64"
+      expected: "Q3plxZvEhywgxZt3aWVjaWU/IH4="
+  # …and back, from either text or standard base64.
+  - name: encodeB64
+    invoke: !ref encodeB64
+    inputs: { text: "Cześć, świecie? ~" }
+  - name: assertEncodeB64
+    invoke: !ref Assert.equals
+    inputs:
+      actual: !cel "steps.encodeB64.result.base64url"
+      expected: "Q3plxZvEhywgxZt3aWVjaWU_IH4"
+  - name: encodeB64FromBase64
+    invoke: !ref encodeB64
+    inputs: { base64: "Q3plxZvEhywgxZt3aWVjaWU/IH4=" }
+  - name: assertEncodeB64FromBase64
+    invoke: !ref Assert.equals
+    inputs:
+      actual: !cel "steps.encodeB64FromBase64.result.base64url"
+      expected: "Q3plxZvEhywgxZt3aWVjaWU_IH4"

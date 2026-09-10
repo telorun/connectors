@@ -1,0 +1,197 @@
+kind: Telo.Application
+metadata:
+  name: GmailMessagesTest
+  version: 1.0.0
+# Message operations: search, read, send, insert, import, delete, label changes,
+# trash and attachments. Each step invokes the operation and asserts the exact
+# method, path, query and body the stub saw — which is what pins down the CEL that
+# builds each URL, including `params` reaching the query verbatim and a repeated
+# `labelIds` becoming two query entries rather than one comma-joined value.
+imports:
+  Gmail: ../
+  Stub: ./__fixtures__/gmail-stub.yaml
+  Run: oci://ghcr.io/telorun/run@0.26.0#sha256-ZhW56yiMCImqBh0wJ4mVaUvh5WuUVIaWErASFx--wCY
+  Assert: oci://ghcr.io/telorun/assert@0.18.0#sha256-mSy7HGMq_UoQUvt4WbQCIO_uqXcRZwRlmROp6DfLDjY
+  Server: oci://ghcr.io/telorun/http-server@0.29.2#sha256-9MtWZqXF9agsYRx97nLMJZW7YYwXpW2dLYcn_oA4kUs
+ports:
+  http:
+    env: TEST_GMAIL_MESSAGES_PORT
+    default: 34831
+targets:
+  - !ref test
+---
+# The friendly client with a static token, pointed at the stub on
+# this test's own port — derived from `ports.http`, so the two can
+# never disagree. Every request carries
+# `Authorization: Bearer test-token`.
+kind: Gmail.GmailClient
+metadata: { name: stub }
+accessToken: test-token
+baseUrl: !cel "'http://localhost:' + string(dyn(ports.http))"
+---
+kind: Gmail.ListMessages
+metadata: { name: listMessages }
+client: !ref stub
+---
+kind: Gmail.GetMessage
+metadata: { name: getMessage }
+client: !ref stub
+---
+kind: Gmail.SendMessage
+metadata: { name: sendMessage }
+client: !ref stub
+---
+kind: Gmail.InsertMessage
+metadata: { name: insertMessage }
+client: !ref stub
+---
+kind: Gmail.ImportMessage
+metadata: { name: importMessage }
+client: !ref stub
+---
+kind: Gmail.DeleteMessage
+metadata: { name: deleteMessage }
+client: !ref stub
+---
+kind: Gmail.BatchDeleteMessages
+metadata: { name: batchDeleteMessages }
+client: !ref stub
+---
+kind: Gmail.ModifyMessage
+metadata: { name: modifyMessage }
+client: !ref stub
+---
+kind: Gmail.BatchModifyMessages
+metadata: { name: batchModifyMessages }
+client: !ref stub
+---
+kind: Gmail.TrashMessage
+metadata: { name: trashMessage }
+client: !ref stub
+---
+kind: Gmail.UntrashMessage
+metadata: { name: untrashMessage }
+client: !ref stub
+---
+kind: Gmail.GetAttachment
+metadata: { name: getAttachment }
+client: !ref stub
+---
+kind: Run.Sequence
+metadata: { name: test }
+# The stub is mounted inline in the sequence scope, so it starts
+# before the steps and is torn down when they finish.
+with:
+  - kind: Server.Server
+    metadata: { name: StubServer }
+    port: !cel "ports.http"
+    mounts:
+      - path: /
+        mount: !ref Stub.api
+targets:
+  - !ref StubServer
+steps:
+  - name: listMessages
+    invoke: !ref listMessages
+    inputs: {"q": "from:a@b.com is:unread", "maxResults": 10, "pageToken": "tok", "includeSpamTrash": true, "labelIds": ["INBOX", "UNREAD"], "params": {"foo": "bar"}}
+  - name: assertListMessages
+    invoke: !ref Assert.equals
+    inputs:
+      actual: !cel "steps.listMessages.result.body.received"
+      expected: {"method": "GET", "path": "/gmail/v1/users/me/messages", "query": {"q": "from:a@b.com is:unread", "maxResults": "10", "pageToken": "tok", "includeSpamTrash": "true", "labelIds": ["INBOX", "UNREAD"], "foo": "bar"}, "body": {}, "auth": "Bearer test-token"}
+  - name: listMessagesBare
+    invoke: !ref listMessages
+    inputs: {}
+  - name: assertListMessagesBare
+    invoke: !ref Assert.equals
+    inputs:
+      actual: !cel "steps.listMessagesBare.result.body.received"
+      expected: {"method": "GET", "path": "/gmail/v1/users/me/messages", "query": {}, "body": {}, "auth": "Bearer test-token"}
+  - name: getMessage
+    invoke: !ref getMessage
+    inputs: {"id": "m1", "format": "metadata", "metadataHeaders": ["Subject", "From"]}
+  - name: assertGetMessage
+    invoke: !ref Assert.equals
+    inputs:
+      actual: !cel "steps.getMessage.result.body.received"
+      expected: {"method": "GET", "path": "/gmail/v1/users/me/messages/m1", "query": {"format": "metadata", "metadataHeaders": ["Subject", "From"]}, "body": {}, "auth": "Bearer test-token"}
+  - name: sendMessage
+    invoke: !ref sendMessage
+    inputs: {"message": {"raw": "cmF3", "threadId": "t1"}}
+  - name: assertSendMessage
+    invoke: !ref Assert.equals
+    inputs:
+      actual: !cel "steps.sendMessage.result.body.received"
+      expected: {"method": "POST", "path": "/gmail/v1/users/me/messages/send", "query": {}, "body": {"raw": "cmF3", "threadId": "t1"}, "auth": "Bearer test-token"}
+  - name: insertMessage
+    invoke: !ref insertMessage
+    inputs: {"message": {"raw": "cmF3", "labelIds": ["INBOX"]}, "internalDateSource": "dateHeader", "deleted": false}
+  - name: assertInsertMessage
+    invoke: !ref Assert.equals
+    inputs:
+      actual: !cel "steps.insertMessage.result.body.received"
+      expected: {"method": "POST", "path": "/gmail/v1/users/me/messages", "query": {"deleted": "false", "internalDateSource": "dateHeader"}, "body": {"raw": "cmF3", "labelIds": ["INBOX"]}, "auth": "Bearer test-token"}
+  - name: importMessage
+    invoke: !ref importMessage
+    inputs: {"message": {"raw": "cmF3"}, "neverMarkSpam": true, "processForCalendar": false, "internalDateSource": "receivedTime"}
+  - name: assertImportMessage
+    invoke: !ref Assert.equals
+    inputs:
+      actual: !cel "steps.importMessage.result.body.received"
+      expected: {"method": "POST", "path": "/gmail/v1/users/me/messages/import", "query": {"internalDateSource": "receivedTime", "neverMarkSpam": "true", "processForCalendar": "false"}, "body": {"raw": "cmF3"}, "auth": "Bearer test-token"}
+  - name: deleteMessage
+    invoke: !ref deleteMessage
+    inputs: {"id": "m1"}
+  - name: assertDeleteMessage
+    invoke: !ref Assert.equals
+    inputs:
+      actual: !cel "steps.deleteMessage.result.body.received"
+      expected: {"method": "DELETE", "path": "/gmail/v1/users/me/messages/m1", "query": {}, "body": {}, "auth": "Bearer test-token"}
+  - name: batchDeleteMessages
+    invoke: !ref batchDeleteMessages
+    inputs: {"ids": ["m1", "m2"]}
+  - name: assertBatchDeleteMessages
+    invoke: !ref Assert.equals
+    inputs:
+      actual: !cel "steps.batchDeleteMessages.result.body.received"
+      expected: {"method": "POST", "path": "/gmail/v1/users/me/messages/batchDelete", "query": {}, "body": {"ids": ["m1", "m2"]}, "auth": "Bearer test-token"}
+  - name: modifyMessage
+    invoke: !ref modifyMessage
+    inputs: {"id": "m1", "addLabelIds": ["STARRED"], "removeLabelIds": ["UNREAD"]}
+  - name: assertModifyMessage
+    invoke: !ref Assert.equals
+    inputs:
+      actual: !cel "steps.modifyMessage.result.body.received"
+      expected: {"method": "POST", "path": "/gmail/v1/users/me/messages/m1/modify", "query": {}, "body": {"addLabelIds": ["STARRED"], "removeLabelIds": ["UNREAD"], "addClassificationLabels": [], "removeClassificationLabelIds": []}, "auth": "Bearer test-token"}
+  - name: batchModifyMessages
+    invoke: !ref batchModifyMessages
+    inputs: {"ids": ["m1", "m2"], "removeLabelIds": ["UNREAD"]}
+  - name: assertBatchModifyMessages
+    invoke: !ref Assert.equals
+    inputs:
+      actual: !cel "steps.batchModifyMessages.result.body.received"
+      expected: {"method": "POST", "path": "/gmail/v1/users/me/messages/batchModify", "query": {}, "body": {"ids": ["m1", "m2"], "addLabelIds": [], "removeLabelIds": ["UNREAD"], "addClassificationLabels": [], "removeClassificationLabelIds": []}, "auth": "Bearer test-token"}
+  - name: trashMessage
+    invoke: !ref trashMessage
+    inputs: {"id": "m1"}
+  - name: assertTrashMessage
+    invoke: !ref Assert.equals
+    inputs:
+      actual: !cel "steps.trashMessage.result.body.received"
+      expected: {"method": "POST", "path": "/gmail/v1/users/me/messages/m1/trash", "query": {}, "body": {}, "auth": "Bearer test-token"}
+  - name: untrashMessage
+    invoke: !ref untrashMessage
+    inputs: {"id": "m1"}
+  - name: assertUntrashMessage
+    invoke: !ref Assert.equals
+    inputs:
+      actual: !cel "steps.untrashMessage.result.body.received"
+      expected: {"method": "POST", "path": "/gmail/v1/users/me/messages/m1/untrash", "query": {}, "body": {}, "auth": "Bearer test-token"}
+  - name: getAttachment
+    invoke: !ref getAttachment
+    inputs: {"messageId": "m1", "id": "a1"}
+  - name: assertGetAttachment
+    invoke: !ref Assert.equals
+    inputs:
+      actual: !cel "steps.getAttachment.result.body.received"
+      expected: {"method": "GET", "path": "/gmail/v1/users/me/messages/m1/attachments/a1", "query": {}, "body": {}, "auth": "Bearer test-token"}

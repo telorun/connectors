@@ -1,11 +1,11 @@
 # Google Drive connector
 
 Typed [Google Drive API v3](https://developers.google.com/drive/api/reference/rest/v3)
-operations for Telo manifests. Two friendly `Http.Client` kinds
-(`GoogleDriveClient` for a static OAuth2 access token, `GoogleDriveOAuthClient`
-for a refreshing `Http.Credential`), plus Invocable operations covering the
-whole REST surface. Built on the `http-client`, `multipart` and `run` modules —
-no controller code.
+operations for Telo manifests. A friendly `Http.Client` (`GoogleDriveClient`,
+authenticated by a static OAuth2 access token or a refreshing
+`Http.Credential`), plus Invocable operations covering the whole REST surface.
+Built on the `google/auth`, `http-client`, `multipart` and `run` modules — no
+controller code.
 
 ## Import
 
@@ -19,22 +19,17 @@ ref and digest from `telo upgrade` or the registry.
 
 ## Authentication
 
-Every operation runs against one of two client kinds. Both inherit the
-`Http.Client` controller, so either satisfies an operation's `client` slot.
+Every operation runs against a Drive client. Both kinds specialize
+`GoogleAuth.GoogleClient` from the shared [`google/auth`](../../auth/) module —
+which owns the Bearer header, the credential handling, the timeout and Google's
+retry curve — and add Drive's API host.
 
-- **`GoogleDriveClient`** takes `accessToken`, a bare OAuth2 access token sent
-  as `Authorization: Bearer <token>` on every request. Google's tokens expire
-  about an hour after issue, and `RefreshAccessToken` exchanges a refresh token
-  for a fresh one. Suits a script or a short-lived run.
-- **`GoogleDriveOAuthClient`** takes `credential`, any `Http.Credential`:
-  `Http.BearerToken` for a fixed token, or a refreshing credential (for example
-  from the `oauth-client` module) that re-acquires a token before expiry and
-  again when Google answers 401. This is the shape for a long-lived process.
-
-They are separate kinds rather than one client with two optional fields because
-a credential is a live resource reference, and a reference cannot be produced
-conditionally by an expression — an either/or field would resolve to an empty
-object whenever it was left out.
+- **`GoogleDriveClient`** takes either a static `accessToken` or a `credential`,
+  and exactly one: supplying neither, or both, is a `telo check` error rather
+  than a 401 at runtime.
+- **`GoogleDriveOAuthClient`** is the credential-only spelling. It now adds
+  nothing `GoogleDriveClient` cannot do and is kept because 0.1.0 manifests wire
+  it.
 
 ```yaml
 kind: Drive.GoogleDriveClient
@@ -42,11 +37,41 @@ metadata: { name: Drive }
 accessToken: !cel "secrets.googleAccessToken"
 # optional: baseUrl (proxy / stub), timeout (ms, default 60000),
 #           retryAttempts (default 3; 0 disables)
----
-kind: Drive.GoogleDriveOAuthClient
-metadata: { name: DriveOAuth }
-credential: !ref GoogleOAuth         # any Http.Credential
 ```
+
+For a long-running process use a refreshing credential instead. Every kind below
+is a `Drive.*` kind — the auth stack is re-exported, so this connector is all
+you import:
+
+```yaml
+kind: Drive.GoogleAuthServer
+metadata: { name: Goog }
+---
+kind: Drive.GoogleAuthClient
+metadata: { name: App }
+authorizationServer: !ref Goog
+clientId: !cel "variables.googleClientId"
+clientSecret: !cel "secrets.googleClientSecret"
+scopes: ["https://www.googleapis.com/auth/drive"]
+---
+kind: Drive.GoogleTokenSource
+metadata: { name: Tokens }
+client: !ref App
+store: !ref Grants            # any KvStore.Store; it must outlive the process
+---
+kind: Drive.GoogleCredential
+metadata: { name: Cred }
+source: !ref Tokens
+---
+kind: Drive.GoogleDriveClient
+metadata: { name: Drive }
+credential: !ref Cred
+```
+
+The token is then cached, renewed before expiry and renewed again after a 401.
+Driving the sign-in itself is `oauth-client`'s job, and every one of its flows
+takes the same `source: !ref Tokens` — see
+[`google/auth`](../../auth/docs/README.md).
 
 Scopes: `https://www.googleapis.com/auth/drive` (full), `…/drive.file` (files
 the app created or opened), `…/drive.readonly`, `…/drive.metadata.readonly`,
@@ -157,7 +182,7 @@ and the sharing flags (`sendNotificationEmail`, `emailMessage`,
 | `GetAbout` | `GET /drive/v3/about` | User, storage quota, formats, limits. |
 | `StopChannel` | `POST /drive/v3/channels/stop` | Stop a webhook channel (`id` + `resourceId`). |
 | `ListApps` / `GetApp` | `/drive/v3/apps[/{appId}]` | Installed Drive apps. |
-| `RefreshAccessToken` | `POST https://oauth2.googleapis.com/token` | Refresh token → access token (no client needed; `tokenUrl` override). |
+| `RefreshAccessToken` | `POST https://oauth2.googleapis.com/token` | Refresh token → access token, no storage (re-exported from `google/auth`). Prefer `GoogleCredential`. |
 
 ## Examples
 

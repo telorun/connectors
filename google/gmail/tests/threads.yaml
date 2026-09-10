@@ -1,0 +1,114 @@
+kind: Telo.Application
+metadata:
+  name: GmailThreadsTest
+  version: 1.0.0
+# Thread operations. Threads mirror messages but act on a whole conversation, and
+# `GetThread` offers no `raw` format — the query built here is the narrower one.
+imports:
+  Gmail: ../
+  Stub: ./__fixtures__/gmail-stub.yaml
+  Run: oci://ghcr.io/telorun/run@0.26.0#sha256-ZhW56yiMCImqBh0wJ4mVaUvh5WuUVIaWErASFx--wCY
+  Assert: oci://ghcr.io/telorun/assert@0.18.0#sha256-mSy7HGMq_UoQUvt4WbQCIO_uqXcRZwRlmROp6DfLDjY
+  Server: oci://ghcr.io/telorun/http-server@0.29.2#sha256-9MtWZqXF9agsYRx97nLMJZW7YYwXpW2dLYcn_oA4kUs
+ports:
+  http:
+    env: TEST_GMAIL_THREADS_PORT
+    default: 34832
+targets:
+  - !ref test
+---
+# The friendly client with a static token, pointed at the stub on
+# this test's own port — derived from `ports.http`, so the two can
+# never disagree. Every request carries
+# `Authorization: Bearer test-token`.
+kind: Gmail.GmailClient
+metadata: { name: stub }
+accessToken: test-token
+baseUrl: !cel "'http://localhost:' + string(dyn(ports.http))"
+---
+kind: Gmail.ListThreads
+metadata: { name: listThreads }
+client: !ref stub
+---
+kind: Gmail.GetThread
+metadata: { name: getThread }
+client: !ref stub
+---
+kind: Gmail.DeleteThread
+metadata: { name: deleteThread }
+client: !ref stub
+---
+kind: Gmail.ModifyThread
+metadata: { name: modifyThread }
+client: !ref stub
+---
+kind: Gmail.TrashThread
+metadata: { name: trashThread }
+client: !ref stub
+---
+kind: Gmail.UntrashThread
+metadata: { name: untrashThread }
+client: !ref stub
+---
+kind: Run.Sequence
+metadata: { name: test }
+# The stub is mounted inline in the sequence scope, so it starts
+# before the steps and is torn down when they finish.
+with:
+  - kind: Server.Server
+    metadata: { name: StubServer }
+    port: !cel "ports.http"
+    mounts:
+      - path: /
+        mount: !ref Stub.api
+targets:
+  - !ref StubServer
+steps:
+  - name: listThreads
+    invoke: !ref listThreads
+    inputs: {"q": "subject:report", "maxResults": 5, "labelIds": ["INBOX"]}
+  - name: assertListThreads
+    invoke: !ref Assert.equals
+    inputs:
+      actual: !cel "steps.listThreads.result.body.received"
+      expected: {"method": "GET", "path": "/gmail/v1/users/me/threads", "query": {"q": "subject:report", "maxResults": "5", "labelIds": "INBOX"}, "body": {}, "auth": "Bearer test-token"}
+  - name: getThread
+    invoke: !ref getThread
+    inputs: {"id": "t1", "format": "full"}
+  - name: assertGetThread
+    invoke: !ref Assert.equals
+    inputs:
+      actual: !cel "steps.getThread.result.body.received"
+      expected: {"method": "GET", "path": "/gmail/v1/users/me/threads/t1", "query": {"format": "full"}, "body": {}, "auth": "Bearer test-token"}
+  - name: deleteThread
+    invoke: !ref deleteThread
+    inputs: {"id": "t1"}
+  - name: assertDeleteThread
+    invoke: !ref Assert.equals
+    inputs:
+      actual: !cel "steps.deleteThread.result.body.received"
+      expected: {"method": "DELETE", "path": "/gmail/v1/users/me/threads/t1", "query": {}, "body": {}, "auth": "Bearer test-token"}
+  - name: modifyThread
+    invoke: !ref modifyThread
+    inputs: {"id": "t1", "addLabelIds": ["Label_1"]}
+  - name: assertModifyThread
+    invoke: !ref Assert.equals
+    inputs:
+      actual: !cel "steps.modifyThread.result.body.received"
+      expected: {"method": "POST", "path": "/gmail/v1/users/me/threads/t1/modify", "query": {}, "body": {"addLabelIds": ["Label_1"], "removeLabelIds": []}, "auth": "Bearer test-token"}
+  - name: trashThread
+    invoke: !ref trashThread
+    inputs: {"id": "t1"}
+  - name: assertTrashThread
+    invoke: !ref Assert.equals
+    inputs:
+      actual: !cel "steps.trashThread.result.body.received"
+      expected: {"method": "POST", "path": "/gmail/v1/users/me/threads/t1/trash", "query": {}, "body": {}, "auth": "Bearer test-token"}
+  - name: untrashThread
+    invoke: !ref untrashThread
+    inputs: {"id": "t1"}
+  - name: assertUntrashThread
+    invoke: !ref Assert.equals
+    inputs:
+      actual: !cel "steps.untrashThread.result.body.received"
+      expected: {"method": "POST", "path": "/gmail/v1/users/me/threads/t1/untrash", "query": {}, "body": {}, "auth": "Bearer test-token"}

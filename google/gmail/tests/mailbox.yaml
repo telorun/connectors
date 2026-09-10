@@ -1,0 +1,102 @@
+kind: Telo.Application
+metadata:
+  name: GmailMailboxTest
+  version: 1.0.0
+# Mailbox-level operations: the profile, the Pub/Sub watch/stop pair, and the
+# history feed. Two WatchMailbox cases, because `labelFilterBehavior` is an enum
+# that must be omitted from the body when the caller does not set it — sending an
+# empty string would be rejected — while `labelIds` is safe to send empty.
+# `StopMailbox` runs against an explicit `userId` to pin the URL-encoding of an
+# address in the path.
+imports:
+  Gmail: ../
+  Stub: ./__fixtures__/gmail-stub.yaml
+  Run: oci://ghcr.io/telorun/run@0.26.0#sha256-ZhW56yiMCImqBh0wJ4mVaUvh5WuUVIaWErASFx--wCY
+  Assert: oci://ghcr.io/telorun/assert@0.18.0#sha256-mSy7HGMq_UoQUvt4WbQCIO_uqXcRZwRlmROp6DfLDjY
+  Server: oci://ghcr.io/telorun/http-server@0.29.2#sha256-9MtWZqXF9agsYRx97nLMJZW7YYwXpW2dLYcn_oA4kUs
+ports:
+  http:
+    env: TEST_GMAIL_MAILBOX_PORT
+    default: 34835
+targets:
+  - !ref test
+---
+# The friendly client with a static token, pointed at the stub on
+# this test's own port — derived from `ports.http`, so the two can
+# never disagree. Every request carries
+# `Authorization: Bearer test-token`.
+kind: Gmail.GmailClient
+metadata: { name: stub }
+accessToken: test-token
+baseUrl: !cel "'http://localhost:' + string(dyn(ports.http))"
+---
+kind: Gmail.GetProfile
+metadata: { name: getProfile }
+client: !ref stub
+---
+kind: Gmail.WatchMailbox
+metadata: { name: watchMailbox }
+client: !ref stub
+---
+kind: Gmail.StopMailbox
+metadata: { name: stopMailbox }
+client: !ref stub
+---
+kind: Gmail.ListHistory
+metadata: { name: listHistory }
+client: !ref stub
+---
+kind: Run.Sequence
+metadata: { name: test }
+# The stub is mounted inline in the sequence scope, so it starts
+# before the steps and is torn down when they finish.
+with:
+  - kind: Server.Server
+    metadata: { name: StubServer }
+    port: !cel "ports.http"
+    mounts:
+      - path: /
+        mount: !ref Stub.api
+targets:
+  - !ref StubServer
+steps:
+  - name: getProfile
+    invoke: !ref getProfile
+    inputs: {}
+  - name: assertGetProfile
+    invoke: !ref Assert.equals
+    inputs:
+      actual: !cel "steps.getProfile.result.body.received"
+      expected: {"method": "GET", "path": "/gmail/v1/users/me/profile", "query": {}, "body": {}, "auth": "Bearer test-token"}
+  - name: watchMailbox
+    invoke: !ref watchMailbox
+    inputs: {"topicName": "projects/p/topics/t", "labelIds": ["INBOX"], "labelFilterBehavior": "include"}
+  - name: assertWatchMailbox
+    invoke: !ref Assert.equals
+    inputs:
+      actual: !cel "steps.watchMailbox.result.body.received"
+      expected: {"method": "POST", "path": "/gmail/v1/users/me/watch", "query": {}, "body": {"topicName": "projects/p/topics/t", "labelIds": ["INBOX"], "labelFilterBehavior": "include"}, "auth": "Bearer test-token"}
+  - name: watchMailboxBare
+    invoke: !ref watchMailbox
+    inputs: {"topicName": "projects/p/topics/t"}
+  - name: assertWatchMailboxBare
+    invoke: !ref Assert.equals
+    inputs:
+      actual: !cel "steps.watchMailboxBare.result.body.received"
+      expected: {"method": "POST", "path": "/gmail/v1/users/me/watch", "query": {}, "body": {"topicName": "projects/p/topics/t", "labelIds": []}, "auth": "Bearer test-token"}
+  - name: stopMailbox
+    invoke: !ref stopMailbox
+    inputs: {"userId": "user@example.com"}
+  - name: assertStopMailbox
+    invoke: !ref Assert.equals
+    inputs:
+      actual: !cel "steps.stopMailbox.result.body.received"
+      expected: {"method": "POST", "path": "/gmail/v1/users/user%40example.com/stop", "query": {}, "body": {}, "auth": "Bearer test-token"}
+  - name: listHistory
+    invoke: !ref listHistory
+    inputs: {"startHistoryId": "12345", "labelId": "INBOX", "maxResults": 100, "historyTypes": ["messageAdded", "labelAdded"]}
+  - name: assertListHistory
+    invoke: !ref Assert.equals
+    inputs:
+      actual: !cel "steps.listHistory.result.body.received"
+      expected: {"method": "GET", "path": "/gmail/v1/users/me/history", "query": {"startHistoryId": "12345", "labelId": "INBOX", "maxResults": "100", "historyTypes": ["messageAdded", "labelAdded"]}, "body": {}, "auth": "Bearer test-token"}

@@ -1,0 +1,237 @@
+kind: Telo.Application
+metadata:
+  name: GmailIdentitiesTest
+  version: 1.0.0
+# Who the mailbox can send as, and who can act for it: send-as addresses, their
+# S/MIME certificates, and delegates. These carry the module's deepest paths —
+# `/settings/sendAs/{email}/smimeInfo/{id}/setDefault` is eight segments with an
+# address in the middle — so they are the real test of path building and of
+# URL-encoding an email address into a path segment.
+imports:
+  Gmail: ../
+  Stub: ./__fixtures__/gmail-stub.yaml
+  Run: oci://ghcr.io/telorun/run@0.26.0#sha256-ZhW56yiMCImqBh0wJ4mVaUvh5WuUVIaWErASFx--wCY
+  Assert: oci://ghcr.io/telorun/assert@0.18.0#sha256-mSy7HGMq_UoQUvt4WbQCIO_uqXcRZwRlmROp6DfLDjY
+  Server: oci://ghcr.io/telorun/http-server@0.29.2#sha256-9MtWZqXF9agsYRx97nLMJZW7YYwXpW2dLYcn_oA4kUs
+ports:
+  http:
+    env: TEST_GMAIL_IDENTITIES_PORT
+    default: 34837
+targets:
+  - !ref test
+---
+# The friendly client with a static token, pointed at the stub on
+# this test's own port — derived from `ports.http`, so the two can
+# never disagree. Every request carries
+# `Authorization: Bearer test-token`.
+kind: Gmail.GmailClient
+metadata: { name: stub }
+accessToken: test-token
+baseUrl: !cel "'http://localhost:' + string(dyn(ports.http))"
+---
+kind: Gmail.ListSendAs
+metadata: { name: listSendAs }
+client: !ref stub
+---
+kind: Gmail.GetSendAs
+metadata: { name: getSendAs }
+client: !ref stub
+---
+kind: Gmail.CreateSendAs
+metadata: { name: createSendAs }
+client: !ref stub
+---
+kind: Gmail.UpdateSendAs
+metadata: { name: updateSendAs }
+client: !ref stub
+---
+kind: Gmail.PatchSendAs
+metadata: { name: patchSendAs }
+client: !ref stub
+---
+kind: Gmail.DeleteSendAs
+metadata: { name: deleteSendAs }
+client: !ref stub
+---
+kind: Gmail.VerifySendAs
+metadata: { name: verifySendAs }
+client: !ref stub
+---
+kind: Gmail.ListSmimeInfo
+metadata: { name: listSmimeInfo }
+client: !ref stub
+---
+kind: Gmail.GetSmimeInfo
+metadata: { name: getSmimeInfo }
+client: !ref stub
+---
+kind: Gmail.InsertSmimeInfo
+metadata: { name: insertSmimeInfo }
+client: !ref stub
+---
+kind: Gmail.SetDefaultSmimeInfo
+metadata: { name: setDefaultSmimeInfo }
+client: !ref stub
+---
+kind: Gmail.DeleteSmimeInfo
+metadata: { name: deleteSmimeInfo }
+client: !ref stub
+---
+kind: Gmail.ListDelegates
+metadata: { name: listDelegates }
+client: !ref stub
+---
+kind: Gmail.GetDelegate
+metadata: { name: getDelegate }
+client: !ref stub
+---
+kind: Gmail.CreateDelegate
+metadata: { name: createDelegate }
+client: !ref stub
+---
+kind: Gmail.DeleteDelegate
+metadata: { name: deleteDelegate }
+client: !ref stub
+---
+kind: Run.Sequence
+metadata: { name: test }
+# The stub is mounted inline in the sequence scope, so it starts
+# before the steps and is torn down when they finish.
+with:
+  - kind: Server.Server
+    metadata: { name: StubServer }
+    port: !cel "ports.http"
+    mounts:
+      - path: /
+        mount: !ref Stub.api
+targets:
+  - !ref StubServer
+steps:
+  - name: listSendAs
+    invoke: !ref listSendAs
+    inputs: {}
+  - name: assertListSendAs
+    invoke: !ref Assert.equals
+    inputs:
+      actual: !cel "steps.listSendAs.result.body.received"
+      expected: {"method": "GET", "path": "/gmail/v1/users/me/settings/sendAs", "query": {}, "body": {}, "auth": "Bearer test-token"}
+  - name: getSendAs
+    invoke: !ref getSendAs
+    inputs: {"sendAsEmail": "me@example.com"}
+  - name: assertGetSendAs
+    invoke: !ref Assert.equals
+    inputs:
+      actual: !cel "steps.getSendAs.result.body.received"
+      expected: {"method": "GET", "path": "/gmail/v1/users/me/settings/sendAs/me%40example.com", "query": {}, "body": {}, "auth": "Bearer test-token"}
+  - name: createSendAs
+    invoke: !ref createSendAs
+    inputs: {"sendAs": {"sendAsEmail": "alias@example.com", "displayName": "Alias"}}
+  - name: assertCreateSendAs
+    invoke: !ref Assert.equals
+    inputs:
+      actual: !cel "steps.createSendAs.result.body.received"
+      expected: {"method": "POST", "path": "/gmail/v1/users/me/settings/sendAs", "query": {}, "body": {"sendAsEmail": "alias@example.com", "displayName": "Alias"}, "auth": "Bearer test-token"}
+  - name: updateSendAs
+    invoke: !ref updateSendAs
+    inputs: {"sendAsEmail": "alias@example.com", "sendAs": {"displayName": "New", "signature": "<p>hi</p>"}}
+  - name: assertUpdateSendAs
+    invoke: !ref Assert.equals
+    inputs:
+      actual: !cel "steps.updateSendAs.result.body.received"
+      expected: {"method": "PUT", "path": "/gmail/v1/users/me/settings/sendAs/alias%40example.com", "query": {}, "body": {"displayName": "New", "signature": "<p>hi</p>"}, "auth": "Bearer test-token"}
+  - name: patchSendAs
+    invoke: !ref patchSendAs
+    inputs: {"sendAsEmail": "alias@example.com", "sendAs": {"signature": "<p>x</p>"}}
+  - name: assertPatchSendAs
+    invoke: !ref Assert.equals
+    inputs:
+      actual: !cel "steps.patchSendAs.result.body.received"
+      expected: {"method": "PATCH", "path": "/gmail/v1/users/me/settings/sendAs/alias%40example.com", "query": {}, "body": {"signature": "<p>x</p>"}, "auth": "Bearer test-token"}
+  - name: deleteSendAs
+    invoke: !ref deleteSendAs
+    inputs: {"sendAsEmail": "alias@example.com"}
+  - name: assertDeleteSendAs
+    invoke: !ref Assert.equals
+    inputs:
+      actual: !cel "steps.deleteSendAs.result.body.received"
+      expected: {"method": "DELETE", "path": "/gmail/v1/users/me/settings/sendAs/alias%40example.com", "query": {}, "body": {}, "auth": "Bearer test-token"}
+  - name: verifySendAs
+    invoke: !ref verifySendAs
+    inputs: {"sendAsEmail": "alias@example.com"}
+  - name: assertVerifySendAs
+    invoke: !ref Assert.equals
+    inputs:
+      actual: !cel "steps.verifySendAs.result.body.received"
+      expected: {"method": "POST", "path": "/gmail/v1/users/me/settings/sendAs/alias%40example.com/verify", "query": {}, "body": {}, "auth": "Bearer test-token"}
+  - name: listSmimeInfo
+    invoke: !ref listSmimeInfo
+    inputs: {"sendAsEmail": "alias@example.com"}
+  - name: assertListSmimeInfo
+    invoke: !ref Assert.equals
+    inputs:
+      actual: !cel "steps.listSmimeInfo.result.body.received"
+      expected: {"method": "GET", "path": "/gmail/v1/users/me/settings/sendAs/alias%40example.com/smimeInfo", "query": {}, "body": {}, "auth": "Bearer test-token"}
+  - name: getSmimeInfo
+    invoke: !ref getSmimeInfo
+    inputs: {"sendAsEmail": "alias@example.com", "id": "s1"}
+  - name: assertGetSmimeInfo
+    invoke: !ref Assert.equals
+    inputs:
+      actual: !cel "steps.getSmimeInfo.result.body.received"
+      expected: {"method": "GET", "path": "/gmail/v1/users/me/settings/sendAs/alias%40example.com/smimeInfo/s1", "query": {}, "body": {}, "auth": "Bearer test-token"}
+  - name: insertSmimeInfo
+    invoke: !ref insertSmimeInfo
+    inputs: {"sendAsEmail": "alias@example.com", "smimeInfo": {"pkcs12": "MIIB", "encryptedKeyPassword": "pw"}}
+  - name: assertInsertSmimeInfo
+    invoke: !ref Assert.equals
+    inputs:
+      actual: !cel "steps.insertSmimeInfo.result.body.received"
+      expected: {"method": "POST", "path": "/gmail/v1/users/me/settings/sendAs/alias%40example.com/smimeInfo", "query": {}, "body": {"pkcs12": "MIIB", "encryptedKeyPassword": "pw"}, "auth": "Bearer test-token"}
+  - name: setDefaultSmimeInfo
+    invoke: !ref setDefaultSmimeInfo
+    inputs: {"sendAsEmail": "alias@example.com", "id": "s1"}
+  - name: assertSetDefaultSmimeInfo
+    invoke: !ref Assert.equals
+    inputs:
+      actual: !cel "steps.setDefaultSmimeInfo.result.body.received"
+      expected: {"method": "POST", "path": "/gmail/v1/users/me/settings/sendAs/alias%40example.com/smimeInfo/s1/setDefault", "query": {}, "body": {}, "auth": "Bearer test-token"}
+  - name: deleteSmimeInfo
+    invoke: !ref deleteSmimeInfo
+    inputs: {"sendAsEmail": "alias@example.com", "id": "s1"}
+  - name: assertDeleteSmimeInfo
+    invoke: !ref Assert.equals
+    inputs:
+      actual: !cel "steps.deleteSmimeInfo.result.body.received"
+      expected: {"method": "DELETE", "path": "/gmail/v1/users/me/settings/sendAs/alias%40example.com/smimeInfo/s1", "query": {}, "body": {}, "auth": "Bearer test-token"}
+  - name: listDelegates
+    invoke: !ref listDelegates
+    inputs: {}
+  - name: assertListDelegates
+    invoke: !ref Assert.equals
+    inputs:
+      actual: !cel "steps.listDelegates.result.body.received"
+      expected: {"method": "GET", "path": "/gmail/v1/users/me/settings/delegates", "query": {}, "body": {}, "auth": "Bearer test-token"}
+  - name: getDelegate
+    invoke: !ref getDelegate
+    inputs: {"delegateEmail": "d@example.com"}
+  - name: assertGetDelegate
+    invoke: !ref Assert.equals
+    inputs:
+      actual: !cel "steps.getDelegate.result.body.received"
+      expected: {"method": "GET", "path": "/gmail/v1/users/me/settings/delegates/d%40example.com", "query": {}, "body": {}, "auth": "Bearer test-token"}
+  - name: createDelegate
+    invoke: !ref createDelegate
+    inputs: {"delegate": {"delegateEmail": "d@example.com"}}
+  - name: assertCreateDelegate
+    invoke: !ref Assert.equals
+    inputs:
+      actual: !cel "steps.createDelegate.result.body.received"
+      expected: {"method": "POST", "path": "/gmail/v1/users/me/settings/delegates", "query": {}, "body": {"delegateEmail": "d@example.com"}, "auth": "Bearer test-token"}
+  - name: deleteDelegate
+    invoke: !ref deleteDelegate
+    inputs: {"delegateEmail": "d@example.com"}
+  - name: assertDeleteDelegate
+    invoke: !ref Assert.equals
+    inputs:
+      actual: !cel "steps.deleteDelegate.result.body.received"
+      expected: {"method": "DELETE", "path": "/gmail/v1/users/me/settings/delegates/d%40example.com", "query": {}, "body": {}, "auth": "Bearer test-token"}

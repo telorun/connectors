@@ -1,0 +1,207 @@
+kind: Telo.Application
+metadata:
+  name: GoogleAuthConsentTest
+  version: 1.0.0
+# What this module exists to get right: the consent URL carries
+# `access_type=offline` and `prompt=consent`, so Google issues a refresh token
+# rather than an access token that dies in an hour.
+#
+# Both clients here assert the full query, written out literally — `plain` with
+# nothing customized, and `hinted` adding `loginHint` + `includeGrantedScopes`.
+# The second is the regression guard: with the parameters held in a free-form
+# map, adding either of those would REPLACE the defaults (CEL has no map merge)
+# and the breakage would surface a week later as an expired refresh token, with
+# nothing red in between. Named fields cannot be displaced, and this pins it.
+imports:
+  GoogleAuth: ../
+  OAuth: oci://ghcr.io/telorun/oauth-client@0.8.0#sha256-wREbvf_KoYtM7gJYN8nA5WmYuC9iN7aibaklxQVt3to
+  Mem: oci://ghcr.io/telorun/kv-store-memory@0.7.0#sha256-i1Nen64mCl25XONkoBGRqiTptxBSBA8zBcW6om9autg
+  Server: oci://ghcr.io/telorun/http-server@0.29.2#sha256-9MtWZqXF9agsYRx97nLMJZW7YYwXpW2dLYcn_oA4kUs
+  Run: oci://ghcr.io/telorun/run@0.26.0#sha256-ZhW56yiMCImqBh0wJ4mVaUvh5WuUVIaWErASFx--wCY
+  Assert: oci://ghcr.io/telorun/assert@0.18.0#sha256-mSy7HGMq_UoQUvt4WbQCIO_uqXcRZwRlmROp6DfLDjY
+ports:
+  http:
+    env: TEST_GOOGLE_AUTH_CONSENT_PORT
+    default: 34844
+targets: [!ref test]
+---
+kind: Mem.Store
+metadata: { name: store }
+---
+kind: GoogleAuth.GoogleAuthServer
+metadata: { name: goog }
+issuer: !cel "'http://localhost:' + string(dyn(ports.http))"
+---
+# A confidential client with nothing customized: every consent parameter below
+# is one this module chose.
+kind: GoogleAuth.GoogleAuthClient
+metadata: { name: plain }
+authorizationServer: !ref goog
+clientId: cid
+clientSecret: csecret
+scopes: ["https://www.googleapis.com/auth/drive"]
+---
+# The same registration plus the two named consent options, and a public-client
+# token endpoint method. `access_type` and `prompt` must survive all of it.
+kind: GoogleAuth.GoogleAuthClient
+metadata: { name: hinted }
+authorizationServer: !ref goog
+clientId: cid2
+scopes: ["https://www.googleapis.com/auth/gmail.readonly"]
+tokenEndpointAuthMethod: none
+loginHint: user@corp.example
+includeGrantedScopes: true
+---
+kind: GoogleAuth.GoogleTokenSource
+metadata: { name: plainTokens }
+client: !ref plain
+store: !ref store
+---
+kind: GoogleAuth.GoogleTokenSource
+metadata: { name: hintedTokens }
+client: !ref hinted
+store: !ref store
+# The two OAuth.TokenSource knobs this kind forwards but does not default.
+grantTtl: 720h
+claimTtl: 45s
+---
+kind: OAuth.Authorization
+metadata: { name: plainAuth }
+source: !ref plainTokens
+---
+kind: OAuth.Authorization
+metadata: { name: hintedAuth }
+source: !ref hintedTokens
+---
+kind: OAuth.GrantWrite
+metadata: { name: seedHinted }
+source: !ref hintedTokens
+---
+kind: OAuth.TokenRefresh
+metadata: { name: refreshHinted }
+source: !ref hintedTokens
+---
+# `state` and `code_challenge` are freshly generated per call, so they are
+# dropped and the rest compared exactly; sorting removes any dependence on the
+# order oauth-client happens to append parameters in.
+kind: Run.Value
+metadata: { name: queryOf }
+inputType:
+  kind: Telo.JsonSchema
+  schema:
+    type: object
+    required: [url]
+    properties:
+      url: { type: string }
+bindings:
+  parts: !cel "split(inputs.url, '?')"
+value:
+  endpoint: !cel "parts[0]"
+  params: !cel >-
+    sort(split(size(parts) > 1 ? parts[1] : '', '&')
+      .filter(p, !p.startsWith('state=') && !p.startsWith('code_challenge=')))
+---
+kind: Run.Value
+metadata: { name: echoAuth }
+inputType:
+  kind: Telo.JsonSchema
+  schema: { type: object, properties: { h: {} } }
+value:
+  auth: !cel "inputs.?h.orValue({}).?authorization.orValue('<none>')"
+---
+# Discovery, plus the token endpoint that echoes back whether the refresh was
+# sent with HTTP Basic. Building a consent URL itself never calls the server.
+kind: Server.Api
+metadata: { name: stub }
+routes:
+  - request: { method: GET, path: /.well-known/openid-configuration }
+    returns:
+      - status: 200
+        content:
+          application/json:
+            body:
+              issuer: !cel "'http://localhost:' + string(dyn(ports.http))"
+              authorization_endpoint: !cel "'http://localhost:' + string(dyn(ports.http)) + '/auth'"
+              token_endpoint: !cel "'http://localhost:' + string(dyn(ports.http)) + '/token'"
+  - request: { method: POST, path: /token }
+    inputs: { h: !cel "request.headers" }
+    handler: !ref echoAuth
+    returns:
+      - status: 200
+        content:
+          application/json:
+            body:
+              access_token: !cel "result.auth"
+              token_type: Bearer
+              expires_in: 3600
+---
+kind: Run.Sequence
+metadata: { name: test }
+with:
+  - kind: Server.Server
+    metadata: { name: s }
+    port: !cel "ports.http"
+    contentTypeParsers:
+      - { contentType: application/x-www-form-urlencoded, stream: true }
+    mounts: [{ path: /, mount: !ref stub }]
+targets: [!ref s]
+steps:
+  - name: plainAuth
+    invoke: !ref plainAuth
+    inputs: { redirectUri: "http://localhost:9999/cb" }
+  - name: plainQuery
+    invoke: !ref queryOf
+    inputs: { url: !cel "steps.plainAuth.result.url" }
+  - name: assertPlain
+    invoke: !ref Assert.equals
+    inputs:
+      actual: !cel "steps.plainQuery.result"
+      expected:
+        endpoint: !cel "'http://localhost:' + string(dyn(ports.http)) + '/auth'"
+        params:
+          - access_type=offline
+          - client_id=cid
+          - code_challenge_method=S256
+          - prompt=consent
+          - redirect_uri=http%3A%2F%2Flocalhost%3A9999%2Fcb
+          - response_type=code
+          - scope=https%3A%2F%2Fwww.googleapis.com%2Fauth%2Fdrive
+  - name: hintedAuth
+    invoke: !ref hintedAuth
+    inputs: { redirectUri: "http://localhost:9999/cb" }
+  - name: hintedQuery
+    invoke: !ref queryOf
+    inputs: { url: !cel "steps.hintedAuth.result.url" }
+  # access_type and prompt are still here, alongside the two added parameters.
+  - name: assertHinted
+    invoke: !ref Assert.equals
+    inputs:
+      actual: !cel "steps.hintedQuery.result"
+      expected:
+        endpoint: !cel "'http://localhost:' + string(dyn(ports.http)) + '/auth'"
+        params:
+          - access_type=offline
+          - client_id=cid2
+          - code_challenge_method=S256
+          - include_granted_scopes=true
+          - login_hint=user%40corp.example
+          - prompt=consent
+          - redirect_uri=http%3A%2F%2Flocalhost%3A9999%2Fcb
+          - response_type=code
+          - scope=https%3A%2F%2Fwww.googleapis.com%2Fauth%2Fgmail.readonly
+  # `hinted` has no clientSecret and sets `tokenEndpointAuthMethod: none`.
+  # Without that forwarded, OAuth.Client falls back to its client_secret_basic
+  # default and puts an Authorization header on the token request with no secret
+  # to put in it — so the echoed value is what proves the field arrives.
+  - name: seedHinted
+    invoke: !ref seedHinted
+    inputs:
+      tokens: { accessToken: stale, refreshToken: rtok, expiresAt: 1000 }
+  - name: refreshHinted
+    invoke: !ref refreshHinted
+    inputs: {}
+  - name: assertPublicClientSendsNoBasicAuth
+    invoke: !ref Assert.equals
+    inputs:
+      actual: !cel "steps.refreshHinted.result.accessToken"
+      expected: "<none>"

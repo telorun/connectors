@@ -9,15 +9,25 @@ metadata:
     read values (single range, batch, whole spreadsheet), write values
     (update, append, batch update), clear (single, batch), and structural
     changes (create spreadsheet, batchUpdate requests). A RefreshAccessToken
-    helper exchanges an OAuth2 refresh token for a fresh access token. Built
-    purely on the http-client module — no controller code.
+    helper exchanges an OAuth2 refresh token for a fresh access token. Built on
+    the google/auth and http-client modules — no controller code.
   repository: https://github.com/telorun/connectors
   license: MIT
 imports:
+  GoogleAuth: ../auth
   Http: oci://ghcr.io/telorun/http-client@0.22.0#sha256-UyC8nQDnKHXyPpPPHC7TS8MicesLsgDUKWBYObf5oQ4
 exports:
   kinds:
     - GoogleSheetsClient
+    # Auth, re-exported from google/auth so a consumer imports this connector
+    # alone. `<Alias>.<Kind>` in `exports.kinds` re-exports an imported kind
+    # under THIS module's prefix — no local subtype needed. A bare name here
+    # would name nothing.
+    - GoogleAuth.GoogleAuthServer
+    - GoogleAuth.GoogleAuthClient
+    - GoogleAuth.GoogleTokenSource
+    - GoogleAuth.GoogleCredential
+    - GoogleAuth.RefreshAccessToken
     - GetSpreadsheet
     - CreateSpreadsheet
     - GetValues
@@ -28,42 +38,74 @@ exports:
     - BatchUpdateValues
     - BatchClearValues
     - BatchUpdateSpreadsheet
-    - RefreshAccessToken
 ---
-# The service client. Inherits the Http.Client controller (and its
-# Provider capability), so a GoogleSheetsClient IS an Http.Client at runtime and
-# drops into any `x-telo-ref: Http.Client` slot. Provide an OAuth2
-# access token once, then `!ref` it everywhere. Any valid token works — from a
-# service account, `gcloud auth print-access-token`, a user OAuth flow, or the
-# RefreshAccessToken operation below. The token must carry the
-# https://www.googleapis.com/auth/spreadsheets scope for writes (…/spreadsheets.readonly
-# is enough for reads).
+# The service client. It specializes GoogleAuth.GoogleClient — which owns the
+# Bearer header, the credential handling, the timeout and Google's retry curve —
+# and adds the one thing that is Sheets': the API host. Still an Http.Client at
+# runtime, so it drops into any `x-telo-ref: Http.Client` slot.
+#
+# Authenticate it one of two ways, and exactly one: a bare `accessToken`, or a
+# `credential` (GoogleCredential is the Google-shaped one, re-exported below).
+# The credential path is new here — before, Sheets could only take a static
+# token, so a long-running job had to re-declare its client on every refresh.
+#
+# `Accept: application/json` is no longer sent. Google's JSON APIs answer with
+# JSON regardless, and the shared client builds its header map conditionally on
+# whether a token is present, which leaves no room to merge a second entry.
 kind: Telo.Definition
 metadata:
   name: GoogleSheetsClient
-  description: Preconfigured Google Sheets Http.Client — Bearer OAuth2 token, baseUrl https://sheets.googleapis.com/v4.
-extends: Http.Client
+  description: >-
+    Preconfigured Google Sheets Http.Client — a static OAuth2 access token or an
+    Http.Credential, baseUrl https://sheets.googleapis.com/v4, retry with
+    backoff.
+extends: GoogleAuth.GoogleClient
 schema:
   type: object
-  required: [accessToken]
+  oneOf:
+    - required: [accessToken]
+    - required: [credential]
   properties:
     accessToken:
       type: string
+      x-telo-eval: compile
       description: >-
         OAuth2 access token (the bare token, no "Bearer " prefix). Sent as
         `Authorization: Bearer <accessToken>` on every request. Google access
-        tokens expire ~1h after issue; refresh with RefreshAccessToken.
+        tokens expire ~1h after issue; RefreshAccessToken mints a new one, and
+        GoogleCredential removes the problem. Mutually exclusive with
+        `credential`.
+    credential:
+      x-telo-ref:
+        kind: Http.Credential
+        use: call
+      description: >-
+        The credential consulted on every request, re-consulted with
+        forceRefresh and the request retried once on a 401. Mutually exclusive
+        with `accessToken`.
     baseUrl:
       type: string
+      x-telo-eval: compile
       description: >-
         Override the Sheets API base URL (no trailing slash). Defaults to
         https://sheets.googleapis.com/v4. Point it at a proxy or a stub server
         for testing.
+    timeout:
+      type: integer
+      minimum: 1
+      description: Per-request timeout in milliseconds. Defaults to 60000.
+    retryAttempts:
+      type: integer
+      minimum: 0
+      description: >-
+        Re-attempts after the first try for retryable failures (network errors,
+        408, 429, 5xx). Defaults to 3; 0 disables retrying.
 base:
   baseUrl: !cel "self.?baseUrl.orValue('https://sheets.googleapis.com/v4')"
-  headers:
-    Authorization: !cel "'Bearer ' + self.accessToken"
-    Accept: application/json
+  accessToken: !cel "self.accessToken"
+  credential: !cel "self.credential"
+  timeout: !cel "self.timeout"
+  retryAttempts: !cel "self.retryAttempts"
 ---
 # GET /spreadsheets/{id} — read spreadsheet metadata (sheet list, properties,
 # and optionally grid data). Pass `ranges` to scope grid data and `fields` to
@@ -695,59 +737,3 @@ inputs:
     includeSpreadsheetInResponse: !cel "inputs.?includeSpreadsheetInResponse.orValue(false)"
     responseIncludeGridData: !cel "inputs.?responseIncludeGridData.orValue(false)"
   url: !cel "'/spreadsheets/' + inputs.spreadsheetId + ':batchUpdate'"
----
-# POST https://oauth2.googleapis.com/token — exchange an OAuth2 refresh token for
-# a fresh access token. Pure HTTP (no signing), so it needs no client: it posts a
-# form-encoded body to Google's token endpoint. Feed body.access_token into a
-# GoogleSheetsClient. Obtain clientId/clientSecret/refreshToken from a Google
-# Cloud OAuth client + consent grant (or a service account's equivalent flow).
-kind: Telo.Definition
-metadata:
-  name: RefreshAccessToken
-  description: Exchange an OAuth2 refresh token for a fresh Google access token.
-capability: Telo.Invocable
-schema:
-  type: object
-inputType:
-  kind: Type.JsonSchema
-  schema:
-    type: object
-    required: [clientId, clientSecret, refreshToken]
-    properties:
-      clientId:
-        type: string
-        description: OAuth2 client id.
-      clientSecret:
-        type: string
-        description: OAuth2 client secret.
-      refreshToken:
-        type: string
-        description: OAuth2 refresh token previously granted for the Sheets scope.
-outputType:
-  kind: Type.JsonSchema
-  schema:
-    type: object
-    required: [status, headers, body]
-    properties:
-      status: { type: integer }
-      headers: { type: object, additionalProperties: { type: string } }
-      body:
-        description: Parsed JSON — { access_token, expires_in, scope, token_type }.
-resources:
-  - kind: Http.Request
-    metadata:
-      name: !cel "self.name + '-req'"
-    throwOnHttpError: true
-invoke:
-  kind: Http.Request
-  name: !cel "self.name + '-req'"
-inputs:
-  method: POST
-  url: https://oauth2.googleapis.com/token
-  headers:
-    Content-Type: application/x-www-form-urlencoded
-  body: !cel >-
-    'client_id=' + urlEncode(inputs.clientId) +
-    '&client_secret=' + urlEncode(inputs.clientSecret) +
-    '&refresh_token=' + urlEncode(inputs.refreshToken) +
-    '&grant_type=refresh_token'
