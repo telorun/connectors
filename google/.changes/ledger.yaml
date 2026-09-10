@@ -3,11 +3,19 @@
 # `telo release verify` reconciles it against the registry.
 registry: oci://ghcr.io/telorun/google
 modules:
-  drive:
+  auth:
     version: 0.1.0
     layers:
-      manifest: sha256-QhpsU_-exz6XMzz6k0kGWna8ZawNI2aCUyXPhPWvPfc
-  sheets:
-    version: 0.3.0
+      manifest: sha256-PAV77zBuCJvBdsu4J5Dk_atmw18eSb-cfjpIp3vL8F4
+  drive:
+    version: 0.2.0
     layers:
-      manifest: sha256-o2qPfiMFfvkDUPcLaj4XmSM2Bm09PfvUNecShJaXKUM
+      manifest: sha256-5kxwXM3AAjrGZ2QHqE2qxJ7nUstKiOPt7YYPEuQfdeU
+  gmail:
+    version: 0.1.0
+    layers:
+      manifest: sha256-xZIVQBP23gEgpmnM3C1AuekFkS2f3WUcRZ8sQa4Kae4
+  sheets:
+    version: 0.4.0
+    layers:
+      manifest: sha256-AIl64VPyEHtyTKOu2_9OzhGL6gPYGVwKFvsQzAevx9k
