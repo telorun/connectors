@@ -1,7 +1,7 @@
 kind: Telo.Library
 metadata:
   name: GoogleAuth
-  version: 0.0.0
+  version: 0.1.0
   description: >-
     OAuth2 for Google's REST APIs, in one place. GoogleClient is a friendly
     Http.Client carrying the Bearer header and the retry policy Google's

@@ -1,7 +1,7 @@
 kind: Telo.Library
 metadata:
   name: Gmail
-  version: 0.0.0
+  version: 0.1.0
   description: >-
     Typed Gmail (API v1) operations for Telo manifests. A friendly Http.Client
     (GmailClient) specializing the shared google/auth client — authenticated by
