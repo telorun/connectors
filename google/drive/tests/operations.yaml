@@ -288,6 +288,9 @@ metadata: { name: mpDecode }
 ---
 # Generic echo handler: returns the request context it is fed, so a route can
 # reflect what the operation actually sent back into the response body.
+# Routes forward `body` only when the request has a Content-Type: a bodyless
+# POST reaches the handler with `request.body` present but undefined, which
+# `orValue` cannot default.
 kind: Run.Value
 metadata: { name: echo }
 inputType:
@@ -400,7 +403,7 @@ routes:
       path: !cel "request.path"
       method: !cel "request.method"
       query: !cel "request.query"
-      body: !cel "request.?body.orValue({})"
+      body: !cel "request.headers[?'content-type'].hasValue() ? request.body : {}"
       headers: !cel "request.headers"
     handler: !ref echo
     returns:
@@ -434,7 +437,7 @@ routes:
       path: !cel "request.path"
       method: !cel "request.method"
       query: !cel "request.query"
-      body: !cel "request.?body.orValue({})"
+      body: !cel "request.headers[?'content-type'].hasValue() ? request.body : {}"
       headers: !cel "request.headers"
     handler: !ref echo
     returns:
@@ -449,7 +452,7 @@ routes:
       path: !cel "request.path"
       method: !cel "request.method"
       query: !cel "request.query"
-      body: !cel "request.?body.orValue({})"
+      body: !cel "request.headers[?'content-type'].hasValue() ? request.body : {}"
       headers: !cel "request.headers"
     handler: !ref echo
     returns:
@@ -497,7 +500,7 @@ routes:
       path: !cel "request.path"
       method: !cel "request.method"
       query: !cel "request.query"
-      body: !cel "request.?body.orValue({})"
+      body: !cel "request.headers[?'content-type'].hasValue() ? request.body : {}"
       headers: !cel "request.headers"
     handler: !ref echo
     returns:
@@ -512,7 +515,7 @@ routes:
       path: !cel "request.path"
       method: !cel "request.method"
       query: !cel "request.query"
-      body: !cel "request.?body.orValue({})"
+      body: !cel "request.headers[?'content-type'].hasValue() ? request.body : {}"
       headers: !cel "request.headers"
     handler: !ref echo
     returns:
@@ -560,7 +563,7 @@ routes:
       path: !cel "request.path"
       method: !cel "request.method"
       query: !cel "request.query"
-      body: !cel "request.?body.orValue({})"
+      body: !cel "request.headers[?'content-type'].hasValue() ? request.body : {}"
       headers: !cel "request.headers"
     handler: !ref echo
     returns:
@@ -575,7 +578,7 @@ routes:
       path: !cel "request.path"
       method: !cel "request.method"
       query: !cel "request.query"
-      body: !cel "request.?body.orValue({})"
+      body: !cel "request.headers[?'content-type'].hasValue() ? request.body : {}"
       headers: !cel "request.headers"
     handler: !ref echo
     returns:
@@ -618,7 +621,7 @@ routes:
       path: !cel "request.path"
       method: !cel "request.method"
       query: !cel "request.query"
-      body: !cel "request.?body.orValue({})"
+      body: !cel "request.headers[?'content-type'].hasValue() ? request.body : {}"
       headers: !cel "request.headers"
     handler: !ref echo
     returns:
@@ -633,7 +636,7 @@ routes:
       path: !cel "request.path"
       method: !cel "request.method"
       query: !cel "request.query"
-      body: !cel "request.?body.orValue({})"
+      body: !cel "request.headers[?'content-type'].hasValue() ? request.body : {}"
       headers: !cel "request.headers"
     handler: !ref echo
     returns:
@@ -676,7 +679,7 @@ routes:
       path: !cel "request.path"
       method: !cel "request.method"
       query: !cel "request.query"
-      body: !cel "request.?body.orValue({})"
+      body: !cel "request.headers[?'content-type'].hasValue() ? request.body : {}"
       headers: !cel "request.headers"
     handler: !ref echo
     returns:
@@ -713,6 +716,14 @@ routes:
       body: !cel "request.body"
       headers: !cel "request.headers"
     handler: !ref multipartUpload
+    # A malformed or oversized upload surfaces as a 400 naming the decoder error.
+    catches:
+      - status: 400
+        content:
+          application/json:
+            body:
+              code: !cel "error.code"
+              message: !cel "error.message"
     returns:
       - status: 200
         content:
@@ -737,6 +748,14 @@ routes:
       body: !cel "request.body"
       headers: !cel "request.headers"
     handler: !ref multipartUpload
+    # A malformed or oversized upload surfaces as a 400 naming the decoder error.
+    catches:
+      - status: 400
+        content:
+          application/json:
+            body:
+              code: !cel "error.code"
+              message: !cel "error.message"
     returns:
       - status: 200
         content:

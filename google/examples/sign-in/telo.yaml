@@ -1,0 +1,100 @@
+kind: Telo.Application
+metadata:
+  name: GoogleSignInPlayground
+  version: 1.0.0
+  description: >-
+    Playground for google/sign-in against real Google: sign in at /auth/google,
+    then /me reads your Gmail profile with the token the callback stored.
+    Grants are kept in memory, so a restart means signing in again. See
+    README.md for the Google Cloud setup.
+imports:
+  Gmail: ../../gmail
+  SignIn:
+    source: ../../sign-in
+    needs:
+      site: !ref site
+  Mem: oci://ghcr.io/telorun/kv-store-memory@0.8.0#sha256-GmMDeJ2eYatJ0_ewaUI6A6bnfkqlphjd4YKWtqZ5d2Y
+  Server: oci://ghcr.io/telorun/http-server@0.38.0#sha256-QUCZmb_cvTor4YhWUAj3YdRj-kacNkmkXLnycjXLBtA
+variables:
+  googleClientId:
+    env: GOOGLE_CLIENT_ID
+    type: string
+secrets:
+  googleClientSecret:
+    env: GOOGLE_CLIENT_SECRET
+    type: string
+ports:
+  http:
+    env: GOOGLE_SIGN_IN_PORT
+    default: 8080
+needs:
+  # Where Google sends the browser back: <GOOGLE_SIGN_IN_PUBLIC_URL>/auth/google/callback.
+  site:
+    kind: Telo.PublicUrl
+    parameters: { port: http }
+    env: { url: GOOGLE_SIGN_IN_PUBLIC_URL }
+targets: [!ref server]
+---
+kind: Mem.Store
+metadata: { name: grants }
+---
+kind: Gmail.GoogleAuthServer
+metadata: { name: google }
+---
+kind: Gmail.GoogleAuthClient
+metadata: { name: app }
+authorizationServer: !ref google
+clientId: !cel "variables.googleClientId"
+clientSecret: !cel "secrets.googleClientSecret"
+scopes: ["https://www.googleapis.com/auth/gmail.readonly"]
+---
+kind: Gmail.GoogleTokenSource
+metadata: { name: tokens }
+client: !ref app
+store: !ref grants
+---
+kind: SignIn.BrowserSignIn
+metadata: { name: signIn }
+source: !ref tokens
+returnTo: /me
+---
+kind: Gmail.GoogleCredential
+metadata: { name: cred }
+source: !ref tokens
+---
+kind: Gmail.GmailClient
+metadata: { name: gmail }
+credential: !ref cred
+---
+kind: Gmail.GetProfile
+metadata: { name: profile }
+client: !ref gmail
+---
+kind: Server.Api
+metadata: { name: pages }
+routes:
+  - request: { method: GET, path: / }
+    returns:
+      - status: 200
+        content:
+          text/html:
+            body: >-
+              <h1>google/sign-in playground</h1>
+              <p><a href="/auth/google">Sign in with Google</a></p>
+              <p><a href="/me">Show my Gmail profile</a></p>
+  - request: { method: GET, path: /me }
+    handler: !ref profile
+    inputs: {}
+    returns:
+      - status: 200
+        content:
+          application/json:
+            body: !cel "result.body"
+---
+kind: Server.Server
+metadata: { name: server }
+listen:
+  port: !cel "ports.http"
+mounts:
+  - { path: /, mount: !ref signIn }
+  - { path: /, mount: !ref pages }

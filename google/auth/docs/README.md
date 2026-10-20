@@ -29,6 +29,13 @@ what is stored — all live in `oauth-client` and all take the same
 value. Import `oauth-client` when you drive a flow; making calls needs nothing
 beyond a connector.
 
+The one flow packaged for Google is the web one: `google/sign-in`'s
+`BrowserSignIn` mounts the consent and callback routes, with the redirect URI
+built from the application's public address (a `Telo.PublicUrl` need). It is a
+module of its own because an address need has to be forwarded by every
+importer, and declared in this module it would land on every connector
+consumer.
+
 Also not here: service-account JWT auth, which needs RS256 signing — CEL offers
 `hmac` but no RSA.
 

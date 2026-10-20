@@ -326,6 +326,13 @@ drops straight in.
 
 ## Discover modules with telo CLI — DO NOT GUESS FIELDS OR VERSIONS
 
+**This repo is self-contained. Do not read, search, or reference anything
+outside it** — no `../telo` (the kernel/standard-library source), no other
+sibling checkouts. Work the way an
+external connector author would: learn Telo only from the `telo` CLI, the Telo
+hub MCP tools, and the public docs below. If those leave a question open, say
+so instead of reading the runtime source.
+
 You have telo CLI at your disposal. Use it
 before writing any resource from a module you did not author:
 
@@ -510,3 +517,7 @@ merging it makes `publish-modules` push the artifacts.
 ## General rules
 
 - Never use AskUserQuestion tool, ask questions directly;
+- You are not allowed to make any design decisions. When a task leaves a
+  design choice open — a new kind, field, module, behavior, or where something
+  lives — stop, lay out the options with their trade-offs, and ask. Implement
+  only what the user has decided.

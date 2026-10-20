@@ -1,0 +1,3 @@
+modules:
+  s3: Added
+body: "S3.Bucket now extends Blob.Store, so the storage-neutral Blob.Put, Blob.Get, Blob.Head and Blob.Delete run against an S3-compatible bucket. Puts stream as multipart uploads that are aborted on failure; reads are pinned to the described object by ETag; every request honours cancellation. Existing S3.* kinds are unchanged."

@@ -11,7 +11,7 @@ metadata:
     SQS, and direct / SDK invocations.
 imports:
   # Shared HTTP outcome + matcher schemas for HTTP-shaped handler kinds.
-  HttpDispatch: oci://ghcr.io/telorun/http-dispatch@0.12.0#sha256-HWKOY1oVYWD9w7DVmmPv-ulZwkDNEzyQByhjvbkSwes
+  HttpDispatch: oci://ghcr.io/telorun/http-dispatch@0.16.0#sha256-khGS6bYX7zArtXbK-9-OSblVuaORTMmtvll2r1yhhjM
 exports:
   kinds:
     - Handler

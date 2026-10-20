@@ -1,0 +1,159 @@
+kind: Telo.Library
+metadata:
+  name: GoogleSignIn
+  version: 0.0.0
+  description: >-
+    Sign in with Google from a web application reached at a public address.
+    BrowserSignIn is a mountable pair of routes — one sends the browser to
+    Google's consent screen, the other receives the redirect back, exchanges the
+    code and stores the grant in a GoogleTokenSource. The redirect URI is built
+    from the application's `Telo.PublicUrl` need, so no domain name is written
+    in a manifest and the same one runs locally, on a runner and in production.
+  repository: https://github.com/telorun/connectors
+  license: MIT
+requires:
+  # `Telo.PublicUrl` is a kernel-declared need type from 0.118.0.
+  telo: ">=0.118.0"
+imports:
+  GoogleAuth: ../auth
+  OAuth: oci://ghcr.io/telorun/oauth-client@0.9.0#sha256-SJrbgqaNLDvxqbJLqFUJRM24vUxj8jWy-pAJByPnB90
+  Http: oci://ghcr.io/telorun/http-server@0.38.0#sha256-QUCZmb_cvTor4YhWUAj3YdRj-kacNkmkXLnycjXLBtA
+  Run: oci://ghcr.io/telorun/run@0.28.0#sha256-CoPkA-u8-m4kjQAOTDr_TmsfA72HDpnoZI-hHz8N7kE
+# The address Google sends the browser back to. It lives in this library rather
+# than in google/auth because an address need must be forwarded by every
+# importer: on google/auth it would be forced on every Gmail, Drive and Sheets
+# consumer, including those that never sign anyone in through a browser.
+needs:
+  site:
+    kind: Telo.PublicUrl
+exports:
+  kinds:
+    - BrowserSignIn
+---
+# The browser-served half of Google OAuth, as one mount.
+#
+#   GET <path>            302 to Google's consent screen
+#   GET <path>/callback   Google's redirect back: exchange the code, store the
+#                         grant, 302 to `returnTo`
+#
+# One kind owns both routes because they must share one OAuth.Authorization:
+# OAuth.Callback reads the pending request through that exact instance, so a
+# separate "start" kind could not hand its authorization to the callback.
+#
+# The redirect URI is `<site url><path>/callback`. The routes are declared at
+# their full path, so mount this at `/` — mounted under a prefix, Google would
+# redirect to a path the server does not answer.
+#
+# The grant is stored under the source's `key`. The key is deliberately not
+# taken from the request: whoever chooses the key at the start chooses whose
+# grant the callback overwrites. A multi-account application builds its own
+# routes over OAuth.Authorization / OAuth.Callback, picking the key from its
+# own session.
+kind: Telo.Definition
+metadata:
+  name: BrowserSignIn
+  description: >-
+    Mountable sign-in-with-Google routes whose redirect URI is built from the
+    application's public address — starts consent, completes the callback and
+    stores the grant.
+capability: Telo.Mount
+schema:
+  type: object
+  required: [source]
+  properties:
+    source:
+      x-telo-ref:
+        kind: GoogleAuth.GoogleTokenSource
+        use: dependency
+      description: >-
+        The GoogleTokenSource the grant is stored in — the same one a
+        GoogleCredential draws from, so calls are authenticated as soon as the
+        callback completes.
+    path:
+      type: string
+      x-telo-eval: compile
+      description: >-
+        Where sign-in starts; the callback is `<path>/callback`. Defaults to
+        /auth/google. Register `<public url><path>/callback` as an authorized
+        redirect URI of the OAuth client in Google Cloud Console.
+    returnTo:
+      type: string
+      x-telo-eval: compile
+      description: >-
+        Where the browser is sent once the grant is stored. Defaults to /.
+    pendingTtl:
+      type: string
+      x-telo-eval: compile
+      description: >-
+        How long the user has to finish consenting before the callback is
+        refused as expired. Defaults to oauth-client's 10m.
+resources:
+  - kind: OAuth.Authorization
+    metadata: { name: authorize }
+    source: !cel "self.source"
+    pendingTtl: !cel "self.pendingTtl"
+  # The redirect URI is computed here rather than in the route: a route's
+  # `inputs` are evaluated by the server per request, where `self` is not in
+  # scope. Only `self` and the `site` need go into it — never the request — so a
+  # forged Host header cannot move where Google sends the code.
+  - kind: Run.Sequence
+    metadata: { name: begin }
+    steps:
+      - name: authorize
+        invoke: !ref authorize
+        inputs:
+          redirectUri: !cel >-
+            trimSuffix(string(resources.site.url), '/')
+            + self.?path.orValue('/auth/google') + '/callback'
+    outputs:
+      url: !cel "steps.authorize.result.url"
+  - kind: OAuth.Callback
+    metadata: { name: complete }
+    authorization: !ref authorize
+  - kind: Http.Api
+    metadata: { name: api }
+    routes:
+      - request:
+          method: GET
+          path: !cel "self.?path.orValue('/auth/google')"
+        handler: !ref begin
+        returns:
+          - status: 302
+            headers:
+              Location: !cel "result.url"
+              Cache-Control: no-store
+      - request:
+          method: GET
+          path: !cel "self.?path.orValue('/auth/google') + '/callback'"
+          schema:
+            query:
+              type: object
+              additionalProperties: true
+              properties:
+                code: { type: string }
+                state: { type: string }
+                error: { type: string }
+                iss: { type: string }
+        handler: !ref complete
+        inputs:
+          code: !cel "'code' in request.query ? request.query.code : null"
+          state: !cel "'state' in request.query ? request.query.state : null"
+          error: !cel "'error' in request.query ? request.query.error : null"
+          iss: !cel "'iss' in request.query ? request.query.iss : null"
+        returns:
+          - status: 302
+            when: !cel "result.ok"
+            headers:
+              Location: !cel "self.?returnTo.orValue('/')"
+              Cache-Control: no-store
+          # JSON, not HTML: `reason` carries the provider's `error` parameter,
+          # which anyone can put in the URL.
+          - status: 400
+            headers:
+              Cache-Control: no-store
+            content:
+              application/json:
+                body:
+                  ok: false
+                  reason: !cel "result.reason"
+mount: !ref api

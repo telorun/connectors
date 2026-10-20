@@ -5,6 +5,9 @@
 # (`oci://ghcr.io/telorun/aws/s3`) rather than flattening them under one base.
 #
 # Read by `telo release`, and by `telo run` as the bound on its `.env` /
-# `.env.local` walk-up — location only, never `modules:`.
-modules:
-  - "*"
+# `.env.local` walk-up — location only, never `release.modules`.
+release:
+  modules:
+    - "*"
+    # Example apps and playgrounds are run, never published.
+    - "!examples/**"

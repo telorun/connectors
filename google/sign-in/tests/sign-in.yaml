@@ -1,0 +1,250 @@
+kind: Telo.Application
+metadata:
+  name: GoogleSignInTest
+  version: 1.0.0
+# BrowserSignIn end to end, against a stub Google on the same server.
+#
+# What it pins: the redirect URI is built from the `site` need, never from the
+# request — the consent URL carries exactly `<site>/auth/google/callback`, and the
+# token exchange sends the same value back (the stub echoes it as the access
+# token, so the stored grant proves it). A refusal and a stray callback answer
+# 400 with the reason rather than storing anything.
+#
+# `site` is read from TEST_GOOGLE_SIGN_IN_URL, set in tests/.env.
+imports:
+  SignIn:
+    source: ../
+    needs:
+      site: !ref site
+  GoogleAuth: ../../auth
+  OAuth: oci://ghcr.io/telorun/oauth-client@0.8.0#sha256-wREbvf_KoYtM7gJYN8nA5WmYuC9iN7aibaklxQVt3to
+  Mem: oci://ghcr.io/telorun/kv-store-memory@0.7.0#sha256-i1Nen64mCl25XONkoBGRqiTptxBSBA8zBcW6om9autg
+  Server: oci://ghcr.io/telorun/http-server@0.38.0#sha256-QUCZmb_cvTor4YhWUAj3YdRj-kacNkmkXLnycjXLBtA
+  Http: oci://ghcr.io/telorun/http-client@0.22.0#sha256-UyC8nQDnKHXyPpPPHC7TS8MicesLsgDUKWBYObf5oQ4
+  Run: oci://ghcr.io/telorun/run@0.28.0#sha256-CoPkA-u8-m4kjQAOTDr_TmsfA72HDpnoZI-hHz8N7kE
+  Assert: oci://ghcr.io/telorun/assert@0.18.0#sha256-mSy7HGMq_UoQUvt4WbQCIO_uqXcRZwRlmROp6DfLDjY
+  Ptc: oci://ghcr.io/telorun/plain-text-codec@0.10.4#sha256-Z1My-TDPdE13s63NSi5rT0Qg0CZf-7tAXbJBRcBGCOQ
+ports:
+  http:
+    env: TEST_GOOGLE_SIGN_IN_PORT
+    default: 34845
+needs:
+  site:
+    kind: Telo.PublicUrl
+    parameters: { port: http }
+    env: { url: TEST_GOOGLE_SIGN_IN_URL }
+targets: [!ref test]
+---
+kind: Mem.Store
+metadata: { name: store }
+---
+kind: GoogleAuth.GoogleAuthServer
+metadata: { name: goog }
+issuer: !cel "'http://localhost:' + string(dyn(ports.http)) + '/idp'"
+---
+kind: GoogleAuth.GoogleAuthClient
+metadata: { name: app }
+authorizationServer: !ref goog
+clientId: cid
+clientSecret: csecret
+scopes: ["https://www.googleapis.com/auth/gmail.readonly"]
+---
+kind: GoogleAuth.GoogleTokenSource
+metadata: { name: tokens }
+client: !ref app
+store: !ref store
+---
+kind: SignIn.BrowserSignIn
+metadata: { name: signIn }
+source: !ref tokens
+returnTo: /done
+---
+# A second mount at its own path, sharing the source: `path` moves both routes
+# and the redirect URI with them.
+kind: SignIn.BrowserSignIn
+metadata: { name: customPath }
+source: !ref tokens
+path: /login/google
+---
+kind: OAuth.AccessToken
+metadata: { name: readToken }
+source: !ref tokens
+---
+kind: Ptc.Decoder
+metadata: { name: collect }
+---
+# The token request's form, with the per-call PKCE verifier dropped and the
+# rest sorted, so it can be compared literally.
+kind: Run.Sequence
+metadata: { name: tokenHandler }
+inputType:
+  kind: Telo.JsonSchema
+  schema: { type: object, properties: { body: {} } }
+steps:
+  - name: collect
+    invoke: !ref collect
+    inputs: { input: !cel "inputs.body" }
+outputs:
+  form: !cel >-
+    join(sort(split(steps.collect.result.text, '&')
+      .filter(p, !p.startsWith('code_verifier='))), '&')
+---
+# Google's discovery document and token endpoint, under the stub issuer. The
+# token endpoint answers with the form it received as the access token, so the
+# stored grant shows exactly what the exchange sent.
+kind: Server.Api
+metadata: { name: stub }
+routes:
+  - request: { method: GET, path: /.well-known/openid-configuration }
+    returns:
+      - status: 200
+        content:
+          application/json:
+            body:
+              issuer: !cel "'http://localhost:' + string(dyn(ports.http)) + '/idp'"
+              authorization_endpoint: https://accounts.example/o/oauth2/v2/auth
+              token_endpoint: !cel "'http://localhost:' + string(dyn(ports.http)) + '/idp/token'"
+  - request:
+      method: POST
+      path: /token
+      schema:
+        body: { x-telo-type: Telo.Stream }
+    inputs: { body: !cel "request.body" }
+    handler: !ref tokenHandler
+    returns:
+      - status: 200
+        content:
+          application/json:
+            body:
+              access_token: !cel "result.form"
+              refresh_token: rtok
+              token_type: Bearer
+              expires_in: 3600
+---
+# The browser: redirects are reported, not followed, so each hop is asserted.
+kind: Http.Client
+metadata: { name: browser }
+baseUrl: !cel "'http://localhost:' + string(dyn(ports.http))"
+followRedirects: false
+---
+kind: Http.Request
+metadata: { name: get }
+client: !ref browser
+---
+# `state` and `code_challenge` are generated per call, so they are dropped and
+# the rest compared exactly. `state` is returned on its own for the callback.
+kind: Run.Value
+metadata: { name: consentOf }
+inputType:
+  kind: Telo.JsonSchema
+  schema:
+    type: object
+    required: [url]
+    properties:
+      url: { type: string }
+bindings:
+  parts: !cel "split(inputs.url, '?')"
+  pairs: !cel "split(size(parts) > 1 ? parts[1] : '', '&')"
+value:
+  endpoint: !cel "parts[0]"
+  state: !cel "pairs.filter(p, p.startsWith('state='))[0].substring(6)"
+  params: !cel >-
+    sort(pairs.filter(p, !p.startsWith('state=') && !p.startsWith('code_challenge=')))
+---
+kind: Run.Sequence
+metadata: { name: test }
+with:
+  - kind: Server.Server
+    metadata: { name: s }
+    listen:
+      port: !cel "ports.http"
+    contentTypeParsers:
+      - { contentType: application/x-www-form-urlencoded, stream: true }
+    mounts:
+      - { path: /, mount: !ref signIn }
+      - { path: /, mount: !ref customPath }
+      - { path: /idp, mount: !ref stub }
+targets: [!ref s]
+steps:
+  - name: start
+    invoke: !ref get
+    inputs: { method: GET, url: /auth/google }
+  - name: consent
+    invoke: !ref consentOf
+    inputs: { url: !cel "steps.start.result.headers.location" }
+  - name: assertConsent
+    invoke: !ref Assert.equals
+    inputs:
+      actual:
+        status: !cel "steps.start.result.status"
+        endpoint: !cel "steps.consent.result.endpoint"
+        params: !cel "steps.consent.result.params"
+      expected:
+        status: 302
+        endpoint: https://accounts.example/o/oauth2/v2/auth
+        params:
+          - access_type=offline
+          - client_id=cid
+          - code_challenge_method=S256
+          - prompt=consent
+          - redirect_uri=https%3A%2F%2Fapp.example.test%2Fauth%2Fgoogle%2Fcallback
+          - response_type=code
+          - scope=https%3A%2F%2Fwww.googleapis.com%2Fauth%2Fgmail.readonly
+
+  # Google sending the browser back with a code.
+  - name: callback
+    invoke: !ref get
+    inputs:
+      method: GET
+      url: !cel "'/auth/google/callback?code=the-code&state=' + steps.consent.result.state"
+  - name: assertCallback
+    invoke: !ref Assert.equals
+    inputs:
+      actual:
+        status: !cel "steps.callback.result.status"
+        location: !cel "steps.callback.result.headers.location"
+      expected: { status: 302, location: /done }
+  - name: stored
+    invoke: !ref readToken
+    inputs: {}
+  - name: assertStored
+    invoke: !ref Assert.equals
+    inputs:
+      actual: !cel "steps.stored.result.accessToken"
+      # The redirect URI the consent used, sent back unchanged.
+      expected: >-
+        code=the-code&grant_type=authorization_code&redirect_uri=https%3A%2F%2Fapp.example.test%2Fauth%2Fgoogle%2Fcallback
+
+  # The same state again: already consumed, so nothing is exchanged twice.
+  - name: replay
+    invoke: !ref get
+    inputs:
+      method: GET
+      url: !cel "'/auth/google/callback?code=the-code&state=' + steps.consent.result.state"
+  - name: assertReplay
+    invoke: !ref Assert.equals
+    inputs:
+      actual: { status: !cel "steps.replay.result.status", body: !cel "steps.replay.result.body" }
+      expected: { status: 400, body: { ok: false, reason: unknown_state } }
+
+  # The user pressing Cancel on the consent screen.
+  - name: denied
+    invoke: !ref get
+    inputs: { method: GET, url: "/auth/google/callback?error=access_denied&state=whatever" }
+  - name: assertDenied
+    invoke: !ref Assert.equals
+    inputs:
+      actual: { status: !cel "steps.denied.result.status", body: !cel "steps.denied.result.body" }
+      expected: { status: 400, body: { ok: false, reason: denied } }
+
+  - name: customStart
+    invoke: !ref get
+    inputs: { method: GET, url: /login/google }
+  - name: customConsent
+    invoke: !ref consentOf
+    inputs: { url: !cel "steps.customStart.result.headers.location" }
+  - name: assertCustomPath
+    invoke: !ref Assert.equals
+    inputs:
+      actual: !cel "steps.customConsent.result.params.filter(p, p.startsWith('redirect_uri='))"
+      expected: [redirect_uri=https%3A%2F%2Fapp.example.test%2Flogin%2Fgoogle%2Fcallback]
