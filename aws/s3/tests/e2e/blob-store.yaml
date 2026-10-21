@@ -1,0 +1,256 @@
+kind: Telo.Application
+metadata:
+  name: S3E2EBlobStore
+  version: 1.0.0
+  description: |
+    S3.Bucket as a Blob.Store, against a live backend: the storage-neutral
+    Blob.Put / Get / Head / Delete run over a bucket. Pins that a stream is
+    stored and read back with its size and media type; that a put replaces,
+    media type included; that a source longer than one 8 MiB part goes up as a
+    multipart upload and comes back byte-identical; that a put over its bound
+    stores nothing and leaves the previous object; that a missing key is
+    ERR_BLOB_NOT_FOUND from both Get and Head; and that delete is idempotent.
+    Connection defaults match the docker-compose `storage` service; override
+    via the `S3_*` env vars.
+imports:
+  S3: ../../
+  Blob: oci://ghcr.io/telorun/blob@0.2.0#sha256-UgFwVFoZWZ_s8GWHIi-0qJB8K82CZ5gSQN0HZaqpc58
+  Stream: oci://ghcr.io/telorun/stream@0.14.0#sha256-4lK-_jEZ4H1CCdxyLGrsfmkWj5PTXsf2b8NYk0RTxGk
+  Octet: oci://ghcr.io/telorun/octet-codec@0.12.0#sha256-Eg9ZpVjtXbkkmFA2CTeKg69KMHPZ5F6sNbCgpbbqyXc
+  Run: oci://ghcr.io/telorun/run@0.28.0#sha256-CoPkA-u8-m4kjQAOTDr_TmsfA72HDpnoZI-hHz8N7kE
+  Assert: oci://ghcr.io/telorun/assert@0.21.0#sha256-IVtedFwGjLneOTOtKmhG90rs3qMkfSg41BfAMVKY5ts
+variables:
+  s3Endpoint:
+    env: S3_ENDPOINT
+    type: string
+    default: http://localhost:9000
+  bucketName:
+    env: S3_E2E_BLOB_BUCKET
+    type: string
+    default: telo-s3-e2e-blob
+  forcePathStyle:
+    env: S3_FORCE_PATH_STYLE
+    type: boolean
+    default: true
+secrets:
+  accessKeyId:
+    env: S3_ACCESS_KEY_ID
+    type: string
+    default: telo-registry-access
+  secretAccessKey:
+    env: S3_SECRET_ACCESS_KEY
+    type: string
+    default: telo-registry-secret
+targets:
+  - !ref test
+---
+kind: S3.Bucket
+metadata: { name: store }
+bucketName: !cel "variables.bucketName"
+endpoint: !cel "variables.s3Endpoint"
+forcePathStyle: !cel "variables.forcePathStyle"
+accessKeyId: !cel "secrets.accessKeyId"
+secretAccessKey: !cel "secrets.secretAccessKey"
+createIfMissing: true
+---
+kind: Blob.Put
+metadata: { name: put }
+store: !ref store
+---
+kind: Blob.Get
+metadata: { name: get }
+store: !ref store
+---
+kind: Blob.Head
+metadata: { name: head }
+store: !ref store
+---
+kind: Blob.Delete
+metadata: { name: delete }
+store: !ref store
+---
+# Reads a blob whole: what it holds as text, with its size and media type.
+kind: Run.Sequence
+metadata: { name: load }
+inputType:
+  kind: Telo.JsonSchema
+  schema:
+    type: object
+    required: [key]
+    properties:
+      key: { type: string }
+steps:
+  - name: found
+    inputs: { key: !cel "inputs.key" }
+    invoke: !ref get
+  - name: drained
+    inputs: { input: !cel "steps.found.result.output" }
+    invoke:
+      kind: Octet.Decoder
+outputs:
+  text: !cel "string(steps.drained.result.bytes)"
+  size: !cel "steps.found.result.size"
+  contentType: !cel "steps.found.result.contentType"
+---
+kind: Run.Sequence
+metadata: { name: test }
+steps:
+  # A stream in, a stream out.
+  - name: source
+    inputs:
+      items: !cel "[bytes('hello '), bytes('world')]"
+    invoke:
+      kind: Stream.Of
+  - name: stored
+    inputs:
+      key: e2e-blob/hello.txt
+      content: !cel "steps.source.result.output"
+      contentType: text/plain
+    invoke: !ref put
+  - name: loaded
+    inputs: { key: e2e-blob/hello.txt }
+    invoke: !ref load
+  - name: inspected
+    inputs: { key: e2e-blob/hello.txt }
+    invoke: !ref head
+  - name: assertRoundTrip
+    inputs:
+      actual:
+        stored: !cel "steps.stored.result"
+        loaded: !cel "steps.loaded.result"
+        inspected: !cel "steps.inspected.result"
+      expected:
+        stored:
+          key: e2e-blob/hello.txt
+          size: !cel "11"
+          sha256: !cel "sha256('hello world')"
+          contentType: text/plain
+        loaded: { text: hello world, size: !cel "11", contentType: text/plain }
+        inspected: { size: !cel "11", contentType: text/plain }
+    invoke: !ref Assert.equals
+
+  # Bytes held whole replace the object, media type included.
+  - name: replaced
+    inputs:
+      key: e2e-blob/hello.txt
+      content: !cel "bytes('second')"
+      contentType: application/octet-stream
+    invoke: !ref put
+  - name: reloaded
+    inputs: { key: e2e-blob/hello.txt }
+    invoke: !ref load
+  - name: assertReplaced
+    inputs:
+      actual: !cel "steps.reloaded.result"
+      expected: { text: second, size: !cel "6", contentType: application/octet-stream }
+    invoke: !ref Assert.equals
+
+  # Thirty bytes against a bound of twenty-five: nothing is stored, and the
+  # object already under the key is still the one read.
+  - name: oversized
+    inputs:
+      items: !cel "[bytes('0123456789'), bytes('0123456789'), bytes('0123456789')]"
+    invoke:
+      kind: Stream.Of
+  - name: putTooLarge
+    try:
+      - name: putOver
+        inputs:
+          key: e2e-blob/hello.txt
+          content: !cel "steps.oversized.result.output"
+          contentType: text/plain
+          maxBytes: 25
+        invoke: !ref put
+      - name: putAccepted
+        throw: { code: NOT_REFUSED, message: content over `maxBytes` was stored }
+    catch:
+      - name: assertPutRefused
+        inputs:
+          actual: !cel "error.code"
+          expected: ERR_BLOB_TOO_LARGE
+        invoke: !ref Assert.equals
+  - name: afterRefusal
+    inputs: { key: e2e-blob/hello.txt }
+    invoke: !ref load
+  - name: assertPreviousKept
+    inputs:
+      actual: !cel "steps.afterRefusal.result"
+      expected: { text: second, size: !cel "6", contentType: application/octet-stream }
+    invoke: !ref Assert.equals
+
+  # Nine 1 MiB chunks: longer than one 8 MiB part, so a multipart upload of a
+  # full part and a short one.
+  - name: kib
+    value: !cel "range(1024).map(i, 'k').join('')"
+  - name: mib
+    value: !cel "range(1024).map(i, steps.kib.result).join('')"
+  - name: large
+    inputs:
+      items: !cel "range(9).map(i, bytes(steps.mib.result))"
+    invoke:
+      kind: Stream.Of
+  - name: storedLarge
+    inputs:
+      key: e2e-blob/large.bin
+      content: !cel "steps.large.result.output"
+      contentType: application/octet-stream
+    invoke: !ref put
+  - name: loadedLarge
+    inputs: { key: e2e-blob/large.bin }
+    invoke: !ref load
+  - name: assertLarge
+    inputs:
+      actual:
+        storedSize: !cel "steps.storedLarge.result.size"
+        loadedSize: !cel "steps.loadedLarge.result.size"
+        sameBytes: !cel "sha256(steps.loadedLarge.result.text) == steps.storedLarge.result.sha256"
+        expectedBytes: !cel "steps.storedLarge.result.sha256 == sha256(range(9).map(i, steps.mib.result).join(''))"
+      expected:
+        storedSize: !cel "9437184"
+        loadedSize: !cel "9437184"
+        sameBytes: true
+        expectedBytes: true
+    invoke: !ref Assert.equals
+
+  # Delete, twice: the second finds nothing and still succeeds.
+  - name: deleteLarge
+    inputs: { key: e2e-blob/large.bin }
+    invoke: !ref delete
+  - name: deleteFirst
+    inputs: { key: e2e-blob/hello.txt }
+    invoke: !ref delete
+  - name: deleteAgain
+    inputs: { key: e2e-blob/hello.txt }
+    invoke: !ref delete
+  - name: assertDeleted
+    inputs:
+      actual: !cel "steps.deleteAgain.result"
+      expected: { key: e2e-blob/hello.txt }
+    invoke: !ref Assert.equals
+
+  - name: getMissing
+    try:
+      - name: getGone
+        inputs: { key: e2e-blob/hello.txt }
+        invoke: !ref get
+      - name: getAnswered
+        throw: { code: NOT_REFUSED, message: a deleted blob was read }
+    catch:
+      - name: assertGetNotFound
+        inputs:
+          actual: { code: !cel "error.code", data: !cel "error.data" }
+          expected: { code: ERR_BLOB_NOT_FOUND, data: { key: e2e-blob/hello.txt } }
+        invoke: !ref Assert.equals
+  - name: headMissing
+    try:
+      - name: headGone
+        inputs: { key: e2e-blob/hello.txt }
+        invoke: !ref head
+      - name: headAnswered
+        throw: { code: NOT_REFUSED, message: a deleted blob was inspected }
+    catch:
+      - name: assertHeadNotFound
+        inputs:
+          actual: { code: !cel "error.code", data: !cel "error.data" }
+          expected: { code: ERR_BLOB_NOT_FOUND, data: { key: e2e-blob/hello.txt } }
+        invoke: !ref Assert.equals

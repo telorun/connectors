@@ -10,7 +10,7 @@ metadata:
   repository: https://github.com/telorun/connectors
   license: MIT
 imports:
-  Http: oci://ghcr.io/telorun/http-client@0.22.0#sha256-UyC8nQDnKHXyPpPPHC7TS8MicesLsgDUKWBYObf5oQ4
+  Http: oci://ghcr.io/telorun/http-client@0.23.0#sha256-6WAIh0ajnTlkWNuP-59e1qNVUXVSJDWZxvPVACQg1AM
 exports:
   kinds:
     - YouTrackClient

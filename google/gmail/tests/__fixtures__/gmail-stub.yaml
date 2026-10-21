@@ -43,6 +43,9 @@ exports:
 ---
 # Generic echo handler: returns the request context it is fed, so a route can
 # reflect what the operation actually sent back into the response body.
+# Routes forward `body` only when the request has a Content-Type: a bodyless
+# POST reaches the handler with `request.body` present but undefined, which
+# `orValue` cannot default.
 kind: Run.Value
 metadata: { name: echo }
 inputType:
@@ -147,7 +150,7 @@ routes:
       path: !cel "request.path"
       method: !cel "request.method"
       query: !cel "request.query"
-      body: !cel "request.?body.orValue({})"
+      body: !cel "request.headers[?'content-type'].hasValue() ? request.body : {}"
       headers: !cel "request.headers"
     handler: !ref echo
     returns:
@@ -162,7 +165,7 @@ routes:
       path: !cel "request.path"
       method: !cel "request.method"
       query: !cel "request.query"
-      body: !cel "request.?body.orValue({})"
+      body: !cel "request.headers[?'content-type'].hasValue() ? request.body : {}"
       headers: !cel "request.headers"
     handler: !ref echo
     returns:
@@ -177,7 +180,7 @@ routes:
       path: !cel "request.path"
       method: !cel "request.method"
       query: !cel "request.query"
-      body: !cel "request.?body.orValue({})"
+      body: !cel "request.headers[?'content-type'].hasValue() ? request.body : {}"
       headers: !cel "request.headers"
     handler: !ref echo
     returns:

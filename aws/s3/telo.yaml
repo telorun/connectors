@@ -8,7 +8,11 @@ metadata:
     S3-compatible object storage (AWS S3, Cloudflare R2, MinIO, RustFS).
     `S3.Bucket` configures a bucket handle; `S3.Put`, `S3.Get` (streams object
     bytes), `S3.List`, `S3.Delete`, and `S3.PresignedUrl` (time-limited
-    download/upload links) operate on it.
+    download/upload links) operate on it. A bucket is also a `Blob.Store`, so
+    the storage-neutral `Blob.Put`, `Blob.Get`, `Blob.Head` and `Blob.Delete`
+    work against it unchanged.
+imports:
+  Blob: oci://ghcr.io/telorun/blob@0.2.0#sha256-UgFwVFoZWZ_s8GWHIi-0qJB8K82CZ5gSQN0HZaqpc58
 exports:
   kinds:
     - Bucket
@@ -21,8 +25,13 @@ exports:
 kind: Telo.Definition
 metadata:
   name: Bucket
-  description: Provides a configured handle to an S3-compatible bucket, with optional create-if-missing and public-read.
+  description: >-
+    Provides a configured handle to an S3-compatible bucket, with optional
+    create-if-missing and public-read. Also a blob store: the storage-neutral
+    blob operations save, read, inspect and delete objects in it, streaming
+    uploads of any size as multipart uploads.
 capability: Telo.Provider
+extends: Blob.Store
 controllers:
   - pkg:npm/@telorun/s3@0.8.2?local_path=./nodejs#s3-bucket
 schema:
@@ -30,8 +39,8 @@ schema:
   examples:
     - bucketName: my-bucket
       endpoint: https://s3.us-east-1.amazonaws.com
-      accessKeyId: "${{ secrets.accessKeyId }}"
-      secretAccessKey: "${{ secrets.secretAccessKey }}"
+      accessKeyId: !cel "secrets.accessKeyId"
+      secretAccessKey: !cel "secrets.secretAccessKey"
       forcePathStyle: false
       createIfMissing: false
   properties:
@@ -47,12 +56,12 @@ schema:
       title: Access Key ID
       type: string
       x-telo-eval: compile
-      description: Access key ID for the bucket; typically `${{ secrets.accessKeyId }}`.
+      description: Access key ID for the bucket; typically bound to a secret.
     secretAccessKey:
       title: Secret Access Key
       type: string
       x-telo-eval: compile
-      description: Secret access key for the bucket; typically `${{ secrets.secretAccessKey }}`.
+      description: Secret access key for the bucket; typically bound to a secret.
     forcePathStyle:
       title: Force Path Style
       type: boolean

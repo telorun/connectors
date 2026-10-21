@@ -5,7 +5,17 @@ import {
   S3Client,
 } from "@aws-sdk/client-s3";
 import { Static, Type } from "@sinclair/typebox";
-import type { ResourceContext, ResourceInstance } from "@telorun/sdk";
+import type { InvokeContext, Logger, ResourceContext, ResourceInstance } from "@telorun/sdk";
+import {
+  deleteBlob,
+  getBlob,
+  headBlob,
+  putBlob,
+  type BlobAbsent,
+  type BlobContent,
+  type BlobFound,
+  type BlobPutOptions,
+} from "./s3-blob-store.js";
 import { isS3NotFound, s3ErrorName } from "./s3-bucket-ref.js";
 
 const schema = Type.Object({
@@ -19,11 +29,19 @@ const schema = Type.Object({
 });
 export type S3BucketManifest = Static<typeof schema>;
 
+/**
+ * S3.Bucket — the bucket handle the `S3.*` operations share, and a `Blob.Store`:
+ * `put`, `get`, `head` and `delete` are the store contract the `Blob.*`
+ * operations call (`s3-blob-store.ts`).
+ */
 export class S3BucketResource implements ResourceInstance {
   readonly client: S3Client;
   readonly bucketName: string;
 
-  constructor(manifest: S3BucketManifest) {
+  constructor(
+    manifest: S3BucketManifest,
+    readonly log: Logger,
+  ) {
     this.bucketName = manifest.bucketName;
     this.client = new S3Client({
       region: "auto",
@@ -35,6 +53,27 @@ export class S3BucketResource implements ResourceInstance {
 
   getClient() {
     return this.client;
+  }
+
+  put(
+    key: string,
+    content: AsyncIterable<Uint8Array>,
+    options: BlobPutOptions,
+    ctx?: InvokeContext,
+  ): Promise<void> {
+    return putBlob(this, key, content, options, ctx);
+  }
+
+  get(key: string, ctx?: InvokeContext): Promise<BlobContent | BlobAbsent> {
+    return getBlob(this, key, ctx);
+  }
+
+  head(key: string, ctx?: InvokeContext): Promise<BlobFound | BlobAbsent> {
+    return headBlob(this, key, ctx);
+  }
+
+  delete(key: string, ctx?: InvokeContext): Promise<void> {
+    return deleteBlob(this, key, ctx);
   }
 
   snapshot() {
@@ -49,7 +88,7 @@ export async function create(
   ctx: ResourceContext,
 ): Promise<S3BucketResource> {
   ctx.validateSchema(resource, schema);
-  const instance = new S3BucketResource(resource);
+  const instance = new S3BucketResource(resource, ctx.log);
   if (resource.createIfMissing) {
     await ensureBucket(instance);
   }
