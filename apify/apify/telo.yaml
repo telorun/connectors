@@ -1,7 +1,7 @@
 kind: Telo.Library
 metadata:
   name: Apify
-  version: 0.0.0
+  version: 0.1.0
   description: >-
     Run Apify actors from Telo manifests. ApifyClient is an Http.Client
     preconfigured with an Apify API token; the operations start an actor run

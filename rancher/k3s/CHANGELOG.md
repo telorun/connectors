@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.4.0 - 2026-10-22
+### Added
+* Bumped standard-module dependencies: shell 0.13.0, run 0.28.0.
+
 ## 0.3.0 - 2026-09-03
 ### Added
 * Upgrade the `run` import to 0.26.0. A controller-only release — every kind schema `K3s` builds on is unchanged; only the module's JS controller layer moved.

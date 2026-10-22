@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.12.0 - 2026-10-22
+### Added
+* Bumped http-dispatch to 0.16.0.
+
 ## 0.11.0 - 2026-09-03
 ### Added
 * Upgrade the `http-dispatch` import to 0.12.0. Its `content` maps (on `Outcomes/$defs/Returns` and `Outcomes/$defs/Catches`, which `Lambda.HttpApi` draws its `returns` / `catches` schemas from) now carry `propertyNames` media-type hints, so an editor suggests `application/json` and friends without closing the set to a vendor content type.
