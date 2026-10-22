@@ -1,0 +1,14 @@
+# The release anchor for this vendor. Its LOCATION is what every module key,
+# ledger entry and fragment path is relative to, and `telo release` derives a
+# module's publish destination as `<registry>/<directory name>` — so anchoring
+# per vendor is what keeps the published refs vendor-nested
+# (`oci://ghcr.io/telorun/apify/apify`).
+#
+# Only the hand-written core module is released by `telo release`. Every other
+# directory here is a generated per-actor module (scripts/apify/generate.mjs)
+# whose version IS the Apify actor build it was generated from, so its version
+# is written by the generator and it is published by scripts/publish-modules.mjs
+# directly. See apify/README.md.
+release:
+  modules:
+    - "apify"

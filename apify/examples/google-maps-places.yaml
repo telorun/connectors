@@ -1,0 +1,49 @@
+kind: Telo.Application
+metadata:
+  name: ApifyExampleGoogleMapsPlaces
+  version: 1.0.0
+  description: >-
+    Finds five coffee places in Prague with compass/crawler-google-places
+    (typed module) and prints name, rating and address. Uses `Start`, which
+    runs the actor in the background and polls until it finishes, since Maps
+    scraping can outlast the 5-minute synchronous limit. Pay per place, capped
+    at $0.10.
+imports:
+  Places: ../compass-crawler-google-places
+  Run: oci://ghcr.io/telorun/run@0.28.0#sha256-CoPkA-u8-m4kjQAOTDr_TmsfA72HDpnoZI-hHz8N7kE
+  Console: oci://ghcr.io/telorun/console@0.19.0#sha256-RC9Wlj4a8ysp1g3WS3z3CbmQuAsahNj4PdsJMaNfPZw
+secrets:
+  apifyToken:
+    env: APIFY_TOKEN
+    type: string
+targets:
+  - !ref main
+---
+kind: Places.ApifyClient
+metadata: { name: apify }
+token: !cel "secrets.apifyToken"
+---
+kind: Places.Start
+metadata: { name: places }
+client: !ref apify
+maxTotalChargeUsd: 0.1
+---
+kind: Run.Sequence
+metadata: { name: main }
+steps:
+  - name: places
+    invoke: !ref places
+    inputs:
+      searchStringsArray: [coffee]
+      locationQuery: Prague, Czech Republic
+      maxCrawledPlacesPerSearch: 5
+  - name: print
+    invoke: !ref Console.write
+    inputs:
+      output: !cel >-
+        'Run ' + steps.places.result.run.id + ' ' + steps.places.result.run.status + '\n' +
+        join(steps.places.result.items.map(p, json({
+          'title': p.title,
+          'rating': p.totalScore,
+          'address': p.address
+        })), '\n') + '\n'

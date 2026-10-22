@@ -1,0 +1,28 @@
+# Deliberately broken: passes `bogus`, a field the sample actor's input does
+# not declare. Generated input types are closed, so this must not check.
+kind: Telo.Application
+metadata:
+  name: ClosedInputFixture
+  version: 1.0.0
+imports:
+  Sample: ./acme-sample
+  Run: oci://ghcr.io/telorun/run@0.28.0#sha256-CoPkA-u8-m4kjQAOTDr_TmsfA72HDpnoZI-hHz8N7kE
+targets:
+  - !ref main
+---
+kind: Sample.ApifyClient
+metadata: { name: client }
+token: unused
+---
+kind: Sample.Run
+metadata: { name: sampleRun }
+client: !ref client
+---
+kind: Run.Sequence
+metadata: { name: main }
+steps:
+  - name: run
+    invoke: !ref sampleRun
+    inputs:
+      query: coffee
+      bogus: 1

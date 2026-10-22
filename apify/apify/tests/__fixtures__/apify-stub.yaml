@@ -1,0 +1,144 @@
+kind: Telo.Library
+metadata:
+  name: ApifyStub
+  version: 1.0.0
+  description: |
+    Test fixture: a stand-in for the Apify REST API (v2), shared by the tests of
+    the core module and of the generated sample actor. It exports one
+    `Server.Api` that a test mounts on its own port.
+
+    Every route echoes what it received (method, path, query, body, auth) so a
+    test can assert exactly what went on the wire. Runs are simulated:
+
+      POST /v2/acts/:actorId/runs     — a READY run. Its id is `t<epoch ms>`,
+                                        or `broken` for actor `acme~broken` or
+                                        an input whose `query` is `fail`
+      GET  /v2/actor-runs/:runId      — RUNNING for the first 100 ms after the
+                                        run started, then SUCCEEDED; `broken`
+                                        finishes FAILED. A caller that stops
+                                        polling too early sees RUNNING
+      POST /v2/acts/acme~broken/run-sync-get-dataset-items — HTTP 400, the way
+                                        Apify reports a failed synchronous run
+imports:
+  Server: oci://ghcr.io/telorun/http-server@0.38.0#sha256-QUCZmb_cvTor4YhWUAj3YdRj-kacNkmkXLnycjXLBtA
+  Run: oci://ghcr.io/telorun/run@0.28.0#sha256-CoPkA-u8-m4kjQAOTDr_TmsfA72HDpnoZI-hHz8N7kE
+exports:
+  resources:
+    - api
+---
+# Generic echo handler: returns the request context it is fed.
+kind: Run.Value
+metadata: { name: echo }
+inputType:
+  kind: Telo.JsonSchema
+  schema:
+    type: object
+    properties:
+      path: {}
+      method: {}
+      query: {}
+      body: {}
+      headers: {}
+value:
+  method: !cel "inputs.?method.orValue('')"
+  path: !cel "inputs.?path.orValue('').split('?')[0]"
+  query: !cel "inputs.?query.orValue({})"
+  body: !cel "inputs.?body.orValue({})"
+  auth: !cel "inputs.?headers.orValue({}).?authorization.orValue('')"
+---
+kind: Server.Api
+metadata:
+  name: api
+  description: The stub Apify API — mount it on a Server.Server in a test.
+routes:
+  - request: { method: POST, path: /v2/acts/:actorId/run-sync-get-dataset-items }
+    inputs:
+      path: !cel "request.path"
+      method: !cel "request.method"
+      query: !cel "request.query"
+      body: !cel "request.headers[?'content-type'].hasValue() ? request.body : {}"
+      headers: !cel "request.headers"
+    handler: !ref echo
+    returns:
+      - when: !cel "request.path.contains('acme~broken')"
+        status: 400
+        content:
+          application/json:
+            body:
+              error:
+                type: run-failed
+                message: "Actor run did not succeed (run ID: run-acme~broken, status: FAILED)"
+      - status: 201
+        content:
+          application/json:
+            body:
+              - item: 1
+                received: !cel "result"
+              - item: 2
+  - request: { method: POST, path: /v2/acts/:actorId/runs }
+    inputs:
+      path: !cel "request.path"
+      method: !cel "request.method"
+      query: !cel "request.query"
+      body: !cel "request.headers[?'content-type'].hasValue() ? request.body : {}"
+      headers: !cel "request.headers"
+    handler: !ref echo
+    returns:
+      - status: 201
+        content:
+          application/json:
+            body:
+              data:
+                id: !cel "request.path.split('?')[0].split('/')[3] == 'acme~broken' || dyn(result.body).?query.orValue('') == 'fail' ? 'broken' : 't' + string(nowMillis())"
+                status: READY
+                defaultDatasetId: !cel "'ds-' + request.path.split('?')[0].split('/')[3]"
+                received: !cel "result"
+  - request: { method: GET, path: /v2/actor-runs/:runId }
+    inputs:
+      path: !cel "request.path"
+      method: !cel "request.method"
+      query: !cel "request.query"
+      headers: !cel "request.headers"
+    handler: !ref echo
+    returns:
+      - status: 200
+        content:
+          application/json:
+            body:
+              data:
+                id: !cel "request.path.split('?')[0].split('/')[3]"
+                status: !cel >-
+                  request.path.split('?')[0].split('/')[3] == 'broken' ? 'FAILED' :
+                  nowMillis() - int(request.path.split('?')[0].split('/')[3].substring(1)) < 100 ? 'RUNNING' : 'SUCCEEDED'
+                defaultDatasetId: !cel "'ds-' + request.path.split('?')[0].split('/')[3]"
+                received: !cel "result"
+  - request: { method: POST, path: /v2/actor-runs/:runId/abort }
+    inputs:
+      path: !cel "request.path"
+      method: !cel "request.method"
+      query: !cel "request.query"
+      headers: !cel "request.headers"
+    handler: !ref echo
+    returns:
+      - status: 200
+        content:
+          application/json:
+            body:
+              data:
+                status: ABORTING
+                received: !cel "result"
+  - request: { method: GET, path: /v2/datasets/:datasetId/items }
+    inputs:
+      path: !cel "request.path"
+      method: !cel "request.method"
+      query: !cel "request.query"
+      headers: !cel "request.headers"
+    handler: !ref echo
+    returns:
+      - status: 200
+        content:
+          application/json:
+            body:
+              - item: 1
+                received: !cel "result"
+              - item: 2

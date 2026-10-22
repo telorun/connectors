@@ -1,0 +1,417 @@
+kind: Telo.Library
+metadata:
+  name: Apify
+  version: 0.0.0
+  description: >-
+    Run Apify actors from Telo manifests. ApifyClient is an Http.Client
+    preconfigured with an Apify API token; the operations start an actor run
+    and wait for its dataset items (synchronously, up to Apify's five-minute
+    limit), start a run in the background, read a run's status, read dataset
+    items and abort a run. The typed per-actor modules published next to this
+    one (apify/<user>-<actor>) are built on these operations.
+  repository: https://github.com/telorun/connectors
+  license: MIT
+imports:
+  Http: oci://ghcr.io/telorun/http-client@0.23.0#sha256-6WAIh0ajnTlkWNuP-59e1qNVUXVSJDWZxvPVACQg1AM
+exports:
+  kinds:
+    - ApifyClient
+    - RunActorSync
+    - RunActor
+    - GetRun
+    - GetDatasetItems
+    - AbortRun
+---
+# The service client. Inherits the Http.Client controller, so an ApifyClient
+# IS an Http.Client and drops into every operation's `client` slot.
+kind: Telo.Definition
+metadata:
+  name: ApifyClient
+  description: Preconfigured Apify Http.Client — Bearer API token, baseUrl https://api.apify.com/v2.
+extends: Http.Client
+schema:
+  type: object
+  required: [token]
+  properties:
+    token:
+      type: string
+      x-telo-eval: compile
+      description: >-
+        Apify API token (Console → Settings → API & Integrations). Sent as
+        `Authorization: Bearer <token>` on every request.
+    baseUrl:
+      type: string
+      x-telo-eval: compile
+      description: >-
+        Override the API origin (no trailing slash, no `/v2`). Defaults to
+        https://api.apify.com. Point it at a proxy or a stub server for testing.
+    timeout:
+      type: integer
+      minimum: 1
+      description: >-
+        Default per-request timeout in milliseconds. The run operations set
+        their own, longer timeouts to cover Apify's server-side waiting.
+base:
+  baseUrl: !cel "self.?baseUrl.orValue('https://api.apify.com') + '/v2'"
+  timeout: !cel "self.timeout"
+  headers:
+    Authorization: !cel "'Bearer ' + self.token"
+    Accept: application/json
+---
+# POST /v2/acts/{actorId}/run-sync-get-dataset-items — run an actor and return
+# its default dataset's items in one call. Apify waits at most 300 s; a longer
+# run fails with HTTP 408 (use RunActor + GetRun for those).
+kind: Telo.Definition
+metadata:
+  name: RunActorSync
+  description: Run an Apify actor and wait for its dataset items (runs up to 5 minutes).
+capability: Telo.Invocable
+schema:
+  type: object
+  required: [client]
+  properties:
+    client:
+      x-telo-ref:
+        kind: Http.Client
+        use: dependency
+      description: An ApifyClient (or any Http.Client) to run the request against.
+inputType:
+  kind: Telo.JsonSchema
+  schema:
+    type: object
+    additionalProperties: false
+    required: [actorId]
+    properties:
+      actorId:
+        type: string
+        description: >-
+          The actor — its id, or `<username>/<name>` (also accepted as
+          `<username>~<name>`), e.g. `apify/web-scraper`.
+      input:
+        type: object
+        additionalProperties: true
+        description: The actor's input, sent as the JSON request body. Defaults to {}.
+      build:
+        type: string
+        description: Build tag or build number to run (e.g. `latest`, `1.2.34`). Defaults to the actor's default build.
+      timeout:
+        type: [integer, "null"]
+        minimum: 0
+        description: Run timeout in seconds. Absent or null uses the actor's own setting.
+      memory:
+        type: [integer, "null"]
+        minimum: 128
+        description: Memory limit in megabytes (a power of 2). Absent or null uses the actor's own setting.
+      maxItems:
+        type: [integer, "null"]
+        minimum: 1
+        description: Maximum number of dataset items to return (and, for pay-per-result actors, to be charged for). Absent or null means no limit.
+      maxTotalChargeUsd:
+        type: [number, "null"]
+        minimum: 0
+        description: Spending cap in USD for pay-per-event actors. Absent or null means no cap.
+outputType:
+  kind: Telo.JsonSchema
+  schema:
+    type: object
+    required: [status, headers, body]
+    properties:
+      status: { type: integer }
+      headers: { type: object, additionalProperties: { type: string } }
+      body:
+        type: array
+        description: The run's default dataset items.
+resources:
+  - kind: Http.Request
+    metadata:
+      name: req
+    client: !cel "self.client"
+    throwOnHttpError: true
+    # Apify holds the connection for up to 300 s.
+    timeout: 330000
+invoke: !ref req
+inputs:
+  method: POST
+  body: !cel "inputs.?input.orValue({})"
+  url: !cel >-
+    trimSuffix('/acts/' + replace(inputs.actorId, '/', '~') + '/run-sync-get-dataset-items?' + join([
+      {'k': 'build', 'v': inputs.?build.orValue('')},
+      {'k': 'timeout', 'v': inputs.?timeout.orValue(null) != null ? string(inputs.timeout) : ''},
+      {'k': 'memory', 'v': inputs.?memory.orValue(null) != null ? string(inputs.memory) : ''},
+      {'k': 'maxItems', 'v': inputs.?maxItems.orValue(null) != null ? string(inputs.maxItems) : ''},
+      {'k': 'maxTotalChargeUsd', 'v': inputs.?maxTotalChargeUsd.orValue(null) != null ? string(inputs.maxTotalChargeUsd) : ''}
+    ].filter(p, p.v != '').map(p, p.k + '=' + urlEncode(p.v)), '&'), '?')
+---
+# POST /v2/acts/{actorId}/runs — start a run and return it without waiting for
+# it to finish (or after at most `waitForFinish` seconds).
+kind: Telo.Definition
+metadata:
+  name: RunActor
+  description: Start an Apify actor run and return the run object.
+capability: Telo.Invocable
+schema:
+  type: object
+  required: [client]
+  properties:
+    client:
+      x-telo-ref:
+        kind: Http.Client
+        use: dependency
+      description: An ApifyClient (or any Http.Client) to run the request against.
+inputType:
+  kind: Telo.JsonSchema
+  schema:
+    type: object
+    additionalProperties: false
+    required: [actorId]
+    properties:
+      actorId:
+        type: string
+        description: >-
+          The actor — its id, or `<username>/<name>` (also accepted as
+          `<username>~<name>`), e.g. `apify/web-scraper`.
+      input:
+        type: object
+        additionalProperties: true
+        description: The actor's input, sent as the JSON request body. Defaults to {}.
+      build:
+        type: string
+        description: Build tag or build number to run (e.g. `latest`, `1.2.34`). Defaults to the actor's default build.
+      timeout:
+        type: [integer, "null"]
+        minimum: 0
+        description: Run timeout in seconds. Absent or null uses the actor's own setting.
+      memory:
+        type: [integer, "null"]
+        minimum: 128
+        description: Memory limit in megabytes (a power of 2). Absent or null uses the actor's own setting.
+      maxItems:
+        type: [integer, "null"]
+        minimum: 1
+        description: Maximum number of dataset items the run may produce (and, for pay-per-result actors, be charged for). Absent or null means no limit.
+      maxTotalChargeUsd:
+        type: [number, "null"]
+        minimum: 0
+        description: Spending cap in USD for pay-per-event actors. Absent or null means no cap.
+      waitForFinish:
+        type: integer
+        minimum: 0
+        maximum: 60
+        description: Seconds to wait for the run to finish before returning. Defaults to 0.
+outputType:
+  kind: Telo.JsonSchema
+  schema:
+    type: object
+    required: [status, headers, body]
+    properties:
+      status: { type: integer }
+      headers: { type: object, additionalProperties: { type: string } }
+      body:
+        type: object
+        description: "`{ data: <run> }` — the run object: id, status, defaultDatasetId, defaultKeyValueStoreId, …"
+resources:
+  - kind: Http.Request
+    metadata:
+      name: req
+    client: !cel "self.client"
+    throwOnHttpError: true
+    # Covers the 60 s `waitForFinish` ceiling.
+    timeout: 90000
+invoke: !ref req
+inputs:
+  method: POST
+  body: !cel "inputs.?input.orValue({})"
+  url: !cel >-
+    trimSuffix('/acts/' + replace(inputs.actorId, '/', '~') + '/runs?' + join([
+      {'k': 'build', 'v': inputs.?build.orValue('')},
+      {'k': 'timeout', 'v': inputs.?timeout.orValue(null) != null ? string(inputs.timeout) : ''},
+      {'k': 'memory', 'v': inputs.?memory.orValue(null) != null ? string(inputs.memory) : ''},
+      {'k': 'maxItems', 'v': inputs.?maxItems.orValue(null) != null ? string(inputs.maxItems) : ''},
+      {'k': 'maxTotalChargeUsd', 'v': inputs.?maxTotalChargeUsd.orValue(null) != null ? string(inputs.maxTotalChargeUsd) : ''},
+      {'k': 'waitForFinish', 'v': inputs.?waitForFinish.hasValue() ? string(inputs.waitForFinish) : ''}
+    ].filter(p, p.v != '').map(p, p.k + '=' + urlEncode(p.v)), '&'), '?')
+---
+# GET /v2/actor-runs/{runId} — read a run, optionally holding the request open
+# until it finishes (Apify's long-poll, at most 60 s).
+kind: Telo.Definition
+metadata:
+  name: GetRun
+  description: Read an Apify actor run's status, optionally waiting up to 60 s for it to finish.
+capability: Telo.Invocable
+schema:
+  type: object
+  required: [client]
+  properties:
+    client:
+      x-telo-ref:
+        kind: Http.Client
+        use: dependency
+      description: An ApifyClient (or any Http.Client) to run the request against.
+inputType:
+  kind: Telo.JsonSchema
+  schema:
+    type: object
+    additionalProperties: false
+    required: [runId]
+    properties:
+      runId:
+        type: string
+        description: The run id.
+      waitForFinish:
+        type: integer
+        minimum: 0
+        maximum: 60
+        description: Seconds to wait for the run to finish before returning. Defaults to 0.
+outputType:
+  kind: Telo.JsonSchema
+  schema:
+    type: object
+    required: [status, headers, body]
+    properties:
+      status: { type: integer }
+      headers: { type: object, additionalProperties: { type: string } }
+      body:
+        type: object
+        description: "`{ data: <run> }` — status is one of READY, RUNNING, SUCCEEDED, FAILED, TIMING-OUT, TIMED-OUT, ABORTING, ABORTED."
+resources:
+  - kind: Http.Request
+    metadata:
+      name: req
+    client: !cel "self.client"
+    throwOnHttpError: true
+    timeout: 90000
+invoke: !ref req
+inputs:
+  method: GET
+  url: !cel >-
+    '/actor-runs/' + urlEncode(inputs.runId) +
+    (inputs.?waitForFinish.hasValue() ? '?waitForFinish=' + string(inputs.waitForFinish) : '')
+---
+# GET /v2/datasets/{datasetId}/items — read items from a dataset, such as a
+# run's `defaultDatasetId`.
+kind: Telo.Definition
+metadata:
+  name: GetDatasetItems
+  description: Read items from an Apify dataset (JSON), with paging and field selection.
+capability: Telo.Invocable
+schema:
+  type: object
+  required: [client]
+  properties:
+    client:
+      x-telo-ref:
+        kind: Http.Client
+        use: dependency
+      description: An ApifyClient (or any Http.Client) to run the request against.
+inputType:
+  kind: Telo.JsonSchema
+  schema:
+    type: object
+    additionalProperties: false
+    required: [datasetId]
+    properties:
+      datasetId:
+        type: string
+        description: The dataset id (or `<username>~<name>` for a named dataset).
+      offset:
+        type: integer
+        minimum: 0
+        description: Number of items to skip.
+      limit:
+        type: integer
+        minimum: 1
+        description: Maximum number of items to return. Defaults to all.
+      clean:
+        type: boolean
+        description: Skip empty items and hidden (`#`-prefixed) fields.
+      fields:
+        type: string
+        description: Comma-separated list of fields to keep.
+      omit:
+        type: string
+        description: Comma-separated list of fields to drop.
+      desc:
+        type: boolean
+        description: Return items newest first.
+outputType:
+  kind: Telo.JsonSchema
+  schema:
+    type: object
+    required: [status, headers, body]
+    properties:
+      status: { type: integer }
+      headers: { type: object, additionalProperties: { type: string } }
+      body:
+        type: array
+        description: The dataset items.
+resources:
+  - kind: Http.Request
+    metadata:
+      name: req
+    client: !cel "self.client"
+    throwOnHttpError: true
+invoke: !ref req
+inputs:
+  method: GET
+  url: !cel >-
+    '/datasets/' + urlEncode(inputs.datasetId) + '/items?' + join([
+      {'k': 'format', 'v': 'json'},
+      {'k': 'offset', 'v': inputs.?offset.hasValue() ? string(inputs.offset) : ''},
+      {'k': 'limit', 'v': inputs.?limit.hasValue() ? string(inputs.limit) : ''},
+      {'k': 'clean', 'v': inputs.?clean.hasValue() ? string(inputs.clean) : ''},
+      {'k': 'fields', 'v': inputs.?fields.orValue('')},
+      {'k': 'omit', 'v': inputs.?omit.orValue('')},
+      {'k': 'desc', 'v': inputs.?desc.hasValue() ? string(inputs.desc) : ''}
+    ].filter(p, p.v != '').map(p, p.k + '=' + urlEncode(p.v)), '&')
+---
+# POST /v2/actor-runs/{runId}/abort — stop a running run.
+kind: Telo.Definition
+metadata:
+  name: AbortRun
+  description: Abort a running Apify actor run.
+capability: Telo.Invocable
+schema:
+  type: object
+  required: [client]
+  properties:
+    client:
+      x-telo-ref:
+        kind: Http.Client
+        use: dependency
+      description: An ApifyClient (or any Http.Client) to run the request against.
+inputType:
+  kind: Telo.JsonSchema
+  schema:
+    type: object
+    additionalProperties: false
+    required: [runId]
+    properties:
+      runId:
+        type: string
+        description: The run id.
+      gracefully:
+        type: boolean
+        description: Let the actor finish its current work and persist state before stopping.
+outputType:
+  kind: Telo.JsonSchema
+  schema:
+    type: object
+    required: [status, headers, body]
+    properties:
+      status: { type: integer }
+      headers: { type: object, additionalProperties: { type: string } }
+      body:
+        type: object
+        description: "`{ data: <run> }` — the run, now ABORTING or ABORTED."
+resources:
+  - kind: Http.Request
+    metadata:
+      name: req
+    client: !cel "self.client"
+    throwOnHttpError: true
+invoke: !ref req
+inputs:
+  method: POST
+  url: !cel >-
+    '/actor-runs/' + urlEncode(inputs.runId) + '/abort' +
+    (inputs.?gracefully.hasValue() ? '?gracefully=' + string(inputs.gracefully) : '')

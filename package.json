@@ -20,6 +20,12 @@
     "release:check": "node scripts/release.mjs check",
     "release:apply": "node scripts/release.mjs apply",
     "release:verify": "node scripts/release.mjs verify",
-    "publish-modules": "node scripts/publish-modules.mjs"
+    "publish-modules": "node scripts/publish-modules.mjs",
+    "apify:seed": "node scripts/apify/seed.mjs",
+    "apify:generate": "node scripts/apify/generate.mjs",
+    "apify:fixture": "node scripts/apify/generate.mjs --fixture"
+  },
+  "devDependencies": {
+    "yaml": "^2.9.1"
   }
 }

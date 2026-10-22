@@ -1,0 +1,182 @@
+kind: Telo.Application
+metadata:
+  name: ApifyOperationsTest
+  version: 1.0.0
+# The core operations against the stub: the method, path and query each one
+# puts on the wire, the Bearer token from ApifyClient, the actor input sent as
+# the body, `user/name` actor ids rewritten to Apify's `user~name`, and a failed
+# synchronous run surfacing as an error rather than an empty result.
+imports:
+  Apify: ../
+  Stub: ./__fixtures__/apify-stub.yaml
+  Run: oci://ghcr.io/telorun/run@0.28.0#sha256-CoPkA-u8-m4kjQAOTDr_TmsfA72HDpnoZI-hHz8N7kE
+  Assert: oci://ghcr.io/telorun/assert@0.21.1#sha256-9CCELeaW54ph9v7qtM1zBRq9-gqXK4fwF0NubWAhsN4
+  Server: oci://ghcr.io/telorun/http-server@0.38.0#sha256-QUCZmb_cvTor4YhWUAj3YdRj-kacNkmkXLnycjXLBtA
+ports:
+  http:
+    env: TEST_APIFY_OPERATIONS_PORT
+    default: 34901
+targets:
+  - !ref test
+---
+kind: Apify.ApifyClient
+metadata: { name: stub }
+token: test-token
+baseUrl: !cel "'http://localhost:' + string(dyn(ports.http))"
+---
+kind: Apify.RunActorSync
+metadata: { name: runSync }
+client: !ref stub
+---
+kind: Apify.RunActor
+metadata: { name: runActor }
+client: !ref stub
+---
+kind: Apify.GetRun
+metadata: { name: getRun }
+client: !ref stub
+---
+kind: Apify.GetDatasetItems
+metadata: { name: getItems }
+client: !ref stub
+---
+kind: Apify.AbortRun
+metadata: { name: abortRun }
+client: !ref stub
+---
+kind: Run.Sequence
+metadata: { name: test }
+with:
+  - kind: Server.Server
+    metadata: { name: StubServer }
+    listen:
+      port: !cel "ports.http"
+    mounts:
+      - path: /
+        mount: !ref Stub.api
+targets:
+  - !ref StubServer
+steps:
+  - name: runSync
+    invoke: !ref runSync
+    inputs:
+      actorId: apify/web-scraper
+      input: { startUrls: [{ url: "https://example.com" }] }
+      build: 1.2.3
+      timeout: 120
+      maxItems: 10
+  - name: assertRunSync
+    invoke: !ref Assert.equals
+    inputs:
+      actual: !cel "steps.runSync.result.body[0].received"
+      expected:
+        method: POST
+        path: /v2/acts/apify~web-scraper/run-sync-get-dataset-items
+        query: { build: "1.2.3", timeout: "120", maxItems: "10" }
+        body: { startUrls: [{ url: "https://example.com" }] }
+        auth: Bearer test-token
+  - name: assertRunSyncItems
+    invoke: !ref Assert.equals
+    inputs:
+      actual: !cel "size(steps.runSync.result.body)"
+      expected: 2
+  - name: runSyncNoInput
+    invoke: !ref runSync
+    inputs:
+      actorId: apify~hello-world
+  - name: assertRunSyncNoInput
+    invoke: !ref Assert.equals
+    inputs:
+      actual: !cel "steps.runSyncNoInput.result.body[0].received"
+      expected:
+        method: POST
+        path: /v2/acts/apify~hello-world/run-sync-get-dataset-items
+        query: {}
+        body: {}
+        auth: Bearer test-token
+  - name: runSyncFailure
+    try:
+      - name: runBroken
+        invoke: !ref runSync
+        inputs:
+          actorId: acme/broken
+      - name: notReached
+        throw:
+          code: EXPECTED_FAILURE
+          message: A failed synchronous run must raise.
+    catch:
+      - name: assertFailure
+        invoke: !ref Assert.equals
+        inputs:
+          actual: !cel "error.code"
+          expected: ERR_HTTP_STATUS
+  - name: start
+    invoke: !ref runActor
+    inputs:
+      actorId: apify/web-scraper
+      input: { maxPages: 1 }
+      memory: 1024
+      maxTotalChargeUsd: 2.5
+      waitForFinish: 5
+  - name: assertStart
+    invoke: !ref Assert.equals
+    inputs:
+      actual: !cel "steps.start.result.body.data"
+      expected:
+        id: !cel "steps.start.result.body.data.id"
+        status: READY
+        defaultDatasetId: ds-apify~web-scraper
+        received:
+          method: POST
+          path: /v2/acts/apify~web-scraper/runs
+          query: { memory: "1024", maxTotalChargeUsd: "2.5", waitForFinish: "5" }
+          body: { maxPages: 1 }
+          auth: Bearer test-token
+  - name: getRun
+    invoke: !ref getRun
+    inputs:
+      runId: !cel "steps.start.result.body.data.id"
+      waitForFinish: 30
+  - name: assertGetRun
+    invoke: !ref Assert.equals
+    inputs:
+      actual: !cel "steps.getRun.result.body.data.received"
+      expected:
+        method: GET
+        path: !cel "'/v2/actor-runs/' + steps.start.result.body.data.id"
+        query: { waitForFinish: "30" }
+        body: {}
+        auth: Bearer test-token
+  - name: items
+    invoke: !ref getItems
+    inputs:
+      datasetId: ds-1
+      offset: 5
+      limit: 2
+      clean: true
+      fields: title,url
+  - name: assertItems
+    invoke: !ref Assert.equals
+    inputs:
+      actual: !cel "steps.items.result.body[0].received"
+      expected:
+        method: GET
+        path: /v2/datasets/ds-1/items
+        query: { format: json, offset: "5", limit: "2", clean: "true", fields: "title,url" }
+        body: {}
+        auth: Bearer test-token
+  - name: abort
+    invoke: !ref abortRun
+    inputs:
+      runId: run-1
+      gracefully: true
+  - name: assertAbort
+    invoke: !ref Assert.equals
+    inputs:
+      actual: !cel "steps.abort.result.body.data.received"
+      expected:
+        method: POST
+        path: /v2/actor-runs/run-1/abort
+        query: { gracefully: "true" }
+        body: {}
+        auth: Bearer test-token

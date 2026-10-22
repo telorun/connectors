@@ -1,0 +1,118 @@
+kind: Telo.Application
+metadata:
+  name: ApifyGeneratedActorTest
+  version: 1.0.0
+# The per-actor template the generator emits, exercised through a module
+# generated from a fixture actor (scripts/apify/fixtures/acme-sample.json):
+# `Run` sends the caller's input verbatim to the pinned build and returns the
+# items; `Start` starts the run, keeps polling while the run is RUNNING, and
+# reads the run's dataset; the static run options reach the wire; a run that
+# finishes FAILED raises APIFY_RUN_NOT_SUCCEEDED; and the closed input type
+# rejects a field the actor does not declare.
+imports:
+  Sample: ./__fixtures__/acme-sample
+  Stub: ./__fixtures__/apify-stub.yaml
+  Run: oci://ghcr.io/telorun/run@0.28.0#sha256-CoPkA-u8-m4kjQAOTDr_TmsfA72HDpnoZI-hHz8N7kE
+  Assert: oci://ghcr.io/telorun/assert@0.21.1#sha256-9CCELeaW54ph9v7qtM1zBRq9-gqXK4fwF0NubWAhsN4
+  Server: oci://ghcr.io/telorun/http-server@0.38.0#sha256-QUCZmb_cvTor4YhWUAj3YdRj-kacNkmkXLnycjXLBtA
+ports:
+  http:
+    env: TEST_APIFY_GENERATED_PORT
+    default: 34902
+targets:
+  - !ref test
+---
+# Re-exported by the generated module, so a consumer imports the actor alone.
+kind: Sample.ApifyClient
+metadata: { name: stub }
+token: test-token
+baseUrl: !cel "'http://localhost:' + string(dyn(ports.http))"
+---
+kind: Sample.Run
+metadata: { name: sampleRun }
+client: !ref stub
+maxTotalChargeUsd: 1.5
+---
+kind: Sample.Start
+metadata: { name: sampleStart }
+client: !ref stub
+memory: 512
+---
+kind: Assert.Manifest
+metadata: { name: rejectsUndeclaredInput }
+source: ./__fixtures__/closed-input.yaml
+expect:
+  errors:
+    - code: CONTRACT_INPUTS_MISMATCH
+      message: "'bogus' is not allowed"
+---
+kind: Run.Sequence
+metadata: { name: test }
+with:
+  - kind: Server.Server
+    metadata: { name: StubServer }
+    listen:
+      port: !cel "ports.http"
+    mounts:
+      - path: /
+        mount: !ref Stub.api
+targets:
+  - !ref StubServer
+steps:
+  - name: run
+    invoke: !ref sampleRun
+    inputs:
+      query: coffee
+  - name: assertRun
+    invoke: !ref Assert.equals
+    inputs:
+      actual: !cel "steps.run.result.items[0].received"
+      expected:
+        method: POST
+        path: /v2/acts/acme~sample/run-sync-get-dataset-items
+        query: { build: "1.2.34", maxTotalChargeUsd: "1.5" }
+        body: { query: coffee, limit: 10 }
+        auth: Bearer test-token
+  - name: start
+    invoke: !ref sampleStart
+    inputs:
+      query: tea
+      limit: 3
+  - name: assertStartRun
+    invoke: !ref Assert.equals
+    inputs:
+      actual: !cel "steps.start.result.run.status"
+      expected: SUCCEEDED
+  - name: assertStartItems
+    invoke: !ref Assert.equals
+    inputs:
+      actual: !cel "steps.start.result.items[0].received"
+      expected:
+        method: GET
+        path: !cel "'/v2/datasets/ds-' + steps.start.result.run.id + '/items'"
+        query: { format: json }
+        body: {}
+        auth: Bearer test-token
+  - name: startFailure
+    try:
+      - name: startBroken
+        invoke: !ref sampleStart
+        inputs:
+          query: fail
+      - name: notReached
+        throw:
+          code: EXPECTED_FAILURE
+          message: A run that finished FAILED must raise.
+    catch:
+      - name: assertFailureCode
+        invoke: !ref Assert.equals
+        inputs:
+          actual: !cel "error.code"
+          expected: APIFY_RUN_NOT_SUCCEEDED
+      - name: assertFailureMessage
+        invoke: !ref Assert.equals
+        inputs:
+          actual: !cel "error.message"
+          expected: Apify run broken finished with status FAILED
+  - name: closedInput
+    invoke: !ref rejectsUndeclaredInput

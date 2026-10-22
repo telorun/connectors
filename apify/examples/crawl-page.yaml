@@ -1,0 +1,47 @@
+kind: Telo.Application
+metadata:
+  name: ApifyExampleCrawlPage
+  version: 1.0.0
+  description: >-
+    Crawls one web page with apify/website-content-crawler (free actor, typed
+    module) and prints its title and the start of its Markdown.
+imports:
+  Crawler: ../apify-website-content-crawler
+  Run: oci://ghcr.io/telorun/run@0.28.0#sha256-CoPkA-u8-m4kjQAOTDr_TmsfA72HDpnoZI-hHz8N7kE
+  Console: oci://ghcr.io/telorun/console@0.19.0#sha256-RC9Wlj4a8ysp1g3WS3z3CbmQuAsahNj4PdsJMaNfPZw
+secrets:
+  apifyToken:
+    env: APIFY_TOKEN
+    type: string
+targets:
+  - !ref main
+---
+kind: Crawler.ApifyClient
+metadata: { name: apify }
+token: !cel "secrets.apifyToken"
+---
+kind: Crawler.Run
+metadata: { name: crawl }
+client: !ref apify
+---
+kind: Run.Sequence
+metadata: { name: main }
+steps:
+  - name: crawl
+    invoke: !ref crawl
+    inputs:
+      startUrls:
+        - url: https://docs.apify.com/academy
+      maxCrawlPages: 1
+      crawlerType: cheerio
+      proxyConfiguration:
+        useApifyProxy: true
+  - name: print
+    invoke: !ref Console.write
+    inputs:
+      output: !cel >-
+        join(steps.crawl.result.items.map(i, json({
+          'url': i.url,
+          'title': i.metadata.title,
+          'markdown': slice(i.markdown, 0, int(min([300, size(i.markdown)])))
+        })), '\n') + '\n'
