@@ -1,0 +1,81 @@
+{
+  "id": "acme/sample",
+  "act": {
+    "title": "Sample <b>Actor</b>",
+    "description": "A fixture actor for the generator's tests. See <a href='https://example.com/docs'>the docs</a>.",
+    "pricingInfos": [{ "pricingModel": "FREE" }]
+  },
+  "build": {
+    "buildNumber": "1.2.34",
+    "inputSchema": {
+      "title": "Sample input",
+      "type": "object",
+      "schemaVersion": 1,
+      "properties": {
+        "query": {
+          "title": "Query",
+          "type": "string",
+          "editor": "textfield",
+          "description": "What to search for.",
+          "prefill": "coffee"
+        },
+        "limit": {
+          "title": "Limit",
+          "type": "integer",
+          "editor": "number",
+          "minimum": 1,
+          "default": 10,
+          "unit": "items",
+          "sectionCaption": "Advanced"
+        },
+        "mode": {
+          "title": "Mode",
+          "type": "string",
+          "editor": "select",
+          "enum": ["fast", "thorough"],
+          "enumTitles": ["Fast", "Thorough"],
+          "nullable": true
+        },
+        "apiKey": {
+          "title": "API key",
+          "type": "string",
+          "editor": "textfield",
+          "isSecret": true,
+          "default": "never-copied"
+        },
+        "filters": {
+          "title": "Filters",
+          "type": "object",
+          "editor": "schemaBased",
+          "properties": {
+            "country": { "title": "Country", "type": "string", "pattern": "^[A-Z]{2}$" }
+          },
+          "required": ["country", "notDeclared"]
+        },
+        "extra": {
+          "title": "Extra",
+          "type": "object",
+          "editor": "json",
+          "description": "Free-form options. ${{ not an expression }}"
+        }
+      },
+      "required": ["query"]
+    },
+    "actorDefinition": {
+      "storages": {
+        "dataset": {
+          "actorSpecification": 1,
+          "fields": {
+            "type": "object",
+            "properties": {
+              "item": { "type": "integer", "description": "Item number." },
+              "tags": { "type": "array", "items": { "type": "string" } },
+              "received": { "type": "object", "properties": { "method": { "type": "string" } } }
+            },
+            "required": ["item"]
+          }
+        }
+      }
+    }
+  }
+}

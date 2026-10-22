@@ -1,0 +1,85 @@
+name: Apify actors
+
+# Weekly refresh of the generated per-actor modules (apify/<user>-<actor>):
+# update the actor list from the Store, regenerate every module whose actor has
+# a new build, check them, and open ONE pull request with what changed. Merging
+# it publishes the new builds on the next push to main (scripts/publish-modules.mjs).
+# See apify/apify/docs/generated-actors.md.
+
+on:
+  schedule:
+    - cron: "0 4 * * 1" # Mondays 04:00 UTC
+  workflow_dispatch:
+
+concurrency:
+  group: apify-actors
+  cancel-in-progress: false
+
+jobs:
+  refresh:
+    name: Refresh generated actor modules
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Install telo CLI
+        run: npm install -g @telorun/cli
+
+      # Public Apify endpoints only; a token just raises the rate limit.
+      - name: Update the actor list
+        env:
+          APIFY_TOKEN: ${{ secrets.APIFY_TOKEN }}
+        run: node scripts/apify/seed.mjs --report /tmp/apify-seed.md
+
+      # Fails after trying every actor when any of them could not be generated,
+      # so no PR is opened from a partial refresh.
+      - name: Generate modules
+        env:
+          APIFY_TOKEN: ${{ secrets.APIFY_TOKEN }}
+        run: node scripts/apify/generate.mjs --report /tmp/apify-generate.md
+
+      # The examples too: a new build can drop or retype a field they pass.
+      - name: Static check
+        run: telo check apify/*/telo.yaml apify/examples/*.yaml
+
+      - name: Template test
+        run: telo ./apify/apify/tests/generated.yaml
+
+      - name: Render the PR body
+        run: |
+          {
+            echo "Weekly refresh of the generated Apify actor modules. New builds publish when this merges — no release fragment is needed (see apify/apify/docs/generated-actors.md)."
+            echo
+            cat /tmp/apify-seed.md
+            echo
+            cat /tmp/apify-generate.md
+          } > /tmp/apify-body.md
+
+      # A pull request opened with GITHUB_TOKEN does not trigger other workflows,
+      # which is why the check and the template test run above.
+      - name: Open the refresh PR
+        uses: peter-evans/create-pull-request@v6
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          branch: apify-actors/refresh
+          base: main
+          title: "chore(apify): refresh generated actor modules"
+          commit-message: "chore(apify): refresh generated actor modules"
+          body-path: /tmp/apify-body.md
+          add-paths: |
+            apify/**

@@ -1,0 +1,46 @@
+kind: Telo.Application
+metadata:
+  name: ApifyExampleYoutubeSearch
+  version: 1.0.0
+  description: >-
+    Searches YouTube with streamers/youtube-scraper (typed module, including
+    typed output fields) and prints three videos. Uses `Start`. Pay per video,
+    capped at $0.05.
+imports:
+  YouTube: ../streamers-youtube-scraper
+  Run: oci://ghcr.io/telorun/run@0.28.0#sha256-CoPkA-u8-m4kjQAOTDr_TmsfA72HDpnoZI-hHz8N7kE
+  Console: oci://ghcr.io/telorun/console@0.19.0#sha256-RC9Wlj4a8ysp1g3WS3z3CbmQuAsahNj4PdsJMaNfPZw
+secrets:
+  apifyToken:
+    env: APIFY_TOKEN
+    type: string
+targets:
+  - !ref main
+---
+kind: YouTube.ApifyClient
+metadata: { name: apify }
+token: !cel "secrets.apifyToken"
+---
+kind: YouTube.Start
+metadata: { name: videos }
+client: !ref apify
+maxTotalChargeUsd: 0.05
+---
+kind: Run.Sequence
+metadata: { name: main }
+steps:
+  - name: videos
+    invoke: !ref videos
+    inputs:
+      searchQueries: [web scraping tutorial]
+      maxResults: 3
+  - name: print
+    invoke: !ref Console.write
+    inputs:
+      output: !cel >-
+        join(steps.videos.result.items.map(v, json({
+          'title': v.title,
+          'channel': v.channelName,
+          'views': v.viewCount,
+          'url': v.url
+        })), '\n') + '\n'

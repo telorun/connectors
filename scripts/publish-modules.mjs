@@ -21,16 +21,24 @@
 // Both gates are idempotent, which is what makes this safe on every push to main
 // rather than only on a release commit: a failed push heals on the next one.
 //
+// GENERATED MODULES (apify/<user>-<actor>) are outside `telo release`: their
+// metadata.version is the Apify actor build they were generated from, written by
+// scripts/apify/generate.mjs. They join the set after every released module (so
+// the core apify/apify they import is pushed first) and go through the same two
+// gates.
+//
 // Usage: node scripts/publish-modules.mjs
 // Env:
 //   TELO_OCI_REGISTRY  no default; e.g. oci://ghcr.io/telorun — unset skips the pass
 //   TELO_BIN           telo CLI binary (default: `telo` on PATH)
 
-import { execFileSync, execSync } from "node:child_process";
+import { execFile, execFileSync, execSync } from "node:child_process";
+import { promisify } from "node:util";
 import { existsSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
+import { generatedModulePaths } from "./apify/lib.mjs";
 import { releaseIn, vendors } from "./release.mjs";
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
@@ -66,14 +74,15 @@ function manifestVersionAt(ref, yamlPath) {
 // yet lists as `[]` (exit 0); "module not found" (some transports, exit 1) is likewise
 // a real "no versions". Any other failure throws, so a flaky or auth-broken query
 // fails loudly instead of silently reading as "already published".
-function ociVersions(dest) {
+// Async so the presence checks run concurrently — the generated Apify modules put
+// a couple of hundred repos in the set, and each query is a registry round-trip.
+async function ociVersions(dest) {
   let out;
   try {
-    out = execFileSync(TELO, ["module", "versions", dest, "--json"], {
+    ({ stdout: out } = await promisify(execFile)(TELO, ["module", "versions", dest, "--json"], {
       encoding: "utf8",
       cwd: ROOT,
-      stdio: ["ignore", "pipe", "pipe"],
-    });
+    }));
   } catch (err) {
     const text = `${err.stderr ?? ""}${err.stdout ?? ""}${err.message ?? ""}`;
     if (/not found/i.test(text)) return [];
@@ -101,8 +110,9 @@ if (!ociRegistry) {
 // destination.
 const modules = [];
 for (const vendor of vendors()) {
-  for (const name of releaseIn(vendor, ["order"], { capture: true }).split("\n")) {
-    const key = name.trim();
+  // Each line is `<module>\t<destination>`; older CLIs printed the name alone.
+  for (const line of releaseIn(vendor, ["order"], { capture: true }).split("\n")) {
+    const key = line.split("\t")[0].trim();
     if (!key) continue;
     const manifest = join(ROOT, vendor, key, "telo.yaml");
     if (existsSync(manifest)) {
@@ -113,6 +123,12 @@ for (const vendor of vendors()) {
       });
     }
   }
+}
+
+// Generated modules, after every released one: each imports a released sibling.
+for (const path of generatedModulePaths()) {
+  const [vendor, key] = path.split("/");
+  modules.push({ path, manifest: join(ROOT, path, "telo.yaml"), destination: `${ociRegistry}/${vendor}/${key}` });
 }
 
 const queued = new Set();
@@ -145,21 +161,36 @@ for (const m of modules) {
 // registry. Distinct from "no versions published", which is a real answer.
 const unanswered = [];
 
-// (b) version-absent gate, over every module not already queued by (a).
-for (const m of modules) {
-  if (queued.has(m.path)) continue;
-  const version = manifestVersionAt("HEAD", `${m.path}/telo.yaml`);
-  if (!version) continue;
-  let published;
-  try {
-    published = ociVersions(m.destination);
-  } catch (err) {
+// (b) version-absent gate, over every module not already queued by (a). Up to
+// PRESENCE_CONCURRENCY queries in flight; results are applied in module order.
+const PRESENCE_CONCURRENCY = 8;
+const pending = modules
+  .filter((m) => !queued.has(m.path))
+  .map((m) => ({ m, version: manifestVersionAt("HEAD", `${m.path}/telo.yaml`) }))
+  .filter((c) => c.version);
+const answers = new Array(pending.length);
+let nextCheck = 0;
+await Promise.all(
+  Array.from({ length: Math.min(PRESENCE_CONCURRENCY, pending.length) }, async () => {
+    while (nextCheck < pending.length) {
+      const i = nextCheck++;
+      try {
+        answers[i] = { published: await ociVersions(pending[i].m.destination) };
+      } catch (err) {
+        answers[i] = { err };
+      }
+    }
+  }),
+);
+pending.forEach(({ m, version }, i) => {
+  const { published, err } = answers[i];
+  if (err) {
     // NOT skipped silently. `ociVersions` throws only when the registry could not
     // answer, and a check that could not answer must never read as "already
     // published" — this job is the only module publish path, so swallowing it
     // stops modules publishing indefinitely behind green CI.
     unanswered.push(`${m.path}: ${err instanceof Error ? err.message.split("\n")[0] : String(err)}`);
-    continue;
+    return;
   }
   if (!published.includes(version)) {
     console.log(
@@ -167,7 +198,7 @@ for (const m of modules) {
     );
     queued.add(m.path);
   }
-}
+});
 
 if (unanswered.length > 0) {
   console.error(

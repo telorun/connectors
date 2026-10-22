@@ -34,7 +34,14 @@ jobs:
         run: npm install -g @telorun/cli
 
       - name: Static check
-        run: telo check */*/telo.yaml
+        run: telo check */*/telo.yaml apify/examples/*.yaml
+
+      # The Apify template test runs against a module generated from a fixture
+      # actor; a template change that was not regenerated would test stale output.
+      - name: Apify test fixture matches the generator
+        run: |
+          node scripts/apify/generate.mjs --fixture
+          git diff --exit-code -- apify/apify/tests/__fixtures__/acme-sample
 
       - name: Manifest tests
         run: telo ./test-suite.yaml

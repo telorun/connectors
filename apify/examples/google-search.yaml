@@ -1,0 +1,44 @@
+kind: Telo.Application
+metadata:
+  name: ApifyExampleGoogleSearch
+  version: 1.0.0
+  description: >-
+    Runs one Google search with apify/google-search-scraper (typed module) and
+    prints the organic results. Pay per result page, capped at $0.05.
+imports:
+  Search: ../apify-google-search-scraper
+  Run: oci://ghcr.io/telorun/run@0.28.0#sha256-CoPkA-u8-m4kjQAOTDr_TmsfA72HDpnoZI-hHz8N7kE
+  Console: oci://ghcr.io/telorun/console@0.19.0#sha256-RC9Wlj4a8ysp1g3WS3z3CbmQuAsahNj4PdsJMaNfPZw
+secrets:
+  apifyToken:
+    env: APIFY_TOKEN
+    type: string
+targets:
+  - !ref main
+---
+kind: Search.ApifyClient
+metadata: { name: apify }
+token: !cel "secrets.apifyToken"
+---
+kind: Search.Run
+metadata: { name: search }
+client: !ref apify
+maxTotalChargeUsd: 0.05
+---
+kind: Run.Sequence
+metadata: { name: main }
+steps:
+  - name: search
+    invoke: !ref search
+    inputs:
+      queries: declarative runtime yaml
+      maxPagesPerQuery: 1
+  # One item per result page; each carries its organic results.
+  - name: print
+    invoke: !ref Console.write
+    inputs:
+      output: !cel >-
+        join(flatten(steps.search.result.items.map(page, page.organicResults.map(r, json({
+          'title': r.title,
+          'url': r.url
+        })))), '\n') + '\n'

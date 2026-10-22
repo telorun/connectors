@@ -438,6 +438,14 @@ change.** The fragment is what supplies the changelog line and the level;
 missing fragment costs prose and an unattributed patch, not a missed publish.
 Test-only, docs-only and plan-only edits need no fragment.
 
+**The one exception: generated Apify actor modules** (`apify/<user>-<actor>/`).
+Their `metadata.version` IS the Apify actor build they were generated from, so
+`scripts/apify/generate.mjs` writes it, `apify/telo-workspace.yaml` releases
+only the core `apify` module, and `scripts/publish-modules.mjs` publishes any
+generated version not yet in the registry. They take no fragment and are never
+hand-edited — change `scripts/apify/render.mjs` and regenerate. See
+`apify/apify/docs/generated-actors.md`.
+
 Write one with `telo release add` from inside the vendor directory, or by hand at
 `<vendor>/.changes/pending/<slug>.yaml` — one file, several modules, one body:
 
@@ -510,6 +518,9 @@ merging it makes `publish-modules` push the artifacts.
 - `<vendor>/<name>/plans/` — implementation plans for that module.
 - `<vendor>/telo-workspace.yaml` — the vendor's release anchor; `<vendor>/.changes/`
   its ledger and pending fragments (see Versioning).
+- `apify/actors.yaml` + `scripts/apify/` — the list of Apify actors and the
+  generator that turns each into a typed module (weekly in
+  `.github/workflows/apify-actors.yml`).
 - `scripts/release.mjs` — a `telo release` subcommand across every vendor;
   `scripts/publish-modules.mjs` — the OCI/npm push pass, gated on version movement
   and per-version presence.

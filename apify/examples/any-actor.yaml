@@ -1,0 +1,49 @@
+kind: Telo.Application
+metadata:
+  name: ApifyExampleAnyActor
+  version: 1.0.0
+  description: >-
+    Runs any actor by id through the core apify/apify module, with no generated
+    module and so no input type checking: here apify/instagram-scraper, reading
+    NASA's three latest posts. Pay per result, capped at $0.05.
+imports:
+  Apify: ../apify
+  Run: oci://ghcr.io/telorun/run@0.28.0#sha256-CoPkA-u8-m4kjQAOTDr_TmsfA72HDpnoZI-hHz8N7kE
+  Console: oci://ghcr.io/telorun/console@0.19.0#sha256-RC9Wlj4a8ysp1g3WS3z3CbmQuAsahNj4PdsJMaNfPZw
+secrets:
+  apifyToken:
+    env: APIFY_TOKEN
+    type: string
+targets:
+  - !ref main
+---
+kind: Apify.ApifyClient
+metadata: { name: apify }
+token: !cel "secrets.apifyToken"
+---
+kind: Apify.RunActorSync
+metadata: { name: runActor }
+client: !ref apify
+---
+kind: Run.Sequence
+metadata: { name: main }
+steps:
+  - name: posts
+    invoke: !ref runActor
+    inputs:
+      actorId: apify/instagram-scraper
+      input:
+        directUrls: ["https://www.instagram.com/nasa/"]
+        resultsType: posts
+        resultsLimit: 3
+      maxTotalChargeUsd: 0.05
+  # The core operation returns the raw HTTP response; the items are its body.
+  - name: print
+    invoke: !ref Console.write
+    inputs:
+      output: !cel >-
+        join(steps.posts.result.body.map(p, json({
+          'url': p.url,
+          'likes': p.likesCount,
+          'caption': slice(p.caption, 0, int(min([80, size(p.caption)])))
+        })), '\n') + '\n'
