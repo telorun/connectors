@@ -1,3 +1,0 @@
-modules:
-  sign-in: Added
-body: "New `google/sign-in` module: `BrowserSignIn`, a mountable sign-in-with-Google route pair for web applications. `GET <path>` (default `/auth/google`) redirects to Google's consent screen and `GET <path>/callback` exchanges the code and stores the grant in a `GoogleTokenSource`, then redirects to `returnTo`. The redirect URI is built from the application's public address — the library declares a `site` need of type `Telo.PublicUrl` that the application forwards at the import — so no domain name is written in a manifest. Requires telo >= 0.118.0."
