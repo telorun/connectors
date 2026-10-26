@@ -2,7 +2,7 @@
 
 # Tripadvisor Reviews Scraper
 
-The Apify actor [`maxcopell/tripadvisor-reviews`](https://apify.com/maxcopell/tripadvisor-reviews) as typed Telo kinds, generated from its build **0.0.234**. The module's version is that build number, and every run it starts is pinned to exactly that build, so the input types below are the ones the actor really runs with.
+The Apify actor [`maxcopell/tripadvisor-reviews`](https://apify.com/maxcopell/tripadvisor-reviews) as typed Telo kinds, generated from its build **0.0.235**. The module's version is that build number, and every run it starts is pinned to exactly that build, so the input types below are the ones the actor really runs with.
 
 Get and download reviews for chosen places on Tripadvisor. Extract the review text, URL, rating, date of travel, published date, basic reviewer info, owner's response, helpful votes, images, review language, place details. Download reviews in XML, JSON, CSV.
 
@@ -16,7 +16,7 @@ Runs are charged to the Apify account whose token the `ApifyClient` holds. See t
 
 ```yaml
 imports:
-  Actor: oci://ghcr.io/telorun/apify/maxcopell-tripadvisor-reviews@0.0.234#sha256-…
+  Actor: oci://ghcr.io/telorun/apify/maxcopell-tripadvisor-reviews@0.0.235#sha256-…
 ```
 
 Pin the digest with `telo upgrade`. The module re-exports `ApifyClient`, so it is the only import needed.

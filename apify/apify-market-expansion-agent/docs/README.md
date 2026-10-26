@@ -2,7 +2,7 @@
 
 # Market Expansion Agent
 
-The Apify actor [`apify/market-expansion-agent`](https://apify.com/apify/market-expansion-agent) as typed Telo kinds, generated from its build **0.0.39**. The module's version is that build number, and every run it starts is pinned to exactly that build, so the input types below are the ones the actor really runs with.
+The Apify actor [`apify/market-expansion-agent`](https://apify.com/apify/market-expansion-agent) as typed Telo kinds, generated from its build **0.0.40**. The module's version is that build number, and every run it starts is pinned to exactly that build, so the input types below are the ones the actor really runs with.
 
 Use AI to help you plan your business’ expansion. Market Expansion Agent analyzes data from Google Maps and social media data to identify market gaps and recommend optimal locations for the next step in your business’ evolution.
 
@@ -16,7 +16,7 @@ Runs are charged to the Apify account whose token the `ApifyClient` holds. See t
 
 ```yaml
 imports:
-  Actor: oci://ghcr.io/telorun/apify/apify-market-expansion-agent@0.0.39#sha256-…
+  Actor: oci://ghcr.io/telorun/apify/apify-market-expansion-agent@0.0.40#sha256-…
 ```
 
 Pin the digest with `telo upgrade`. The module re-exports `ApifyClient`, so it is the only import needed.

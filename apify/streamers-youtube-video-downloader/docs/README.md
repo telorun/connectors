@@ -2,7 +2,7 @@
 
 # YouTube Video Downloader
 
-The Apify actor [`streamers/youtube-video-downloader`](https://apify.com/streamers/youtube-video-downloader) as typed Telo kinds, generated from its build **0.0.111**. The module's version is that build number, and every run it starts is pinned to exactly that build, so the input types below are the ones the actor really runs with.
+The Apify actor [`streamers/youtube-video-downloader`](https://apify.com/streamers/youtube-video-downloader) as typed Telo kinds, generated from its build **0.0.112**. The module's version is that build number, and every run it starts is pinned to exactly that build, so the input types below are the ones the actor really runs with.
 
 Use YouTube Video Downloader to download YouTube videos in MP4, MP3, avi, and other formats directly to your cloud storage service.  Just add a YouTube video URL and get the converted video in a few seconds.
 
@@ -16,7 +16,7 @@ Runs are charged to the Apify account whose token the `ApifyClient` holds. See t
 
 ```yaml
 imports:
-  Actor: oci://ghcr.io/telorun/apify/streamers-youtube-video-downloader@0.0.111#sha256-…
+  Actor: oci://ghcr.io/telorun/apify/streamers-youtube-video-downloader@0.0.112#sha256-…
 ```
 
 Pin the digest with `telo upgrade`. The module re-exports `ApifyClient`, so it is the only import needed.

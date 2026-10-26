@@ -2,7 +2,7 @@
 
 # Contact Details Scraper
 
-The Apify actor [`vdrmota/contact-info-scraper`](https://apify.com/vdrmota/contact-info-scraper) as typed Telo kinds, generated from its build **0.2.242**. The module's version is that build number, and every run it starts is pinned to exactly that build, so the input types below are the ones the actor really runs with.
+The Apify actor [`vdrmota/contact-info-scraper`](https://apify.com/vdrmota/contact-info-scraper) as typed Telo kinds, generated from its build **0.2.243**. The module's version is that build number, and every run it starts is pinned to exactly that build, so the input types below are the ones the actor really runs with.
 
 Email extractor and lead scraper to extract and download emails, phone numbers, Facebook, Twitter, LinkedIn, Instagram, Threads, Snapchat, and Telegram profiles from any website. Extract contact information at scale from lists of URLs and download the data as Excel, CSV, JSON, HTML, and XML.
 
@@ -16,7 +16,7 @@ Runs are charged to the Apify account whose token the `ApifyClient` holds. See t
 
 ```yaml
 imports:
-  Actor: oci://ghcr.io/telorun/apify/vdrmota-contact-info-scraper@0.2.242#sha256-…
+  Actor: oci://ghcr.io/telorun/apify/vdrmota-contact-info-scraper@0.2.243#sha256-…
 ```
 
 Pin the digest with `telo upgrade`. The module re-exports `ApifyClient`, so it is the only import needed.

@@ -2,7 +2,7 @@
 
 # Google AI Overviews Scraper
 
-The Apify actor [`apify/google-ai-overviews-scraper`](https://apify.com/apify/google-ai-overviews-scraper) as typed Telo kinds, generated from its build **0.0.66**. The module's version is that build number, and every run it starts is pinned to exactly that build, so the input types below are the ones the actor really runs with.
+The Apify actor [`apify/google-ai-overviews-scraper`](https://apify.com/apify/google-ai-overviews-scraper) as typed Telo kinds, generated from its build **0.0.67**. The module's version is that build number, and every run it starts is pinned to exactly that build, so the input types below are the ones the actor really runs with.
 
 Scrape Google AI Overviews for any search query. Extract the AI Overview answer and cited sources as JSON, CSV, or Excel. Track AI search visibility, monitor brand citations, and run AEO and GEO reports in any country or language. Connect your AI agents via MCP. No code needed.
 
@@ -16,7 +16,7 @@ Runs are charged to the Apify account whose token the `ApifyClient` holds. See t
 
 ```yaml
 imports:
-  Actor: oci://ghcr.io/telorun/apify/apify-google-ai-overviews-scraper@0.0.66#sha256-…
+  Actor: oci://ghcr.io/telorun/apify/apify-google-ai-overviews-scraper@0.0.67#sha256-…
 ```
 
 Pin the digest with `telo upgrade`. The module re-exports `ApifyClient`, so it is the only import needed.

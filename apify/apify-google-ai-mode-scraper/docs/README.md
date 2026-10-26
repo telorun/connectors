@@ -2,7 +2,7 @@
 
 # Google AI Mode Scraper
 
-The Apify actor [`apify/google-ai-mode-scraper`](https://apify.com/apify/google-ai-mode-scraper) as typed Telo kinds, generated from its build **0.0.78**. The module's version is that build number, and every run it starts is pinned to exactly that build, so the input types below are the ones the actor really runs with.
+The Apify actor [`apify/google-ai-mode-scraper`](https://apify.com/apify/google-ai-mode-scraper) as typed Telo kinds, generated from its build **0.0.79**. The module's version is that build number, and every run it starts is pinned to exactly that build, so the input types below are the ones the actor really runs with.
 
 Scrape Google AI Mode answers for any search query. Extract the full AI-generated response, cited sources with links and titles, and follow-up questions. Set location and language per query. Ideal for GEO, and answer-engine monitoring. Connect to your agent via MCP or export to JSON, CSV, or Excel.
 
@@ -16,7 +16,7 @@ Runs are charged to the Apify account whose token the `ApifyClient` holds. See t
 
 ```yaml
 imports:
-  Actor: oci://ghcr.io/telorun/apify/apify-google-ai-mode-scraper@0.0.78#sha256-…
+  Actor: oci://ghcr.io/telorun/apify/apify-google-ai-mode-scraper@0.0.79#sha256-…
 ```
 
 Pin the digest with `telo upgrade`. The module re-exports `ApifyClient`, so it is the only import needed.

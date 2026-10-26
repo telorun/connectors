@@ -2,7 +2,7 @@
 
 # Tripadvisor Scraper
 
-The Apify actor [`maxcopell/tripadvisor`](https://apify.com/maxcopell/tripadvisor) as typed Telo kinds, generated from its build **0.0.294**. The module's version is that build number, and every run it starts is pinned to exactly that build, so the input types below are the ones the actor really runs with.
+The Apify actor [`maxcopell/tripadvisor`](https://apify.com/maxcopell/tripadvisor) as typed Telo kinds, generated from its build **0.0.295**. The module's version is that build number, and every run it starts is pinned to exactly that build, so the input types below are the ones the actor really runs with.
 
 This unofficial Tripadvisor API is a data extraction tool able to get data on hotels, restaurants, things to do, vacation rentals, attractions, tours, and public trips. Get pricing, contact details, amenities, awards, ratings, and more. Download your data in Excel, JSON, CSV, and other formats.
 
@@ -16,7 +16,7 @@ Runs are charged to the Apify account whose token the `ApifyClient` holds. See t
 
 ```yaml
 imports:
-  Actor: oci://ghcr.io/telorun/apify/maxcopell-tripadvisor@0.0.294#sha256-…
+  Actor: oci://ghcr.io/telorun/apify/maxcopell-tripadvisor@0.0.295#sha256-…
 ```
 
 Pin the digest with `telo upgrade`. The module re-exports `ApifyClient`, so it is the only import needed.

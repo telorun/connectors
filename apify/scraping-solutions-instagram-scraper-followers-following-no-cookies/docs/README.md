@@ -2,7 +2,7 @@
 
 # Instagram Followers/Following Scraper | No Login | No Cookies
 
-The Apify actor [`scraping_solutions/instagram-scraper-followers-following-no-cookies`](https://apify.com/scraping_solutions/instagram-scraper-followers-following-no-cookies) as typed Telo kinds, generated from its build **0.0.88**. The module's version is that build number, and every run it starts is pinned to exactly that build, so the input types below are the ones the actor really runs with.
+The Apify actor [`scraping_solutions/instagram-scraper-followers-following-no-cookies`](https://apify.com/scraping_solutions/instagram-scraper-followers-following-no-cookies) as typed Telo kinds, generated from its build **0.0.89**. The module's version is that build number, and every run it starts is pinned to exactly that build, so the input types below are the ones the actor really runs with.
 
 Download Instagram followers or following from any public account. No login, no cookies required. Supports multiple usernames, auto-pagination, and continuation tokens for large exports. Export to JSON, CSV, Excel. Perfect for lead generation, influencer research, and competitor analysis.
 
@@ -16,7 +16,7 @@ Runs are charged to the Apify account whose token the `ApifyClient` holds. See t
 
 ```yaml
 imports:
-  Actor: oci://ghcr.io/telorun/apify/scraping-solutions-instagram-scraper-followers-following-no-cookies@0.0.88#sha256-…
+  Actor: oci://ghcr.io/telorun/apify/scraping-solutions-instagram-scraper-followers-following-no-cookies@0.0.89#sha256-…
 ```
 
 Pin the digest with `telo upgrade`. The module re-exports `ApifyClient`, so it is the only import needed.

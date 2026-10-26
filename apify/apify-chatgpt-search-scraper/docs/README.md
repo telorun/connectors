@@ -2,7 +2,7 @@
 
 # ChatGPT Search Scraper
 
-The Apify actor [`apify/chatgpt-search-scraper`](https://apify.com/apify/chatgpt-search-scraper) as typed Telo kinds, generated from its build **0.0.74**. The module's version is that build number, and every run it starts is pinned to exactly that build, so the input types below are the ones the actor really runs with.
+The Apify actor [`apify/chatgpt-search-scraper`](https://apify.com/apify/chatgpt-search-scraper) as typed Telo kinds, generated from its build **0.0.75**. The module's version is that build number, and every run it starts is pinned to exactly that build, so the input types below are the ones the actor really runs with.
 
 Scrape ChatGPT Search results at scale without an API. Extract AI-generated answers, cited sources, URLs, and follow-up questions for any query. Track brand visibility in AI search, monitor citations, and run GEO and SEO research. Export to JSON, CSV, or Excel and connect with your AI.
 
@@ -16,7 +16,7 @@ Runs are charged to the Apify account whose token the `ApifyClient` holds. See t
 
 ```yaml
 imports:
-  Actor: oci://ghcr.io/telorun/apify/apify-chatgpt-search-scraper@0.0.74#sha256-…
+  Actor: oci://ghcr.io/telorun/apify/apify-chatgpt-search-scraper@0.0.75#sha256-…
 ```
 
 Pin the digest with `telo upgrade`. The module re-exports `ApifyClient`, so it is the only import needed.
