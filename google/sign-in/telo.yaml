@@ -1,7 +1,7 @@
 kind: Telo.Library
 metadata:
   name: GoogleSignIn
-  version: 0.0.0
+  version: 0.1.0
   description: >-
     Sign in with Google from a web application reached at a public address.
     BrowserSignIn is a mountable pair of routes — one sends the browser to
