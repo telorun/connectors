@@ -104,12 +104,10 @@ outputType:
 resources:
   - kind: Http.Request
     metadata:
-      name: !cel "self.name + '-req'"
+      name: req
     client: !cel "self.client"
     throwOnHttpError: true
-invoke:
-  kind: Http.Request
-  name: !cel "self.name + '-req'"
+invoke: !ref req
 inputs:
   method: GET
   url: !cel >-
@@ -167,12 +165,10 @@ outputType:
 resources:
   - kind: Http.Request
     metadata:
-      name: !cel "self.name + '-req'"
+      name: req
     client: !cel "self.client"
     throwOnHttpError: true
-invoke:
-  kind: Http.Request
-  name: !cel "self.name + '-req'"
+invoke: !ref req
 inputs:
   method: POST
   body: !cel "inputs.body"
@@ -226,12 +222,10 @@ outputType:
 resources:
   - kind: Http.Request
     metadata:
-      name: !cel "self.name + '-req'"
+      name: req
     client: !cel "self.client"
     throwOnHttpError: true
-invoke:
-  kind: Http.Request
-  name: !cel "self.name + '-req'"
+invoke: !ref req
 inputs:
   method: GET
   url: !cel >-
@@ -282,12 +276,10 @@ outputType:
 resources:
   - kind: Http.Request
     metadata:
-      name: !cel "self.name + '-req'"
+      name: req
     client: !cel "self.client"
     throwOnHttpError: true
-invoke:
-  kind: Http.Request
-  name: !cel "self.name + '-req'"
+invoke: !ref req
 inputs:
   method: GET
   url: !cel >-
@@ -338,12 +330,10 @@ outputType:
 resources:
   - kind: Http.Request
     metadata:
-      name: !cel "self.name + '-req'"
+      name: req
     client: !cel "self.client"
     throwOnHttpError: true
-invoke:
-  kind: Http.Request
-  name: !cel "self.name + '-req'"
+invoke: !ref req
 inputs:
   method: POST
   body: !cel "inputs.body"
@@ -396,12 +386,10 @@ outputType:
 resources:
   - kind: Http.Request
     metadata:
-      name: !cel "self.name + '-req'"
+      name: req
     client: !cel "self.client"
     throwOnHttpError: true
-invoke:
-  kind: Http.Request
-  name: !cel "self.name + '-req'"
+invoke: !ref req
 inputs:
   method: POST
   body: !cel "inputs.body"
@@ -454,12 +442,10 @@ outputType:
 resources:
   - kind: Http.Request
     metadata:
-      name: !cel "self.name + '-req'"
+      name: req
     client: !cel "self.client"
     throwOnHttpError: true
-invoke:
-  kind: Http.Request
-  name: !cel "self.name + '-req'"
+invoke: !ref req
 inputs:
   method: POST
   body: !cel "inputs.body"
@@ -508,12 +494,10 @@ outputType:
 resources:
   - kind: Http.Request
     metadata:
-      name: !cel "self.name + '-req'"
+      name: req
     client: !cel "self.client"
     throwOnHttpError: true
-invoke:
-  kind: Http.Request
-  name: !cel "self.name + '-req'"
+invoke: !ref req
 inputs:
   method: GET
   url: !cel >-
@@ -563,12 +547,10 @@ outputType:
 resources:
   - kind: Http.Request
     metadata:
-      name: !cel "self.name + '-req'"
+      name: req
     client: !cel "self.client"
     throwOnHttpError: true
-invoke:
-  kind: Http.Request
-  name: !cel "self.name + '-req'"
+invoke: !ref req
 inputs:
   method: GET
   url: !cel >-
@@ -614,12 +596,10 @@ outputType:
 resources:
   - kind: Http.Request
     metadata:
-      name: !cel "self.name + '-req'"
+      name: req
     client: !cel "self.client"
     throwOnHttpError: true
-invoke:
-  kind: Http.Request
-  name: !cel "self.name + '-req'"
+invoke: !ref req
 inputs:
   method: GET
   url: !cel >-

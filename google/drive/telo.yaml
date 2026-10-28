@@ -277,12 +277,10 @@ outputType:
 resources:
   - kind: Http.Request
     metadata:
-      name: !cel "self.name + '-req'"
+      name: req
     client: !cel "self.client"
     throwOnHttpError: true
-invoke:
-  kind: Http.Request
-  name: !cel "self.name + '-req'"
+invoke: !ref req
 inputs:
   method: GET
   url: !cel >-
@@ -361,12 +359,10 @@ outputType:
 resources:
   - kind: Http.Request
     metadata:
-      name: !cel "self.name + '-req'"
+      name: req
     client: !cel "self.client"
     throwOnHttpError: true
-invoke:
-  kind: Http.Request
-  name: !cel "self.name + '-req'"
+invoke: !ref req
 inputs:
   method: GET
   url: !cel >-
@@ -444,12 +440,10 @@ outputType:
 resources:
   - kind: Http.Request
     metadata:
-      name: !cel "self.name + '-req'"
+      name: req
     client: !cel "self.client"
     throwOnHttpError: true
-invoke:
-  kind: Http.Request
-  name: !cel "self.name + '-req'"
+invoke: !ref req
 inputs:
   method: GET
   responseType: !cel "inputs.?responseType.orValue('bytes')"
@@ -518,12 +512,10 @@ outputType:
 resources:
   - kind: Http.Request
     metadata:
-      name: !cel "self.name + '-req'"
+      name: req
     client: !cel "self.client"
     throwOnHttpError: true
-invoke:
-  kind: Http.Request
-  name: !cel "self.name + '-req'"
+invoke: !ref req
 inputs:
   method: GET
   responseType: !cel "inputs.?responseType.orValue('bytes')"
@@ -601,12 +593,10 @@ outputType:
 resources:
   - kind: Http.Request
     metadata:
-      name: !cel "self.name + '-req'"
+      name: req
     client: !cel "self.client"
     throwOnHttpError: true
-invoke:
-  kind: Http.Request
-  name: !cel "self.name + '-req'"
+invoke: !ref req
 inputs:
   method: POST
   body: !cel "inputs.metadata"
@@ -699,12 +689,10 @@ outputType:
 resources:
   - kind: Http.Request
     metadata:
-      name: !cel "self.name + '-req'"
+      name: req
     client: !cel "self.client"
     throwOnHttpError: true
-invoke:
-  kind: Http.Request
-  name: !cel "self.name + '-req'"
+invoke: !ref req
 inputs:
   method: PATCH
   body: !cel "inputs.?metadata.orValue({})"
@@ -791,12 +779,10 @@ outputType:
 resources:
   - kind: Http.Request
     metadata:
-      name: !cel "self.name + '-req'"
+      name: req
     client: !cel "self.client"
     throwOnHttpError: true
-invoke:
-  kind: Http.Request
-  name: !cel "self.name + '-req'"
+invoke: !ref req
 inputs:
   method: POST
   body: !cel "inputs.?metadata.orValue({})"
@@ -860,12 +846,10 @@ outputType:
 resources:
   - kind: Http.Request
     metadata:
-      name: !cel "self.name + '-req'"
+      name: req
     client: !cel "self.client"
     throwOnHttpError: true
-invoke:
-  kind: Http.Request
-  name: !cel "self.name + '-req'"
+invoke: !ref req
 inputs:
   method: DELETE
   url: !cel >-
@@ -917,12 +901,10 @@ outputType:
 resources:
   - kind: Http.Request
     metadata:
-      name: !cel "self.name + '-req'"
+      name: req
     client: !cel "self.client"
     throwOnHttpError: true
-invoke:
-  kind: Http.Request
-  name: !cel "self.name + '-req'"
+invoke: !ref req
 inputs:
   method: DELETE
   url: !cel >-
@@ -980,12 +962,10 @@ outputType:
 resources:
   - kind: Http.Request
     metadata:
-      name: !cel "self.name + '-req'"
+      name: req
     client: !cel "self.client"
     throwOnHttpError: true
-invoke:
-  kind: Http.Request
-  name: !cel "self.name + '-req'"
+invoke: !ref req
 inputs:
   method: GET
   url: !cel >-
@@ -1060,12 +1040,10 @@ outputType:
 resources:
   - kind: Http.Request
     metadata:
-      name: !cel "self.name + '-req'"
+      name: req
     client: !cel "self.client"
     throwOnHttpError: true
-invoke:
-  kind: Http.Request
-  name: !cel "self.name + '-req'"
+invoke: !ref req
 inputs:
   method: POST
   body: !cel "inputs.channel"
@@ -1128,12 +1106,10 @@ outputType:
 resources:
   - kind: Http.Request
     metadata:
-      name: !cel "self.name + '-req'"
+      name: req
     client: !cel "self.client"
     throwOnHttpError: true
-invoke:
-  kind: Http.Request
-  name: !cel "self.name + '-req'"
+invoke: !ref req
 inputs:
   method: GET
   url: !cel >-
@@ -1194,12 +1170,10 @@ outputType:
 resources:
   - kind: Http.Request
     metadata:
-      name: !cel "self.name + '-req'"
+      name: req
     client: !cel "self.client"
     throwOnHttpError: true
-invoke:
-  kind: Http.Request
-  name: !cel "self.name + '-req'"
+invoke: !ref req
 inputs:
   method: POST
   body:
@@ -1294,17 +1268,17 @@ outputType:
 resources:
   - kind: Multipart.Encoder
     metadata:
-      name: !cel "self.name + '-mp'"
+      name: mp
   - kind: Http.Request
     metadata:
-      name: !cel "self.name + '-req'"
+      name: req
     client: !cel "self.client"
     throwOnHttpError: true
     retry:
       attempts: 0
   - kind: Run.Sequence
     metadata:
-      name: !cel "self.name + '-seq'"
+      name: seq
     inputType:
       kind: Telo.JsonSchema
       schema:
@@ -1324,9 +1298,7 @@ resources:
           params: { type: object, additionalProperties: { type: string } }
     steps:
       - name: encode
-        invoke:
-          kind: Multipart.Encoder
-          name: !cel "self.name + '-mp'"
+        invoke: !ref mp
         inputs:
           subtype: related
           parts:
@@ -1335,9 +1307,7 @@ resources:
             - content: !cel "inputs.?contentEncoding.orValue('utf8') == 'base64' ? bytesFromBase64(inputs.content) : inputs.content"
               contentType: !cel "inputs.?contentType.orValue('application/octet-stream')"
       - name: send
-        invoke:
-          kind: Http.Request
-          name: !cel "self.name + '-req'"
+        invoke: !ref req
         inputs:
           method: POST
           headers:
@@ -1359,9 +1329,7 @@ resources:
       status: !cel "steps.send.result.status"
       headers: !cel "steps.send.result.headers"
       body: !cel "steps.send.result.body"
-invoke:
-  kind: Run.Sequence
-  name: !cel "self.name + '-seq'"
+invoke: !ref seq
 inputs:
   metadata: !cel "inputs.?metadata.orValue({})"
   content: !cel "inputs.content"
@@ -1459,17 +1427,17 @@ outputType:
 resources:
   - kind: Multipart.Encoder
     metadata:
-      name: !cel "self.name + '-mp'"
+      name: mp
   - kind: Http.Request
     metadata:
-      name: !cel "self.name + '-req'"
+      name: req
     client: !cel "self.client"
     throwOnHttpError: true
     retry:
       attempts: 0
   - kind: Run.Sequence
     metadata:
-      name: !cel "self.name + '-seq'"
+      name: seq
     inputType:
       kind: Telo.JsonSchema
       schema:
@@ -1491,9 +1459,7 @@ resources:
           params: { type: object, additionalProperties: { type: string } }
     steps:
       - name: encode
-        invoke:
-          kind: Multipart.Encoder
-          name: !cel "self.name + '-mp'"
+        invoke: !ref mp
         inputs:
           subtype: related
           parts:
@@ -1502,9 +1468,7 @@ resources:
             - content: !cel "inputs.?contentEncoding.orValue('utf8') == 'base64' ? bytesFromBase64(inputs.content) : inputs.content"
               contentType: !cel "inputs.?contentType.orValue('application/octet-stream')"
       - name: send
-        invoke:
-          kind: Http.Request
-          name: !cel "self.name + '-req'"
+        invoke: !ref req
         inputs:
           method: PATCH
           headers:
@@ -1527,9 +1491,7 @@ resources:
       status: !cel "steps.send.result.status"
       headers: !cel "steps.send.result.headers"
       body: !cel "steps.send.result.body"
-invoke:
-  kind: Run.Sequence
-  name: !cel "self.name + '-seq'"
+invoke: !ref seq
 inputs:
   fileId: !cel "inputs.fileId"
   metadata: !cel "inputs.?metadata.orValue({})"
@@ -1627,12 +1589,10 @@ outputType:
 resources:
   - kind: Http.Request
     metadata:
-      name: !cel "self.name + '-req'"
+      name: req
     client: !cel "self.client"
     throwOnHttpError: true
-invoke:
-  kind: Http.Request
-  name: !cel "self.name + '-req'"
+invoke: !ref req
 inputs:
   method: !cel "has(inputs.fileId) ? 'PATCH' : 'POST'"
   body: !cel "inputs.?metadata.orValue({})"
@@ -1729,13 +1689,11 @@ outputType:
 resources:
   - kind: Http.Request
     metadata:
-      name: !cel "self.name + '-req'"
+      name: req
     client: !cel "self.client"
     throwOnHttpError: true
     success: [200, 201, 308]
-invoke:
-  kind: Http.Request
-  name: !cel "self.name + '-req'"
+invoke: !ref req
 inputs:
   method: PUT
   url: !cel "inputs.uploadUri"
@@ -1847,18 +1805,18 @@ outputType:
 resources:
   - kind: Http.Request
     metadata:
-      name: !cel "self.name + '-start'"
+      name: start
     client: !cel "self.client"
     throwOnHttpError: true
   - kind: Http.Request
     metadata:
-      name: !cel "self.name + '-put'"
+      name: put
     client: !cel "self.client"
     throwOnHttpError: true
     success: [200, 201, 308]
   - kind: Run.Sequence
     metadata:
-      name: !cel "self.name + '-seq'"
+      name: seq
     inputType:
       kind: Telo.JsonSchema
       schema:
@@ -1882,9 +1840,7 @@ resources:
           params: { type: object, additionalProperties: { type: string } }
     steps:
       - name: start
-        invoke:
-          kind: Http.Request
-          name: !cel "self.name + '-start'"
+        invoke: !ref start
         inputs:
           method: !cel "inputs.?fileId.orValue('') != '' ? 'PATCH' : 'POST'"
           body: !cel "inputs.?metadata.orValue({})"
@@ -1909,9 +1865,7 @@ resources:
                 + keys(inputs.?params.orValue({})).map(k, k + '=' + urlEncode(inputs.?params.orValue({})[k])), '&')
             , '?')
       - name: put
-        invoke:
-          kind: Http.Request
-          name: !cel "self.name + '-put'"
+        invoke: !ref put
         inputs:
           method: PUT
           url: !cel "steps.start.result.headers.location"
@@ -1926,9 +1880,7 @@ resources:
       headers: !cel "steps.put.result.headers"
       body: !cel "steps.put.result.body"
       uploadUri: !cel "steps.start.result.headers.location"
-invoke:
-  kind: Run.Sequence
-  name: !cel "self.name + '-seq'"
+invoke: !ref seq
 inputs:
   fileId: !cel "inputs.?fileId.orValue('')"
   metadata: !cel "inputs.?metadata.orValue({})"
@@ -2006,12 +1958,10 @@ outputType:
 resources:
   - kind: Http.Request
     metadata:
-      name: !cel "self.name + '-req'"
+      name: req
     client: !cel "self.client"
     throwOnHttpError: true
-invoke:
-  kind: Http.Request
-  name: !cel "self.name + '-req'"
+invoke: !ref req
 inputs:
   method: GET
   url: !cel >-
@@ -2080,12 +2030,10 @@ outputType:
 resources:
   - kind: Http.Request
     metadata:
-      name: !cel "self.name + '-req'"
+      name: req
     client: !cel "self.client"
     throwOnHttpError: true
-invoke:
-  kind: Http.Request
-  name: !cel "self.name + '-req'"
+invoke: !ref req
 inputs:
   method: GET
   url: !cel >-
@@ -2167,12 +2115,10 @@ outputType:
 resources:
   - kind: Http.Request
     metadata:
-      name: !cel "self.name + '-req'"
+      name: req
     client: !cel "self.client"
     throwOnHttpError: true
-invoke:
-  kind: Http.Request
-  name: !cel "self.name + '-req'"
+invoke: !ref req
 inputs:
   method: POST
   body: !cel "inputs.permission"
@@ -2254,12 +2200,10 @@ outputType:
 resources:
   - kind: Http.Request
     metadata:
-      name: !cel "self.name + '-req'"
+      name: req
     client: !cel "self.client"
     throwOnHttpError: true
-invoke:
-  kind: Http.Request
-  name: !cel "self.name + '-req'"
+invoke: !ref req
 inputs:
   method: PATCH
   body: !cel "inputs.permission"
@@ -2325,12 +2269,10 @@ outputType:
 resources:
   - kind: Http.Request
     metadata:
-      name: !cel "self.name + '-req'"
+      name: req
     client: !cel "self.client"
     throwOnHttpError: true
-invoke:
-  kind: Http.Request
-  name: !cel "self.name + '-req'"
+invoke: !ref req
 inputs:
   method: DELETE
   url: !cel >-
@@ -2399,12 +2341,10 @@ outputType:
 resources:
   - kind: Http.Request
     metadata:
-      name: !cel "self.name + '-req'"
+      name: req
     client: !cel "self.client"
     throwOnHttpError: true
-invoke:
-  kind: Http.Request
-  name: !cel "self.name + '-req'"
+invoke: !ref req
 inputs:
   method: GET
   url: !cel >-
@@ -2469,12 +2409,10 @@ outputType:
 resources:
   - kind: Http.Request
     metadata:
-      name: !cel "self.name + '-req'"
+      name: req
     client: !cel "self.client"
     throwOnHttpError: true
-invoke:
-  kind: Http.Request
-  name: !cel "self.name + '-req'"
+invoke: !ref req
 inputs:
   method: GET
   url: !cel >-
@@ -2535,12 +2473,10 @@ outputType:
 resources:
   - kind: Http.Request
     metadata:
-      name: !cel "self.name + '-req'"
+      name: req
     client: !cel "self.client"
     throwOnHttpError: true
-invoke:
-  kind: Http.Request
-  name: !cel "self.name + '-req'"
+invoke: !ref req
 inputs:
   method: POST
   body: !cel "inputs.comment"
@@ -2604,12 +2540,10 @@ outputType:
 resources:
   - kind: Http.Request
     metadata:
-      name: !cel "self.name + '-req'"
+      name: req
     client: !cel "self.client"
     throwOnHttpError: true
-invoke:
-  kind: Http.Request
-  name: !cel "self.name + '-req'"
+invoke: !ref req
 inputs:
   method: PATCH
   body: !cel "inputs.comment"
@@ -2665,12 +2599,10 @@ outputType:
 resources:
   - kind: Http.Request
     metadata:
-      name: !cel "self.name + '-req'"
+      name: req
     client: !cel "self.client"
     throwOnHttpError: true
-invoke:
-  kind: Http.Request
-  name: !cel "self.name + '-req'"
+invoke: !ref req
 inputs:
   method: DELETE
   url: !cel >-
@@ -2736,12 +2668,10 @@ outputType:
 resources:
   - kind: Http.Request
     metadata:
-      name: !cel "self.name + '-req'"
+      name: req
     client: !cel "self.client"
     throwOnHttpError: true
-invoke:
-  kind: Http.Request
-  name: !cel "self.name + '-req'"
+invoke: !ref req
 inputs:
   method: GET
   url: !cel >-
@@ -2808,12 +2738,10 @@ outputType:
 resources:
   - kind: Http.Request
     metadata:
-      name: !cel "self.name + '-req'"
+      name: req
     client: !cel "self.client"
     throwOnHttpError: true
-invoke:
-  kind: Http.Request
-  name: !cel "self.name + '-req'"
+invoke: !ref req
 inputs:
   method: GET
   url: !cel >-
@@ -2878,12 +2806,10 @@ outputType:
 resources:
   - kind: Http.Request
     metadata:
-      name: !cel "self.name + '-req'"
+      name: req
     client: !cel "self.client"
     throwOnHttpError: true
-invoke:
-  kind: Http.Request
-  name: !cel "self.name + '-req'"
+invoke: !ref req
 inputs:
   method: POST
   body: !cel "inputs.reply"
@@ -2949,12 +2875,10 @@ outputType:
 resources:
   - kind: Http.Request
     metadata:
-      name: !cel "self.name + '-req'"
+      name: req
     client: !cel "self.client"
     throwOnHttpError: true
-invoke:
-  kind: Http.Request
-  name: !cel "self.name + '-req'"
+invoke: !ref req
 inputs:
   method: PATCH
   body: !cel "inputs.reply"
@@ -3014,12 +2938,10 @@ outputType:
 resources:
   - kind: Http.Request
     metadata:
-      name: !cel "self.name + '-req'"
+      name: req
     client: !cel "self.client"
     throwOnHttpError: true
-invoke:
-  kind: Http.Request
-  name: !cel "self.name + '-req'"
+invoke: !ref req
 inputs:
   method: DELETE
   url: !cel >-
@@ -3079,12 +3001,10 @@ outputType:
 resources:
   - kind: Http.Request
     metadata:
-      name: !cel "self.name + '-req'"
+      name: req
     client: !cel "self.client"
     throwOnHttpError: true
-invoke:
-  kind: Http.Request
-  name: !cel "self.name + '-req'"
+invoke: !ref req
 inputs:
   method: GET
   url: !cel >-
@@ -3147,12 +3067,10 @@ outputType:
 resources:
   - kind: Http.Request
     metadata:
-      name: !cel "self.name + '-req'"
+      name: req
     client: !cel "self.client"
     throwOnHttpError: true
-invoke:
-  kind: Http.Request
-  name: !cel "self.name + '-req'"
+invoke: !ref req
 inputs:
   method: GET
   url: !cel >-
@@ -3221,12 +3139,10 @@ outputType:
 resources:
   - kind: Http.Request
     metadata:
-      name: !cel "self.name + '-req'"
+      name: req
     client: !cel "self.client"
     throwOnHttpError: true
-invoke:
-  kind: Http.Request
-  name: !cel "self.name + '-req'"
+invoke: !ref req
 inputs:
   method: GET
   responseType: !cel "inputs.?responseType.orValue('bytes')"
@@ -3290,12 +3206,10 @@ outputType:
 resources:
   - kind: Http.Request
     metadata:
-      name: !cel "self.name + '-req'"
+      name: req
     client: !cel "self.client"
     throwOnHttpError: true
-invoke:
-  kind: Http.Request
-  name: !cel "self.name + '-req'"
+invoke: !ref req
 inputs:
   method: PATCH
   body: !cel "inputs.revision"
@@ -3352,12 +3266,10 @@ outputType:
 resources:
   - kind: Http.Request
     metadata:
-      name: !cel "self.name + '-req'"
+      name: req
     client: !cel "self.client"
     throwOnHttpError: true
-invoke:
-  kind: Http.Request
-  name: !cel "self.name + '-req'"
+invoke: !ref req
 inputs:
   method: DELETE
   url: !cel >-
@@ -3419,12 +3331,10 @@ outputType:
 resources:
   - kind: Http.Request
     metadata:
-      name: !cel "self.name + '-req'"
+      name: req
     client: !cel "self.client"
     throwOnHttpError: true
-invoke:
-  kind: Http.Request
-  name: !cel "self.name + '-req'"
+invoke: !ref req
 inputs:
   method: GET
   url: !cel >-
@@ -3486,12 +3396,10 @@ outputType:
 resources:
   - kind: Http.Request
     metadata:
-      name: !cel "self.name + '-req'"
+      name: req
     client: !cel "self.client"
     throwOnHttpError: true
-invoke:
-  kind: Http.Request
-  name: !cel "self.name + '-req'"
+invoke: !ref req
 inputs:
   method: GET
   url: !cel >-
@@ -3552,12 +3460,10 @@ outputType:
 resources:
   - kind: Http.Request
     metadata:
-      name: !cel "self.name + '-req'"
+      name: req
     client: !cel "self.client"
     throwOnHttpError: true
-invoke:
-  kind: Http.Request
-  name: !cel "self.name + '-req'"
+invoke: !ref req
 inputs:
   method: POST
   body: !cel "inputs.drive"
@@ -3622,12 +3528,10 @@ outputType:
 resources:
   - kind: Http.Request
     metadata:
-      name: !cel "self.name + '-req'"
+      name: req
     client: !cel "self.client"
     throwOnHttpError: true
-invoke:
-  kind: Http.Request
-  name: !cel "self.name + '-req'"
+invoke: !ref req
 inputs:
   method: PATCH
   body: !cel "inputs.drive"
@@ -3688,12 +3592,10 @@ outputType:
 resources:
   - kind: Http.Request
     metadata:
-      name: !cel "self.name + '-req'"
+      name: req
     client: !cel "self.client"
     throwOnHttpError: true
-invoke:
-  kind: Http.Request
-  name: !cel "self.name + '-req'"
+invoke: !ref req
 inputs:
   method: DELETE
   url: !cel >-
@@ -3746,12 +3648,10 @@ outputType:
 resources:
   - kind: Http.Request
     metadata:
-      name: !cel "self.name + '-req'"
+      name: req
     client: !cel "self.client"
     throwOnHttpError: true
-invoke:
-  kind: Http.Request
-  name: !cel "self.name + '-req'"
+invoke: !ref req
 inputs:
   method: POST
   url: !cel >-
@@ -3801,12 +3701,10 @@ outputType:
 resources:
   - kind: Http.Request
     metadata:
-      name: !cel "self.name + '-req'"
+      name: req
     client: !cel "self.client"
     throwOnHttpError: true
-invoke:
-  kind: Http.Request
-  name: !cel "self.name + '-req'"
+invoke: !ref req
 inputs:
   method: POST
   url: !cel >-
@@ -3862,12 +3760,10 @@ outputType:
 resources:
   - kind: Http.Request
     metadata:
-      name: !cel "self.name + '-req'"
+      name: req
     client: !cel "self.client"
     throwOnHttpError: true
-invoke:
-  kind: Http.Request
-  name: !cel "self.name + '-req'"
+invoke: !ref req
 inputs:
   method: GET
   url: !cel >-
@@ -3955,12 +3851,10 @@ outputType:
 resources:
   - kind: Http.Request
     metadata:
-      name: !cel "self.name + '-req'"
+      name: req
     client: !cel "self.client"
     throwOnHttpError: true
-invoke:
-  kind: Http.Request
-  name: !cel "self.name + '-req'"
+invoke: !ref req
 inputs:
   method: GET
   url: !cel >-
@@ -4055,12 +3949,10 @@ outputType:
 resources:
   - kind: Http.Request
     metadata:
-      name: !cel "self.name + '-req'"
+      name: req
     client: !cel "self.client"
     throwOnHttpError: true
-invoke:
-  kind: Http.Request
-  name: !cel "self.name + '-req'"
+invoke: !ref req
 inputs:
   method: POST
   body: !cel "inputs.channel"
@@ -4122,12 +4014,10 @@ outputType:
 resources:
   - kind: Http.Request
     metadata:
-      name: !cel "self.name + '-req'"
+      name: req
     client: !cel "self.client"
     throwOnHttpError: true
-invoke:
-  kind: Http.Request
-  name: !cel "self.name + '-req'"
+invoke: !ref req
 inputs:
   method: GET
   url: !cel >-
@@ -4184,12 +4074,10 @@ outputType:
 resources:
   - kind: Http.Request
     metadata:
-      name: !cel "self.name + '-req'"
+      name: req
     client: !cel "self.client"
     throwOnHttpError: true
-invoke:
-  kind: Http.Request
-  name: !cel "self.name + '-req'"
+invoke: !ref req
 inputs:
   method: POST
   body:
@@ -4250,12 +4138,10 @@ outputType:
 resources:
   - kind: Http.Request
     metadata:
-      name: !cel "self.name + '-req'"
+      name: req
     client: !cel "self.client"
     throwOnHttpError: true
-invoke:
-  kind: Http.Request
-  name: !cel "self.name + '-req'"
+invoke: !ref req
 inputs:
   method: GET
   url: !cel >-
@@ -4313,12 +4199,10 @@ outputType:
 resources:
   - kind: Http.Request
     metadata:
-      name: !cel "self.name + '-req'"
+      name: req
     client: !cel "self.client"
     throwOnHttpError: true
-invoke:
-  kind: Http.Request
-  name: !cel "self.name + '-req'"
+invoke: !ref req
 inputs:
   method: GET
   url: !cel >-

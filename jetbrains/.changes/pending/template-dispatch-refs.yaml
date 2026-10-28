@@ -1,0 +1,3 @@
+modules:
+  youtrack: Fixed
+body: "Templates name their internal resources with literals and dispatch with '!ref', replacing the deprecated computed names and '{ kind, name }' invoke form. No change to the public kinds."
