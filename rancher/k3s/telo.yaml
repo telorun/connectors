@@ -388,7 +388,7 @@ schema:
 
   examples:
     - host: !ref node-a
-      token: "${{ secrets.k3sToken }}"
+      token: !cel "secrets.k3sToken"
       version: v1.31.4+k3s1
       clusterInit: true
       disable: [traefik, servicelb]
@@ -399,12 +399,12 @@ resources:
   # with a different command line; the host it runs on is fixed at construction.
   - kind: Shell.Command
     metadata:
-      name: !cel "self.name + '-sh'"
+      name: sh
     host: !cel "self.host"
 
   - kind: Run.Sequence
     metadata:
-      name: !cel "self.name + '-converge'"
+      name: converge
     steps:
       # 1. Render the desired config.yaml. Built as YAML lines rather than one
       #    encoded blob so the diff a human reads in `git log` is the diff k3s
@@ -461,7 +461,7 @@ resources:
       #    the decision needs: installed version and the hash of the live config.
       #    Both are empty strings on a machine with no k3s, which reads as "differs".
       - name: probe
-        invoke: !cel "self.name + '-sh'"
+        invoke: !ref sh
         inputs:
           command: >-
             printf '%s %s'
@@ -490,7 +490,7 @@ resources:
           # Config travels base64-encoded so no amount of quoting, newlines or
           # shell metacharacters in a rendered value can break out of the command.
           - name: writeConfig
-            invoke: !cel "self.name + '-sh'"
+            invoke: !ref sh
             inputs:
               command: !cel >-
                 "mkdir -p /etc/rancher/k3s && printf '%s' '" +
@@ -498,7 +498,7 @@ resources:
                 "' | base64 -d > /etc/rancher/k3s/config.yaml"
 
           - name: install
-            invoke: !cel "self.name + '-sh'"
+            invoke: !ref sh
             inputs:
               command: curl -sfL https://get.k3s.io | sh -s - server
               timeoutMs: !cel "self.installTimeoutMs"
@@ -521,13 +521,13 @@ resources:
           # that already had it the unit is reloaded, not restarted — a rewritten
           # config.yaml only takes effect here.
           - name: restart
-            invoke: !cel "self.name + '-sh'"
+            invoke: !ref sh
             inputs:
               command: systemctl restart k3s
               timeoutMs: !cel "self.installTimeoutMs"
 
           - name: waitReady
-            invoke: !cel "self.name + '-sh'"
+            invoke: !ref sh
             inputs:
               command: >-
                 until k3s kubectl get --raw /readyz >/dev/null 2>&1; do sleep 2; done
@@ -548,7 +548,7 @@ resources:
         !(steps.desired.result.versionMatches && steps.desired.result.configMatches)
       config: !cel "steps.render.result.config"
 
-run: !cel "self.name + '-converge'"
+run: !ref converge
 
 ---
 # K3s.Agent — a worker node. Everything K3s.Node carries, plus the one field
@@ -579,7 +579,7 @@ schema:
 
   examples:
     - host: !ref node-b
-      token: "${{ secrets.k3sToken }}"
+      token: !cel "secrets.k3sToken"
       version: v1.31.4+k3s1
       server: https://10.0.0.11:6443
       nodeLabels: [role=worker]
@@ -587,12 +587,12 @@ schema:
 resources:
   - kind: Shell.Command
     metadata:
-      name: !cel "self.name + '-sh'"
+      name: sh
     host: !cel "self.host"
 
   - kind: Run.Sequence
     metadata:
-      name: !cel "self.name + '-converge'"
+      name: converge
     steps:
       - name: render
         value:
@@ -619,7 +619,7 @@ resources:
             .filter(l, l != '').join('\n') + '\n'
 
       - name: probe
-        invoke: !cel "self.name + '-sh'"
+        invoke: !ref sh
         inputs:
           command: >-
             printf '%s %s'
@@ -639,7 +639,7 @@ resources:
           !(steps.desired.result.versionMatches && steps.desired.result.configMatches)
         then:
           - name: writeConfig
-            invoke: !cel "self.name + '-sh'"
+            invoke: !ref sh
             inputs:
               command: !cel >-
                 "mkdir -p /etc/rancher/k3s && printf '%s' '" +
@@ -650,7 +650,7 @@ resources:
           # keys off, and it duplicates `server:` from the config — the installer
           # reads env, the running agent reads the file, and both must agree.
           - name: install
-            invoke: !cel "self.name + '-sh'"
+            invoke: !ref sh
             inputs:
               command: curl -sfL https://get.k3s.io | sh -s - agent
               timeoutMs: !cel "self.installTimeoutMs"
@@ -671,7 +671,7 @@ resources:
                     steps.install.result.stderr
 
           - name: restart
-            invoke: !cel "self.name + '-sh'"
+            invoke: !ref sh
             inputs:
               command: systemctl restart k3s-agent
               timeoutMs: !cel "self.installTimeoutMs"
@@ -679,7 +679,7 @@ resources:
           # An agent has no local API server to ask, so readiness is the kubelet
           # having come up far enough to serve its own healthz.
           - name: waitReady
-            invoke: !cel "self.name + '-sh'"
+            invoke: !ref sh
             inputs:
               command: >-
                 until curl -sf http://127.0.0.1:10248/healthz >/dev/null 2>&1; do sleep 2; done
@@ -700,4 +700,4 @@ resources:
         !(steps.desired.result.versionMatches && steps.desired.result.configMatches)
       config: !cel "steps.render.result.config"
 
-run: !cel "self.name + '-converge'"
+run: !ref converge

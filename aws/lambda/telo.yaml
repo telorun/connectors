@@ -86,7 +86,6 @@ schema:
         additionalProperties: false
         properties:
           request:
-            x-telo-topology-role: matcher
             x-telo-schema-from: "HttpDispatch.Request/$defs/Matcher"
           handler:
             x-telo-topology-role: handler
@@ -157,9 +156,9 @@ schema:
                   type: object
                   additionalProperties: false
                   properties:
-                    code: { type: string }
+                    code: { type: string, x-telo-caught-member: code }
                     message: { type: string }
-                    data: { type: object, additionalProperties: true }
+                    data: { type: object, additionalProperties: true, x-telo-caught-member: data }
         required: [ request, handler, returns ]
   required: [ routes ]
 ---
@@ -320,9 +319,9 @@ schema:
             type: object
             additionalProperties: false
             properties:
-              code: { type: string }
+              code: { type: string, x-telo-caught-member: code }
               message: { type: string }
-              data: { type: object, additionalProperties: true }
+              data: { type: object, additionalProperties: true, x-telo-caught-member: data }
       items:
         type: object
         properties:

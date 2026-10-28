@@ -12,10 +12,10 @@ metadata:
 imports:
   Test: oci://ghcr.io/telorun/test@0.10.0#sha256-I3lFBu1iEcrCn155RRNRrPX-U6AUBg59Q-dBUEw-ZtM
 targets:
-  - !ref RunAll
+  - !ref runAll
 ---
 kind: Test.Suite
 metadata:
-  name: RunAll
+  name: runAll
 include:
   - "tests/e2e/*.yaml"

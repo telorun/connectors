@@ -1,0 +1,6 @@
+modules:
+  auth: Fixed
+  drive: Fixed
+  gmail: Fixed
+  sheets: Fixed
+body: "Templates name their internal resources with literals and dispatch with '!ref', replacing the deprecated computed names and '{ kind, name }' invoke form that current Telo rejects at runtime. No change to the public kinds."
