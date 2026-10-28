@@ -2,7 +2,7 @@
 
 # Perplexity Search Scraper
 
-The Apify actor [`apify/perplexity-search-scraper`](https://apify.com/apify/perplexity-search-scraper) as typed Telo kinds, generated from its build **0.0.75**. The module's version is that build number, and every run it starts is pinned to exactly that build, so the input types below are the ones the actor really runs with.
+The Apify actor [`apify/perplexity-search-scraper`](https://apify.com/apify/perplexity-search-scraper) as typed Telo kinds, generated from its build **0.0.76**. The module's version is that build number, and every run it starts is pinned to exactly that build, so the input types below are the ones the actor really runs with.
 
 Scrape Perplexity AI answers at scale without an API. Extract AI-generated responses, cited sources, URLs, and related questions for any query. Track brand visibility in AI search, monitor citations, and run GEO research. Export to JSON, CSV, or Excel.
 
@@ -16,7 +16,7 @@ Runs are charged to the Apify account whose token the `ApifyClient` holds. See t
 
 ```yaml
 imports:
-  Actor: oci://ghcr.io/telorun/apify/apify-perplexity-search-scraper@0.0.75#sha256-…
+  Actor: oci://ghcr.io/telorun/apify/apify-perplexity-search-scraper@0.0.76#sha256-…
 ```
 
 Pin the digest with `telo upgrade`. The module re-exports `ApifyClient`, so it is the only import needed.

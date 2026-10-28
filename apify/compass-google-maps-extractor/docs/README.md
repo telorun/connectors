@@ -2,7 +2,7 @@
 
 # Google Maps Extractor
 
-The Apify actor [`compass/google-maps-extractor`](https://apify.com/compass/google-maps-extractor) as typed Telo kinds, generated from its build **0.1.675**. The module's version is that build number, and every run it starts is pinned to exactly that build, so the input types below are the ones the actor really runs with.
+The Apify actor [`compass/google-maps-extractor`](https://apify.com/compass/google-maps-extractor) as typed Telo kinds, generated from its build **0.1.678**. The module's version is that build number, and every run it starts is pinned to exactly that build, so the input types below are the ones the actor really runs with.
 
 Extract data from hundreds of places fast. Scrape Google Maps by keyword, category, location, URLs & other filters. Get addresses, contact info, opening hours, popular times, prices, menus & more. Export scraped data, run the scraper via API, schedule and monitor runs, or integrate with other tools.
 
@@ -16,7 +16,7 @@ Runs are charged to the Apify account whose token the `ApifyClient` holds. See t
 
 ```yaml
 imports:
-  Actor: oci://ghcr.io/telorun/apify/compass-google-maps-extractor@0.1.675#sha256-…
+  Actor: oci://ghcr.io/telorun/apify/compass-google-maps-extractor@0.1.678#sha256-…
 ```
 
 Pin the digest with `telo upgrade`. The module re-exports `ApifyClient`, so it is the only import needed.

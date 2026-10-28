@@ -2,7 +2,7 @@
 
 # Instagram Scraper (Pay Per Result)
 
-The Apify actor [`apidojo/instagram-scraper`](https://apify.com/apidojo/instagram-scraper) as typed Telo kinds, generated from its build **0.0.1104**. The module's version is that build number, and every run it starts is pinned to exactly that build, so the input types below are the ones the actor really runs with.
+The Apify actor [`apidojo/instagram-scraper`](https://apify.com/apidojo/instagram-scraper) as typed Telo kinds, generated from its build **0.0.1110**. The module's version is that build number, and every run it starts is pinned to exactly that build, so the input types below are the ones the actor really runs with.
 
 Famous for its blazing-fast speed and completeness, it offers rapid and efficient scraping of many URLs such as; location, audio, tag, and profile.  It's incredibly cost-effective at only $0.50 for every 1000 posts, capable of scraping 100-200 posts each second!
 
@@ -16,7 +16,7 @@ Runs are charged to the Apify account whose token the `ApifyClient` holds. See t
 
 ```yaml
 imports:
-  Actor: oci://ghcr.io/telorun/apify/apidojo-instagram-scraper@0.0.1104#sha256-…
+  Actor: oci://ghcr.io/telorun/apify/apidojo-instagram-scraper@0.0.1110#sha256-…
 ```
 
 Pin the digest with `telo upgrade`. The module re-exports `ApifyClient`, so it is the only import needed.

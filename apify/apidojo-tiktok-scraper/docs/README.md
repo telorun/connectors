@@ -2,7 +2,7 @@
 
 # Tiktok Scraper (Pay Per Result)
 
-The Apify actor [`apidojo/tiktok-scraper`](https://apify.com/apidojo/tiktok-scraper) as typed Telo kinds, generated from its build **0.0.1134**. The module's version is that build number, and every run it starts is pinned to exactly that build, so the input types below are the ones the actor really runs with.
+The Apify actor [`apidojo/tiktok-scraper`](https://apify.com/apidojo/tiktok-scraper) as typed Telo kinds, generated from its build **0.0.1140**. The module's version is that build number, and every run it starts is pinned to exactly that build, so the input types below are the ones the actor really runs with.
 
 Extract TikTok profiles, videos, hashtags, comments at 600 posts/sec. No proxy, 98% success rate. Scrape music, locations & user data with query builder. Export JSON/CSV, API integration. Perfect for influencer discovery, lead gen, market research. $0.30 per 1K posts.
 
@@ -16,7 +16,7 @@ Runs are charged to the Apify account whose token the `ApifyClient` holds. See t
 
 ```yaml
 imports:
-  Actor: oci://ghcr.io/telorun/apify/apidojo-tiktok-scraper@0.0.1134#sha256-…
+  Actor: oci://ghcr.io/telorun/apify/apidojo-tiktok-scraper@0.0.1140#sha256-…
 ```
 
 Pin the digest with `telo upgrade`. The module re-exports `ApifyClient`, so it is the only import needed.

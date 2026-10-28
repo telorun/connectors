@@ -2,9 +2,9 @@
 
 # ⚡️Rapid Linkedin Jobs Scraper
 
-The Apify actor [`worldunboxer/rapid-linkedin-scraper`](https://apify.com/worldunboxer/rapid-linkedin-scraper) as typed Telo kinds, generated from its build **1.2.88**. The module's version is that build number, and every run it starts is pinned to exactly that build, so the input types below are the ones the actor really runs with.
+The Apify actor [`worldunboxer/rapid-linkedin-scraper`](https://apify.com/worldunboxer/rapid-linkedin-scraper) as typed Telo kinds, generated from its build **1.2.110**. The module's version is that build number, and every run it starts is pinned to exactly that build, so the input types below are the ones the actor really runs with.
 
-🔥 From $0.10/1K jobs. Scrape LinkedIn job listings without login or cookies. Search by title, location, company, city & more. Get salaries, full descriptions, applicants, hiring badges & apply links. Quick or Detailed mode. Export to JSON, CSV, Excel or API.
+🔥$0.10/1K jobs. Advanced filters, 23 data fields, JSON/CSV/Excel export, cron schedules, webhooks and MCP for AI agents. Scrape Linkedin job postings without login cookies. Cost Effective Linkedin Jobs API for recruiting, job boards, lead generation and AI agents.
 
 ## Pricing
 
@@ -16,7 +16,7 @@ Runs are charged to the Apify account whose token the `ApifyClient` holds. See t
 
 ```yaml
 imports:
-  Actor: oci://ghcr.io/telorun/apify/worldunboxer-rapid-linkedin-scraper@1.2.88#sha256-…
+  Actor: oci://ghcr.io/telorun/apify/worldunboxer-rapid-linkedin-scraper@1.2.110#sha256-…
 ```
 
 Pin the digest with `telo upgrade`. The module re-exports `ApifyClient`, so it is the only import needed.
@@ -50,23 +50,17 @@ The actor accepts fields beyond these.
 
 | Field | Type | Required | Default | Description |
 | --- | --- | --- | --- | --- |
-| `jobs_titles` | array |  |  | Job Titles — Job titles to search for (e.g., 'Software Engineer', 'Data Scientist'). The scraper runs a search for each title and merges the results. |
-| `job_title` | string |  |  | Job Title (Legacy) — Legacy field, kept for backward compatibility with existing integrations. Its value is combined with 'Job Titles' above (not overridden by it) — every distinct title from both fields is searched. This field will be removed in a future version; migrate to 'Job Titles'. |
+| `jobs_titles` | array |  |  | Job Titles / Keywords — Job titles to search for (e.g., 'Software Engineer', 'Data Scientist'). The scraper runs a search for each title and merges the results. |
 | `location` | string |  |  | Location — Enter a broad location (e.g., 'Worldwide', 'Europe', 'Canada') or a full search string (e.g., 'San Francisco, CA'). For multiple specific cities, enter the country here and list the cities below. |
 | `scrape_mode` | string |  | `"detailed"` | Scrape Mode — How much data to collect for each job. Quick uses search results only, so runs are faster. Detailed also opens each job's page for more fields. See the [Output Fields](https://apify.com/worldunboxer/rapid-linkedin-scraper#-output-fields) section of the README for the fields each mode r |
 | `cities` | array |  |  | Cities (Optional) — Optional. List specific cities to search (e.g., 'London', 'Manchester'). The scraper will loop through each. Note: Set the 'Location' field to the relevant country to ensure accurate city matching. |
 | `jobs_entries` | integer |  | `1000` | Number of Jobs Entries you want — Number of jobs you want to scrape. |
 | `company_names` | array |  |  | Company Names — Only search for these companies |
-| `experience` | string |  |  | Experience level — Select job experience level |
-| `employment_type` | string |  |  | Job Type — Select Job type you need. |
-| `work_arrangement` | string |  |  | Work Schedule — Select what type of work schedule you need. |
 | `posted_within` | string |  |  | Job Posting Time — Only return jobs posted within this period. To use a custom time window, leave this field unset. |
 | `easy_apply` | boolean |  | `false` | Easy Apply Only — Filter for jobs with simplified application |
 | `start_jobs` | integer |  |  | Search After how many jobs — Legacy field. No longer supported and has no effect on scraping results. |
-| `experience_level` | string |  |  | Experience Level — Legacy experience level field. Migrate to `experience` with human readable values. |
-| `job_type` | string |  |  | Job Type — Legacy job type field. Migrate to `employment_type` with human readable values. |
-| `work_schedule` | string |  |  | Work Schedule — Legacy work schedule field. Migrate to `work_arrangement` with human readable values. |
 | `job_post_time` | string |  |  | Custom Job Post Time — Optional custom posting window, used only when 'Job Posting Time' above is not set. Enter the time in seconds prefixed with 'r' (e.g., 'r86400' for 1 day, 'r172800' for 2 days): 'r' followed by a positive whole number. |
+| `job_title` | string |  |  | Job Title (Legacy) — Legacy field, kept for backward compatibility with existing integrations. Its value is combined with 'Job Titles' above (not overridden by it) — every distinct title from both fields is searched. This field will be removed in a future version; migrate to 'Job Titles'. |
 
 ## Output
 

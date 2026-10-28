@@ -2,7 +2,7 @@
 
 # 🎉 Leads Scraper ✅ $0.8/1k Leads ✅ 250M+ Database ✅ Like Apollo
 
-The Apify actor [`pipelinelabs/lead-scraper-apollo-zoominfo-lusha`](https://apify.com/pipelinelabs/lead-scraper-apollo-zoominfo-lusha) as typed Telo kinds, generated from its build **1.4.68**. The module's version is that build number, and every run it starts is pinned to exactly that build, so the input types below are the ones the actor really runs with.
+The Apify actor [`pipelinelabs/lead-scraper-apollo-zoominfo-lusha`](https://apify.com/pipelinelabs/lead-scraper-apollo-zoominfo-lusha) as typed Telo kinds, generated from its build **1.4.72**. The module's version is that build number, and every run it starts is pinned to exactly that build, so the input types below are the ones the actor really runs with.
 
 Find Leads With Emails, LinkedIn URL, Phone Numbers, & More! Similar to Apollo, ZoomInfo, Lusha. 250+ Million Verified Database!
 
@@ -16,7 +16,7 @@ Runs are charged to the Apify account whose token the `ApifyClient` holds. See t
 
 ```yaml
 imports:
-  Actor: oci://ghcr.io/telorun/apify/pipelinelabs-lead-scraper-apollo-zoominfo-lusha@1.4.68#sha256-…
+  Actor: oci://ghcr.io/telorun/apify/pipelinelabs-lead-scraper-apollo-zoominfo-lusha@1.4.72#sha256-…
 ```
 
 Pin the digest with `telo upgrade`. The module re-exports `ApifyClient`, so it is the only import needed.

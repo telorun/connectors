@@ -2,7 +2,7 @@
 
 # Tweet Scraper V2 - X Scraper / Twitter Scraper / X.com Scraper
 
-The Apify actor [`apidojo/tweet-scraper`](https://apify.com/apidojo/tweet-scraper) as typed Telo kinds, generated from its build **0.0.1558**. The module's version is that build number, and every run it starts is pinned to exactly that build, so the input types below are the ones the actor really runs with.
+The Apify actor [`apidojo/tweet-scraper`](https://apify.com/apidojo/tweet-scraper) as typed Telo kinds, generated from its build **0.0.1564**. The module's version is that build number, and every run it starts is pinned to exactly that build, so the input types below are the ones the actor really runs with.
 
 Lightning-fast search, URL, list, and profile scraping, with customizable filters. At $0.40 per 1000 tweets, and 30-80 tweets per second, it is ideal for researchers, entrepreneurs, and businesses! Get comprehensive insights from Twitter (X) now!
 
@@ -16,7 +16,7 @@ Runs are charged to the Apify account whose token the `ApifyClient` holds. See t
 
 ```yaml
 imports:
-  Actor: oci://ghcr.io/telorun/apify/apidojo-tweet-scraper@0.0.1558#sha256-…
+  Actor: oci://ghcr.io/telorun/apify/apidojo-tweet-scraper@0.0.1564#sha256-…
 ```
 
 Pin the digest with `telo upgrade`. The module re-exports `ApifyClient`, so it is the only import needed.

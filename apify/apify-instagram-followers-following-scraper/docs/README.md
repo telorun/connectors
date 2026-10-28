@@ -2,7 +2,7 @@
 
 # Instagram Followers and Following Scraper
 
-The Apify actor [`apify/instagram-followers-following-scraper`](https://apify.com/apify/instagram-followers-following-scraper) as typed Telo kinds, generated from its build **0.0.174**. The module's version is that build number, and every run it starts is pinned to exactly that build, so the input types below are the ones the actor really runs with.
+The Apify actor [`apify/instagram-followers-following-scraper`](https://apify.com/apify/instagram-followers-following-scraper) as typed Telo kinds, generated from its build **0.0.177**. The module's version is that build number, and every run it starts is pinned to exactly that build, so the input types below are the ones the actor really runs with.
 
 Scrape Instagram followers' names. Just add Instagram profile and extract followers' username, name, profile picture URL, private or public status, verified status and Instagram user ID. Export scraped data, schedule scraper via API, and integrate with other tools or AI workflows.
 
@@ -16,7 +16,7 @@ Runs are charged to the Apify account whose token the `ApifyClient` holds. See t
 
 ```yaml
 imports:
-  Actor: oci://ghcr.io/telorun/apify/apify-instagram-followers-following-scraper@0.0.174#sha256-…
+  Actor: oci://ghcr.io/telorun/apify/apify-instagram-followers-following-scraper@0.0.177#sha256-…
 ```
 
 Pin the digest with `telo upgrade`. The module re-exports `ApifyClient`, so it is the only import needed.

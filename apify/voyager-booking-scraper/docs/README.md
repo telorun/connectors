@@ -2,7 +2,7 @@
 
 # Booking Scraper
 
-The Apify actor [`voyager/booking-scraper`](https://apify.com/voyager/booking-scraper) as typed Telo kinds, generated from its build **0.0.197**. The module's version is that build number, and every run it starts is pinned to exactly that build, so the input types below are the ones the actor really runs with.
+The Apify actor [`voyager/booking-scraper`](https://apify.com/voyager/booking-scraper) as typed Telo kinds, generated from its build **0.0.198**. The module's version is that build number, and every run it starts is pinned to exactly that build, so the input types below are the ones the actor really runs with.
 
 Scrape Booking with this hotels scraper and get data about accommodation on Booking.com. You can crawl by keywords or URLs for hotel prices, ratings, addresses, number of reviews, stars. You can also download all that room and hotel data from Booking.com with a few clicks: CSV, JSON, HTML, and Excel
 
@@ -16,7 +16,7 @@ Runs are charged to the Apify account whose token the `ApifyClient` holds. See t
 
 ```yaml
 imports:
-  Actor: oci://ghcr.io/telorun/apify/voyager-booking-scraper@0.0.197#sha256-…
+  Actor: oci://ghcr.io/telorun/apify/voyager-booking-scraper@0.0.198#sha256-…
 ```
 
 Pin the digest with `telo upgrade`. The module re-exports `ApifyClient`, so it is the only import needed.

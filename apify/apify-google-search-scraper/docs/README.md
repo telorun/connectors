@@ -2,7 +2,7 @@
 
 # Google Search Results Scraper
 
-The Apify actor [`apify/google-search-scraper`](https://apify.com/apify/google-search-scraper) as typed Telo kinds, generated from its build **0.0.468**. The module's version is that build number, and every run it starts is pinned to exactly that build, so the input types below are the ones the actor really runs with.
+The Apify actor [`apify/google-search-scraper`](https://apify.com/apify/google-search-scraper) as typed Telo kinds, generated from its build **0.0.469**. The module's version is that build number, and every run it starts is pinned to exactly that build, so the input types below are the ones the actor really runs with.
 
 Scrape Google Search Engine Results Pages (SERPs). Select the country or language and extract organic and paid results, AI Mode, AI overviews, ads, queries, People Also Ask, prices, reviews, like a Google SERP API. Export data, run the scraper via API, schedule runs, or integrate with other tools.
 
@@ -16,7 +16,7 @@ Runs are charged to the Apify account whose token the `ApifyClient` holds. See t
 
 ```yaml
 imports:
-  Actor: oci://ghcr.io/telorun/apify/apify-google-search-scraper@0.0.468#sha256-…
+  Actor: oci://ghcr.io/telorun/apify/apify-google-search-scraper@0.0.469#sha256-…
 ```
 
 Pin the digest with `telo upgrade`. The module re-exports `ApifyClient`, so it is the only import needed.

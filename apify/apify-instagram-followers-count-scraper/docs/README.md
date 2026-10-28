@@ -2,7 +2,7 @@
 
 # Instagram Followers Count Scraper
 
-The Apify actor [`apify/instagram-followers-count-scraper`](https://apify.com/apify/instagram-followers-count-scraper) as typed Telo kinds, generated from its build **0.0.614**. The module's version is that build number, and every run it starts is pinned to exactly that build, so the input types below are the ones the actor really runs with.
+The Apify actor [`apify/instagram-followers-count-scraper`](https://apify.com/apify/instagram-followers-count-scraper) as typed Telo kinds, generated from its build **0.0.617**. The module's version is that build number, and every run it starts is pinned to exactly that build, so the input types below are the ones the actor really runs with.
 
 Scrape the number of followers & follows from any Instagram profile. Schedule the scraper to run regularly to monitor how the numbers change. You can also export scraped data, run the scraper via API, monitor runs or integrate with other tools.
 
@@ -16,7 +16,7 @@ Runs are charged to the Apify account whose token the `ApifyClient` holds. See t
 
 ```yaml
 imports:
-  Actor: oci://ghcr.io/telorun/apify/apify-instagram-followers-count-scraper@0.0.614#sha256-…
+  Actor: oci://ghcr.io/telorun/apify/apify-instagram-followers-count-scraper@0.0.617#sha256-…
 ```
 
 Pin the digest with `telo upgrade`. The module re-exports `ApifyClient`, so it is the only import needed.

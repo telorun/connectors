@@ -2,7 +2,7 @@
 
 # Local Lead Generation Agent
 
-The Apify actor [`apify/local-lead-generation-agent`](https://apify.com/apify/local-lead-generation-agent) as typed Telo kinds, generated from its build **0.0.22**. The module's version is that build number, and every run it starts is pinned to exactly that build, so the input types below are the ones the actor really runs with.
+The Apify actor [`apify/local-lead-generation-agent`](https://apify.com/apify/local-lead-generation-agent) as typed Telo kinds, generated from its build **0.0.23**. The module's version is that build number, and every run it starts is pinned to exactly that build, so the input types below are the ones the actor really runs with.
 
 Find truly local leads by scraping Instagram profiles based on search queries. Extract website links, contact details, emails, social media details. The AI agent matches and scores leads using LLMs via LangChain, explains scoring, and compiles the data into a common dataset for easy access and use.
 
@@ -16,7 +16,7 @@ Runs are charged to the Apify account whose token the `ApifyClient` holds. See t
 
 ```yaml
 imports:
-  Actor: oci://ghcr.io/telorun/apify/apify-local-lead-generation-agent@0.0.22#sha256-…
+  Actor: oci://ghcr.io/telorun/apify/apify-local-lead-generation-agent@0.0.23#sha256-…
 ```
 
 Pin the digest with `telo upgrade`. The module re-exports `ApifyClient`, so it is the only import needed.
@@ -61,7 +61,53 @@ Only these fields are accepted — `telo check` rejects any other.
 
 ## Output
 
-The actor publishes no dataset schema, so `items` are untyped objects.
+Each dataset item is typed from the actor's published dataset schema. Every field may be null, and items may carry fields beyond these.
+
+| Field | Type | Description |
+| --- | --- | --- |
+| `username` | string \| null | Instagram username of the lead |
+| `fullName` | string \| null | Full display name of the lead's profile |
+| `biography` | string \| null | Profile bio text |
+| `url` | string \| null | URL of the Instagram profile |
+| `inputUrl` | string \| null | Input URL that was used to scrape this profile |
+| `id` | string \| null | Instagram user ID of the lead |
+| `fbid` | string \| null | Facebook ID associated with the profile |
+| `profilePicUrl` | string \| null | URL of the profile picture |
+| `profilePicUrlHD` | string \| null | URL of the high-resolution profile picture |
+| `score` | number \| null | Lead score assigned by the LLM based on the scoring prompt |
+| `scoreReason` | string \| null | LLM explanation of why the lead received its score |
+| `followersCount` | number \| null | Number of followers the profile has |
+| `followsCount` | number \| null | Number of accounts the profile follows |
+| `postsCount` | number \| null | Number of posts on the profile |
+| `highlightReelCount` | number \| null | Number of story highlight reels on the profile |
+| `igtvVideoCount` | number \| null | Number of IGTV videos on the profile |
+| `verified` | boolean \| null | Whether the profile is verified |
+| `private` | boolean \| null | Whether the profile is private |
+| `isBusinessAccount` | boolean \| null | Whether the profile is a business account |
+| `joinedRecently` | boolean \| null | Whether the account was created recently |
+| `businessCategoryName` | string \| null | Business category name of the profile |
+| `businessAddress` | object \| null | Structured business address of the profile, when available |
+| `externalUrl` | string \| null | Website link listed on the profile |
+| `externalUrlShimmed` | string \| null | Instagram-shimmed version of the profile website link |
+| `emails` | array \| null | Email addresses found for the lead via the contact details scraper |
+| `phones` | array \| null | Phone numbers found for the lead |
+| `phonesUncertain` | array \| null | Phone numbers found with lower confidence |
+| `instagrams` | array \| null | Instagram profile links found for the lead |
+| `facebooks` | array \| null | Facebook links found for the lead |
+| `twitters` | array \| null | Twitter/X links found for the lead |
+| `youtubes` | array \| null | YouTube links found for the lead |
+| `tiktoks` | array \| null | TikTok links found for the lead |
+| `pinterests` | array \| null | Pinterest links found for the lead |
+| `discords` | array \| null | Discord links found for the lead |
+| `externalUrls` | array \| null | All external links listed on the profile, with metadata |
+| `relatedProfiles` | array \| null | Profiles related to the lead, as surfaced by Instagram |
+| `latestPosts` | array \| null | Most recent posts on the lead's profile with engagement metadata |
+| `latestIgtvVideos` | array \| null | Most recent IGTV videos on the lead's profile |
+| `isRestrictedProfile` | boolean \| null | Whether the profile was restricted and could not be fully scraped |
+| `restrictionReason` | string \| null | Reason the profile was restricted, when applicable |
+| `error` | string \| null | Error code if the lead could not be fully scraped |
+| `errorDescription` | string \| null | Human-readable description of the error, when applicable |
+| `hasChannel` | boolean \| null | Whether the Instagram profile has a broadcast channel |
 
 ## About this module
 

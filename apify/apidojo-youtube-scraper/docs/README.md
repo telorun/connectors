@@ -2,7 +2,7 @@
 
 # Youtube Scraper (Pay Per Result)
 
-The Apify actor [`apidojo/youtube-scraper`](https://apify.com/apidojo/youtube-scraper) as typed Telo kinds, generated from its build **0.0.1062**. The module's version is that build number, and every run it starts is pinned to exactly that build, so the input types below are the ones the actor really runs with.
+The Apify actor [`apidojo/youtube-scraper`](https://apify.com/apidojo/youtube-scraper) as typed Telo kinds, generated from its build **0.0.1068**. The module's version is that build number, and every run it starts is pinned to exactly that build, so the input types below are the ones the actor really runs with.
 
 Experience unparalleled efficiency and depth with its ultra-fast capabilities in searching, URL, playlist, channel, and profile scraping. It comes equipped with a variety of filters to customize your data collection precisely. Plus, it's incredibly affordable at only $0.50 per 1000 videos!
 
@@ -16,7 +16,7 @@ Runs are charged to the Apify account whose token the `ApifyClient` holds. See t
 
 ```yaml
 imports:
-  Actor: oci://ghcr.io/telorun/apify/apidojo-youtube-scraper@0.0.1062#sha256-…
+  Actor: oci://ghcr.io/telorun/apify/apidojo-youtube-scraper@0.0.1068#sha256-…
 ```
 
 Pin the digest with `telo upgrade`. The module re-exports `ApifyClient`, so it is the only import needed.

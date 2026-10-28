@@ -2,7 +2,7 @@
 
 # E-commerce Scraping Tool
 
-The Apify actor [`apify/e-commerce-scraping-tool`](https://apify.com/apify/e-commerce-scraping-tool) as typed Telo kinds, generated from its build **0.0.120**. The module's version is that build number, and every run it starts is pinned to exactly that build, so the input types below are the ones the actor really runs with.
+The Apify actor [`apify/e-commerce-scraping-tool`](https://apify.com/apify/e-commerce-scraping-tool) as typed Telo kinds, generated from its build **0.0.122**. The module's version is that build number, and every run it starts is pinned to exactly that build, so the input types below are the ones the actor really runs with.
 
 Scrape data from e-commerce websites with E-commerce Scraping Tool. Scrape almost any retail site in minutes, extract e-commerce data and use it to monitor price details over time or compare different e-commerce sites’ offerings.
 
@@ -16,7 +16,7 @@ Runs are charged to the Apify account whose token the `ApifyClient` holds. See t
 
 ```yaml
 imports:
-  Actor: oci://ghcr.io/telorun/apify/apify-e-commerce-scraping-tool@0.0.120#sha256-…
+  Actor: oci://ghcr.io/telorun/apify/apify-e-commerce-scraping-tool@0.0.122#sha256-…
 ```
 
 Pin the digest with `telo upgrade`. The module re-exports `ApifyClient`, so it is the only import needed.

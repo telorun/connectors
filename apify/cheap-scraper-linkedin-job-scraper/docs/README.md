@@ -2,13 +2,9 @@
 
 # LinkedIn Jobs Scraper | Remove Duplicate Jobs | Pay Per Result
 
-The Apify actor [`cheap_scraper/linkedin-job-scraper`](https://apify.com/cheap_scraper/linkedin-job-scraper) as typed Telo kinds, generated from its build **0.0.49**. The module's version is that build number, and every run it starts is pinned to exactly that build, so the input types below are the ones the actor really runs with.
+The Apify actor [`cheap_scraper/linkedin-job-scraper`](https://apify.com/cheap_scraper/linkedin-job-scraper) as typed Telo kinds, generated from its build **0.0.53**. The module's version is that build number, and every run it starts is pinned to exactly that build, so the input types below are the ones the actor really runs with.
 
-LinkedIn Jobs Scraper | Remove Duplicate Jobs.
-The LinkedIn jobs scraper allows you to collect jobs in 2 ways:
-    By providing one or more start URLs, or
-    By entering multiple keywords, search queries.
-You can use either method individually or combine both.
+Scrape LinkedIn jobs by keywords and location or by LinkedIn search URLs, or both. Export to JSON, CSV or Excel. No login or cookies needed. Filter jobs, filter with AI, remove duplicates, add company data, and automate with n8n, Make, Zapier or AI agents.
 
 ## Pricing
 
@@ -20,7 +16,7 @@ Runs are charged to the Apify account whose token the `ApifyClient` holds. See t
 
 ```yaml
 imports:
-  Actor: oci://ghcr.io/telorun/apify/cheap-scraper-linkedin-job-scraper@0.0.49#sha256-…
+  Actor: oci://ghcr.io/telorun/apify/cheap-scraper-linkedin-job-scraper@0.0.53#sha256-…
 ```
 
 Pin the digest with `telo upgrade`. The module re-exports `ApifyClient`, so it is the only import needed.
@@ -82,8 +78,10 @@ Only these fields are accepted — `telo check` rejects any other.
 | `companyFollowersCountMax` | integer |  |  | Company Max Followers — Only keep jobs from companies with at most this many LinkedIn followers. Jobs from companies whose follower count is not available always pass. Jobs are still collected and counted toward your billing — use `dynamicFilterMatch` to filter them out in your results. |
 | `requireRecruiterProfile` | boolean |  | `false` | Recruiter Profile Required — When enabled, only jobs that have a recruiter profile associated with the posting will have `dynamicFilterMatch: true`. Jobs without a recruiter profile are still collected and billed — use `dynamicFilterMatch` to filter them out. |
 | `requireSalaryInfo` | boolean |  | `false` | Salary Info Required — When enabled, only jobs that include salary information in the posting will have `dynamicFilterMatch: true`. Jobs without salary info are still collected and billed — use `dynamicFilterMatch` to filter them out. |
+| `useAiJobDescriptionParsing` | boolean |  | `false` | Use AI Job Description Parsing (paid plans only) — ⚠️ Premium users only. When enabled, the AI answers the questions below for every job that passed the other dynamic filters, and each analysed job is billed with the `ai-job-analysis` event. When disabled (default), the questions are ignored and no  |
+| `aiQuestions` | object[] |  |  | AI Questions (paid plans only) — ⚠️ Premium users only — used only when **Use AI Job Description Parsing** is enabled. Add up to 10 multiple-choice questions asked about each job description. Each question has an ID, the question, its answer choices and optional expected answers. Questions without e |
 | `resumeKeywords` | object[] |  |  | Skills and Keywords — Each entry has a required `keyword` and optional `aliases` for abbreviations (e.g. `JavaScript` → `JS`). Each job in the output will include `matchedKeywords`, `unmatchedKeywords`, and `keywordMatchScorePercentage` (0–100). |
-| `maxItems` | integer |  |  | Maximum Results — Maximum number of job listings to scrape. Leave empty for no limit. Note: Minimum is 150 results when using pay-per-result billing. |
+| `maxItems` | integer |  |  | Maximum Results — Maximum number of job listings to scrape. Leave empty for no limit. |
 | `saveOnlyUniqueItems` | boolean |  | `false` | Save Only Unique Items — If enabled, only unique items will be saved. Default is false. |
 | `enrichCompanyData` | boolean |  | `false` | Enrich Company Data — When disabled, the scraper runs significantly faster by skipping additional company page requests. When enabled, the scraper fetches extra company details including: company description, full address (street, city, region, postal code, country), employee count, and company webs |
 | `salaryBase` | string |  |  | Minimum Salary — Filter by minimum salary. Only one value allowed. 🛠️ In maintenance: this filter currently only works when LinkedIn serves its classic search engine. When LinkedIn serves its new AI-powered search, it silently ignores this filter, and since salary cannot be verified reliably from j |
@@ -132,7 +130,9 @@ Each dataset item is typed from the actor's published dataset schema. Every fiel
 | `applyType` | string \| null | Application type: EASY_APPLY or EXTERNAL |
 | `posterFullName` | string \| null | Recruiter/poster full name |
 | `posterProfileUrl` | string \| null | Recruiter LinkedIn profile URL |
-| `dynamicFilterMatch` | boolean \| null | Indicates whether the job passed all enabled dynamic (post-fetch) filters. True when no dynamic filters are configured or all configured filters matched. False when the job did not meet the criteria — it is still saved to the dataset. See the 🔎 Dynamic Filters section in the input schema for availa |
+| `dynamicFilterMatch` | boolean \| null | Indicates whether the job passed all enabled dynamic (post-fetch) filters, including the AI filter ('aiQuestions' with 'expected' values). True when no dynamic filters are configured or all configured filters matched. False when the job did not meet the criteria — it is still saved to the dataset. S |
+| `aiStatus` | string \| null | State of the AI filter for this job. 'answered': the AI answered your 'aiQuestions'. 'skipped': no 'aiQuestions' were provided, or the job already failed the other dynamic filters so the AI was not run. 'skipped_free_plan': 'aiQuestions' were provided but the AI filter requires a paid Apify plan. 's |
+| `aiAnswers` | array \| null | AI answers, one per entry of 'aiQuestions' in the same order. Empty unless 'aiStatus' is 'answered'. |
 | `matchedKeywords` | array \| null | Resume keywords from 'resumeKeywords' input that were found in the job description. Only present when 'resumeKeywords' input is provided. |
 | `unmatchedKeywords` | array \| null | Resume keywords from 'resumeKeywords' input that were NOT found in the job description. Only present when 'resumeKeywords' input is provided. |
 | `keywordMatchScorePercentage` | number \| null | Percentage of your resume keywords found in the job description (0–100). Computed as: round(matched ÷ total × 100). Example: 3 out of 5 keywords matched = 60. Only present when 'resumeKeywords' input is provided. |

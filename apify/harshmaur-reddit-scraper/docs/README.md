@@ -2,7 +2,7 @@
 
 # Reddit Scraper - Posts, Comments, Search & Subreddits
 
-The Apify actor [`harshmaur/reddit-scraper`](https://apify.com/harshmaur/reddit-scraper) as typed Telo kinds, generated from its build **0.0.710**. The module's version is that build number, and every run it starts is pinned to exactly that build, so the input types below are the ones the actor really runs with.
+The Apify actor [`harshmaur/reddit-scraper`](https://apify.com/harshmaur/reddit-scraper) as typed Telo kinds, generated from its build **0.0.751**. The module's version is that build number, and every run it starts is pinned to exactly that build, so the input types below are the ones the actor really runs with.
 
 Scrape Reddit posts, comments, subreddits, user profiles, and keyword search results - no API key, no rate limits, no login. From $2 per 1,000 results, pay only for what you use. Full comment threads, 60+ fields per post, media and galleries. Works with AI Agents, MCP, n8n, Make, Zapier and more.
 
@@ -16,7 +16,7 @@ Runs are charged to the Apify account whose token the `ApifyClient` holds. See t
 
 ```yaml
 imports:
-  Actor: oci://ghcr.io/telorun/apify/harshmaur-reddit-scraper@0.0.710#sha256-…
+  Actor: oci://ghcr.io/telorun/apify/harshmaur-reddit-scraper@0.0.751#sha256-…
 ```
 
 Pin the digest with `telo upgrade`. The module re-exports `ApifyClient`, so it is the only import needed.

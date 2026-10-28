@@ -2,7 +2,7 @@
 
 # 📩📍 Google Maps Email Extractor
 
-The Apify actor [`lukaskrivka/google-maps-with-contact-details`](https://apify.com/lukaskrivka/google-maps-with-contact-details) as typed Telo kinds, generated from its build **0.0.463**. The module's version is that build number, and every run it starts is pinned to exactly that build, so the input types below are the ones the actor really runs with.
+The Apify actor [`lukaskrivka/google-maps-with-contact-details`](https://apify.com/lukaskrivka/google-maps-with-contact-details) as typed Telo kinds, generated from its build **0.0.466**. The module's version is that build number, and every run it starts is pinned to exactly that build, so the input types below are the ones the actor really runs with.
 
 Extract Google Maps contact details. Scrape websites of Google Maps places for contact details and get email addresses, website, location, address, zipcode, phone number, social media links. Export scraped data, run the scraper via API, schedule and monitor runs or integrate with other tools.
 
@@ -16,7 +16,7 @@ Runs are charged to the Apify account whose token the `ApifyClient` holds. See t
 
 ```yaml
 imports:
-  Actor: oci://ghcr.io/telorun/apify/lukaskrivka-google-maps-with-contact-details@0.0.463#sha256-…
+  Actor: oci://ghcr.io/telorun/apify/lukaskrivka-google-maps-with-contact-details@0.0.466#sha256-…
 ```
 
 Pin the digest with `telo upgrade`. The module re-exports `ApifyClient`, so it is the only import needed.
