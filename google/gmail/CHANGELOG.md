@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.2.1 - 2026-10-28
+### Fixed
+* Templates name their internal resources with literals and dispatch with '!ref', replacing the deprecated computed names and '{ kind, name }' invoke form that current Telo rejects at runtime. No change to the public kinds.
+
 ## 0.2.0 - 2026-10-22
 ### Added
 * Bumped standard-module dependencies: http-client 0.23.0 (all), oauth-client 0.9.0 and kv-store 0.5.0 (auth), multipart 0.4.0 and run 0.28.0 (drive, gmail).

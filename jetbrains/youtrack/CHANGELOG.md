@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.4.1 - 2026-10-28
+### Fixed
+* Templates name their internal resources with literals and dispatch with '!ref', replacing the deprecated computed names and '{ kind, name }' invoke form. No change to the public kinds.
+
 ## 0.4.0 - 2026-10-22
 ### Added
 * Bumped http-client to 0.23.0.

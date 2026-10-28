@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.12.1 - 2026-10-28
+### Fixed
+* Mark the caught error's code and data members with x-telo-caught-member and drop an unread topology-role annotation, clearing analyzer deprecation warnings. No change to behavior.
+
 ## 0.12.0 - 2026-10-22
 ### Added
 * Bumped http-dispatch to 0.16.0.
