@@ -8,7 +8,7 @@ Search LinkedIn Posts with advanced filters by target profiles or companies. No 
 
 ## Pricing
 
-Pay per event — Actor Start $0.00005, Post $0.002, Main profile $0.002, Full profile $0.004, Reaction $0.002, Comment $0.002, 0-result query $0.001 (Free-plan prices; paid plans pay less). Cap the spend with `maxTotalChargeUsd`.
+Pay per event — Post $0.002, Main profile $0.002, Full profile $0.004, Reaction $0.002, Comment $0.002, 0-result query $0.001, Actor Start $0.00005 (Free-plan prices; paid plans pay less). Cap the spend with `maxTotalChargeUsd`.
 
 Runs are charged to the Apify account whose token the `ApifyClient` holds. See the [Store page](https://apify.com/harvestapi/linkedin-post-search) for current prices.
 

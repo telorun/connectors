@@ -2,7 +2,7 @@
 
 # Facebook Events Scraper
 
-The Apify actor [`apify/facebook-events-scraper`](https://apify.com/apify/facebook-events-scraper) as typed Telo kinds, generated from its build **0.0.93**. The module's version is that build number, and every run it starts is pinned to exactly that build, so the input types below are the ones the actor really runs with.
+The Apify actor [`apify/facebook-events-scraper`](https://apify.com/apify/facebook-events-scraper) as typed Telo kinds, generated from its build **0.0.94**. The module's version is that build number, and every run it starts is pinned to exactly that build, so the input types below are the ones the actor really runs with.
 
 Facebook Events Scraper extracts data such as event name, location, description or number of users who are interested. You can use URLs of specific events or come up with search queries and explore pretty much unlimited number of events. Search queries can be combined with various search filters.
 
@@ -16,7 +16,7 @@ Runs are charged to the Apify account whose token the `ApifyClient` holds. See t
 
 ```yaml
 imports:
-  Actor: oci://ghcr.io/telorun/apify/apify-facebook-events-scraper@0.0.93#sha256-…
+  Actor: oci://ghcr.io/telorun/apify/apify-facebook-events-scraper@0.0.94#sha256-…
 ```
 
 Pin the digest with `telo upgrade`. The module re-exports `ApifyClient`, so it is the only import needed.

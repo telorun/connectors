@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.0.82 - 2026-11-02
+### Changed
+* Updated from build 0.0.75 to build 0.0.82 of the Apify actor `apify/chatgpt-search-scraper`.
+
 ## 0.0.75 - 2026-10-26
 ### Changed
 * Updated from build 0.0.74 to build 0.0.75 of the Apify actor `apify/chatgpt-search-scraper`.

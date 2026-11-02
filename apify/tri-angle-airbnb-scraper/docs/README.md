@@ -2,7 +2,7 @@
 
 # Airbnb Scraper
 
-The Apify actor [`tri_angle/airbnb-scraper`](https://apify.com/tri_angle/airbnb-scraper) as typed Telo kinds, generated from its build **0.0.102**. The module's version is that build number, and every run it starts is pinned to exactly that build, so the input types below are the ones the actor really runs with.
+The Apify actor [`tri_angle/airbnb-scraper`](https://apify.com/tri_angle/airbnb-scraper) as typed Telo kinds, generated from its build **0.0.103**. The module's version is that build number, and every run it starts is pinned to exactly that build, so the input types below are the ones the actor really runs with.
 
 Scrape Airbnb rentals in your chosen destinations. Extract descriptions, locations, prices per night, ratings, reviews count, host details, amenities and more. Download scraped data in various formats including HTML, JSON and Excel.
 
@@ -16,7 +16,7 @@ Runs are charged to the Apify account whose token the `ApifyClient` holds. See t
 
 ```yaml
 imports:
-  Actor: oci://ghcr.io/telorun/apify/tri-angle-airbnb-scraper@0.0.102#sha256-…
+  Actor: oci://ghcr.io/telorun/apify/tri-angle-airbnb-scraper@0.0.103#sha256-…
 ```
 
 Pin the digest with `telo upgrade`. The module re-exports `ApifyClient`, so it is the only import needed.

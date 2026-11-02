@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.0.649 - 2026-11-02
+### Changed
+* Updated from build 0.0.646 to build 0.0.649 of the Apify actor `apify/instagram-comment-scraper`.
+
 ## 0.0.646 - 2026-10-26
 ### Changed
 * Updated from build 0.0.643 to build 0.0.646 of the Apify actor `apify/instagram-comment-scraper`.

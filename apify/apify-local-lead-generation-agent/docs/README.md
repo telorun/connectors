@@ -2,7 +2,7 @@
 
 # Local Lead Generation Agent
 
-The Apify actor [`apify/local-lead-generation-agent`](https://apify.com/apify/local-lead-generation-agent) as typed Telo kinds, generated from its build **0.0.23**. The module's version is that build number, and every run it starts is pinned to exactly that build, so the input types below are the ones the actor really runs with.
+The Apify actor [`apify/local-lead-generation-agent`](https://apify.com/apify/local-lead-generation-agent) as typed Telo kinds, generated from its build **0.0.24**. The module's version is that build number, and every run it starts is pinned to exactly that build, so the input types below are the ones the actor really runs with.
 
 Find truly local leads by scraping Instagram profiles based on search queries. Extract website links, contact details, emails, social media details. The AI agent matches and scores leads using LLMs via LangChain, explains scoring, and compiles the data into a common dataset for easy access and use.
 
@@ -16,7 +16,7 @@ Runs are charged to the Apify account whose token the `ApifyClient` holds. See t
 
 ```yaml
 imports:
-  Actor: oci://ghcr.io/telorun/apify/apify-local-lead-generation-agent@0.0.23#sha256-…
+  Actor: oci://ghcr.io/telorun/apify/apify-local-lead-generation-agent@0.0.24#sha256-…
 ```
 
 Pin the digest with `telo upgrade`. The module re-exports `ApifyClient`, so it is the only import needed.

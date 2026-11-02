@@ -2,7 +2,7 @@
 
 # Twitter (X.com) Scraper Unlimited: No Limits
 
-The Apify actor [`apidojo/twitter-scraper-lite`](https://apify.com/apidojo/twitter-scraper-lite) as typed Telo kinds, generated from its build **0.0.1043**. The module's version is that build number, and every run it starts is pinned to exactly that build, so the input types below are the ones the actor really runs with.
+The Apify actor [`apidojo/twitter-scraper-lite`](https://apify.com/apidojo/twitter-scraper-lite) as typed Telo kinds, generated from its build **0.0.1051**. The module's version is that build number, and every run it starts is pinned to exactly that build, so the input types below are the ones the actor really runs with.
 
 Introducing Twitter Scraper Unlimited, the most comprehensive Twitter data extraction solution available. Our enterprise-grade scraper offers unmatched capabilities with a transparent event-based pricing model, making it perfect for both small-scale and large-scale data extraction needs.
 
@@ -16,7 +16,7 @@ Runs are charged to the Apify account whose token the `ApifyClient` holds. See t
 
 ```yaml
 imports:
-  Actor: oci://ghcr.io/telorun/apify/apidojo-twitter-scraper-lite@0.0.1043#sha256-…
+  Actor: oci://ghcr.io/telorun/apify/apidojo-twitter-scraper-lite@0.0.1051#sha256-…
 ```
 
 Pin the digest with `telo upgrade`. The module re-exports `ApifyClient`, so it is the only import needed.
@@ -58,6 +58,10 @@ Only these fields are accepted — `telo check` rejects any other.
 | `twitterHandles` | array |  |  | Do you want to scrape by Twitter handle? — You can add the twitter handles of specific profiles you want to scrape. This is a shortcut so that you don't have to add full username URLs like https://twitter.com/apify |
 | `startUrls` | array |  |  | Do you want to scrape by Twitter URL? — This lets you tell the scraper where to start. You can enter Twitter URLs one by one. You can also link to or upload a text file with a list of URLs |
 | `includeSearchTerms` | boolean |  |  | Include Search Terms — If selected, a field will be added to each tweets about the search term that was used to find it. |
+| `outputConnector` | string |  |  | Send results to Notion, Todoist, … (optional) — Pick an MCP connector you authorized in Console → Settings → API & Integrations → MCP connectors (e.g. Notion, Todoist — any service whose MCP server offers non-destructive write tools works best-effort). The scraped results are written through your ow |
+| `deliverTarget` | string |  |  | Destination target — Where to write into the connector — paste the URL or ID. Notion example: https://www.notion.so/My-Posts-24f8a1b2c3d44e5f8a9b0c1d2e3f4a5b. Leave empty for services that need no target (e.g. Todoist Inbox, Slack). For Notion, share the page or database with your connector first (N |
+| `deliverMode` | string |  | `"perPost"` | Write mode — perPost writes one record per scraped item; summary writes a single roll-up for the run. |
+| `deliverMaxItems` | integer |  |  | Max records to deliver — perPost only (optional) — Cap on how many records perPost mode writes to the connector; ignored in summary mode. Leave empty to deliver everything scraped. |
 
 ## Output
 

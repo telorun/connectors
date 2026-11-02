@@ -2,7 +2,7 @@
 
 # TikTok Data Extractor
 
-The Apify actor [`clockworks/free-tiktok-scraper`](https://apify.com/clockworks/free-tiktok-scraper) as typed Telo kinds, generated from its build **0.0.538**. The module's version is that build number, and every run it starts is pinned to exactly that build, so the input types below are the ones the actor really runs with.
+The Apify actor [`clockworks/free-tiktok-scraper`](https://apify.com/clockworks/free-tiktok-scraper) as typed Telo kinds, generated from its build **0.0.556**. The module's version is that build number, and every run it starts is pinned to exactly that build, so the input types below are the ones the actor really runs with.
 
 Extract data about videos, users, and channels based on hashtags or scrape full user profiles including posts, total likes, name, nickname, numbers of comments, shares, followers, following, and more.
 
@@ -16,7 +16,7 @@ Runs are charged to the Apify account whose token the `ApifyClient` holds. See t
 
 ```yaml
 imports:
-  Actor: oci://ghcr.io/telorun/apify/clockworks-free-tiktok-scraper@0.0.538#sha256-…
+  Actor: oci://ghcr.io/telorun/apify/clockworks-free-tiktok-scraper@0.0.556#sha256-…
 ```
 
 Pin the digest with `telo upgrade`. The module re-exports `ApifyClient`, so it is the only import needed.

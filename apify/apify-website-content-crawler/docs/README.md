@@ -2,7 +2,7 @@
 
 # Website Content Crawler
 
-The Apify actor [`apify/website-content-crawler`](https://apify.com/apify/website-content-crawler) as typed Telo kinds, generated from its build **0.3.101**. The module's version is that build number, and every run it starts is pinned to exactly that build, so the input types below are the ones the actor really runs with.
+The Apify actor [`apify/website-content-crawler`](https://apify.com/apify/website-content-crawler) as typed Telo kinds, generated from its build **0.3.102**. The module's version is that build number, and every run it starts is pinned to exactly that build, so the input types below are the ones the actor really runs with.
 
 Crawl websites and extract text content to feed AI models, LLM applications, vector databases, or RAG pipelines. The Actor supports rich formatting using Markdown, cleans the HTML, downloads files, and integrates well with 🦜🔗 LangChain, LlamaIndex, and the wider LLM ecosystem.
 
@@ -16,7 +16,7 @@ Runs are charged to the Apify account whose token the `ApifyClient` holds. See t
 
 ```yaml
 imports:
-  Actor: oci://ghcr.io/telorun/apify/apify-website-content-crawler@0.3.101#sha256-…
+  Actor: oci://ghcr.io/telorun/apify/apify-website-content-crawler@0.3.102#sha256-…
 ```
 
 Pin the digest with `telo upgrade`. The module re-exports `ApifyClient`, so it is the only import needed.

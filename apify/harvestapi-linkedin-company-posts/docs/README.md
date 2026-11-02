@@ -2,13 +2,13 @@
 
 # LinkedIn Company Posts Scraper (No Cookies)
 
-The Apify actor [`harvestapi/linkedin-company-posts`](https://apify.com/harvestapi/linkedin-company-posts) as typed Telo kinds, generated from its build **0.0.53**. The module's version is that build number, and every run it starts is pinned to exactly that build, so the input types below are the ones the actor really runs with.
+The Apify actor [`harvestapi/linkedin-company-posts`](https://apify.com/harvestapi/linkedin-company-posts) as typed Telo kinds, generated from its build **0.0.54**. The module's version is that build number, and every run it starts is pinned to exactly that build, so the input types below are the ones the actor really runs with.
 
 Extract posts from LinkedIn companies including content, media, engagement, reactions, comments and more. No cookies or account required. Concurrency + fast response times make mass scraping fast ⚡
 
 ## Pricing
 
-Pay per event — Actor Start $0.00005, Post $0.002, Reaction $0.002, Comment $0.002, 0-result query $0.001 (Free-plan prices; paid plans pay less). Cap the spend with `maxTotalChargeUsd`.
+Pay per event — Post $0.002, Reaction $0.002, Comment $0.002, 0-result query $0.001, Actor Start $0.00005 (Free-plan prices; paid plans pay less). Cap the spend with `maxTotalChargeUsd`.
 
 Runs are charged to the Apify account whose token the `ApifyClient` holds. See the [Store page](https://apify.com/harvestapi/linkedin-company-posts) for current prices.
 
@@ -16,7 +16,7 @@ Runs are charged to the Apify account whose token the `ApifyClient` holds. See t
 
 ```yaml
 imports:
-  Actor: oci://ghcr.io/telorun/apify/harvestapi-linkedin-company-posts@0.0.53#sha256-…
+  Actor: oci://ghcr.io/telorun/apify/harvestapi-linkedin-company-posts@0.0.54#sha256-…
 ```
 
 Pin the digest with `telo upgrade`. The module re-exports `ApifyClient`, so it is the only import needed.
@@ -56,13 +56,11 @@ Only these fields are accepted — `telo check` rejects any other.
 | `postedLimitDate` | string |  |  | Posted Limit Date — Scrape posts from now up to and including this date. It supports the [Date time string format](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Date#date_time_string_format). For example, "2011-10-10", or "2011-10-10T14:48:00.000+09:00" or a timest |
 | `includeQuotePosts` | boolean |  | `true` | Include Quote Posts (shared posts with comments) — Include quote posts (shared posts with comments). By default, all posts are scraped. |
 | `includeReposts` | boolean |  | `true` | Include Reposts (shared posts without comments) — Include reposts (shared posts without comments). By default, all posts are scraped. |
-| `scrapeReactions` | boolean |  | `false` | Scrape Reactions — Scrape reactions of posts. |
+| `scrapeReactions` | boolean |  |  | Scrape Reactions — Scrape reactions of posts. |
 | `maxReactions` | integer |  |  | Maximum number of reactions to scrape per post — Maximum number of reactions to scrape per post. Default is 5. |
-| `postNestedReactions` | boolean |  |  | Post nested reactions (legacy, not recommended) — Whether to add reactions items inside post items. In a case of hundreds of reactions, the Actor might hit the max item size limit and won't be able to save a post. |
-| `scrapeComments` | boolean |  | `false` | Scrape Comments — Scrape comments of posts. |
+| `scrapeComments` | boolean |  |  | Scrape Comments — Scrape comments of posts. |
 | `maxComments` | integer |  |  | Maximum number of comments to scrape per post — Maximum number of comments to scrape per post. Default is 5. |
 | `commentsPostedLimit` | string |  |  | Comments Posted Limit (filter) — Fetch comments no older than X time. Options: '24h', 'week', 'month'. |
-| `postNestedComments` | boolean |  |  | Post nested comments (legacy, not recommended) — Whether to add comments items inside post items. In a case of hundreds of comments, the Actor might hit the max item size limit and won't be able to save a post. |
 | `contextCountry` | string |  |  | Context Country — Set the context country for LinkedIn. This can affect the content you see on LinkedIn, as it may vary by region. |
 
 ## Output

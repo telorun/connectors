@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.0.476 - 2026-11-02
+### Changed
+* Updated from build 0.0.469 to build 0.0.476 of the Apify actor `apify/google-search-scraper`.
+
 ## 0.0.469 - 2026-10-26
 ### Changed
 * Updated from build 0.0.468 to build 0.0.469 of the Apify actor `apify/google-search-scraper`.

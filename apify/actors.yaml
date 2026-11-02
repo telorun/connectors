@@ -152,6 +152,7 @@ actors:
   clockworks/tiktok-scraper: { seeded: true }
   clockworks/tiktok-video-scraper: { seeded: true }
   code_crafter/leads-finder: { seeded: true }
+  coderx/instagram-profile-scraper-bio-posts: { seeded: true }
   compass/Google-Maps-Reviews-Scraper: { seeded: true }
   compass/crawler-google-places: { seeded: true }
   compass/google-maps-extractor: { seeded: true }
@@ -168,6 +169,7 @@ actors:
   harvestapi/linkedin-company-employees: { seeded: true }
   harvestapi/linkedin-company-posts: { seeded: true }
   harvestapi/linkedin-company-search: { seeded: true }
+  harvestapi/linkedin-post-comments: { seeded: true }
   harvestapi/linkedin-post-search: { seeded: true }
   harvestapi/linkedin-profile-posts: { seeded: true }
   harvestapi/linkedin-profile-scraper: { seeded: true }
@@ -179,6 +181,7 @@ actors:
   lukaskrivka/google-maps-with-contact-details: { seeded: true }
   maxcopell/tripadvisor: { seeded: true }
   maxcopell/tripadvisor-reviews: { seeded: true }
+  microworlds/crawler-google-places: { seeded: true }
   microworlds/leads-finder: { seeded: true }
   misceres/indeed-scraper: { seeded: true }
   one-api/skip-trace: { seeded: true }

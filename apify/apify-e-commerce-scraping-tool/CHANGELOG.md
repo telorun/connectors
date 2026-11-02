@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.0.134 - 2026-11-02
+### Changed
+* Updated from build 0.0.122 to build 0.0.134 of the Apify actor `apify/e-commerce-scraping-tool`.
+
 ## 0.0.122 - 2026-10-26
 ### Changed
 * Updated from build 0.0.120 to build 0.0.122 of the Apify actor `apify/e-commerce-scraping-tool`.

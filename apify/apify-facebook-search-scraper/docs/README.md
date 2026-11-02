@@ -2,7 +2,7 @@
 
 # Facebook Search Scraper
 
-The Apify actor [`apify/facebook-search-scraper`](https://apify.com/apify/facebook-search-scraper) as typed Telo kinds, generated from its build **0.0.339**. The module's version is that build number, and every run it starts is pinned to exactly that build, so the input types below are the ones the actor really runs with.
+The Apify actor [`apify/facebook-search-scraper`](https://apify.com/apify/facebook-search-scraper) as typed Telo kinds, generated from its build **0.0.342**. The module's version is that build number, and every run it starts is pinned to exactly that build, so the input types below are the ones the actor really runs with.
 
 Scrape Facebook search results: posts, pages, profiles and reels. Add a keyword and extract search results like pages details, profile information, recent posts or reels. Export scraped data, schedule via API, integrate with other tools or AI workflows.
 
@@ -16,7 +16,7 @@ Runs are charged to the Apify account whose token the `ApifyClient` holds. See t
 
 ```yaml
 imports:
-  Actor: oci://ghcr.io/telorun/apify/apify-facebook-search-scraper@0.0.339#sha256-…
+  Actor: oci://ghcr.io/telorun/apify/apify-facebook-search-scraper@0.0.342#sha256-…
 ```
 
 Pin the digest with `telo upgrade`. The module re-exports `ApifyClient`, so it is the only import needed.

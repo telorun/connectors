@@ -2,7 +2,7 @@
 
 # Facebook Likes and Reactions Scraper
 
-The Apify actor [`apify/facebook-likes-scraper`](https://apify.com/apify/facebook-likes-scraper) as typed Telo kinds, generated from its build **0.0.358**. The module's version is that build number, and every run it starts is pinned to exactly that build, so the input types below are the ones the actor really runs with.
+The Apify actor [`apify/facebook-likes-scraper`](https://apify.com/apify/facebook-likes-scraper) as typed Telo kinds, generated from its build **0.0.361**. The module's version is that build number, and every run it starts is pinned to exactly that build, so the input types below are the ones the actor really runs with.
 
 Extract Facebook likes data from one or multiple Facebook posts. Get post URL, reaction type (like, love, care, sad, angry, laugh), and basic liker info such as Facebook name and profile URL. Download the data in JSON, CSV Excel and use it in apps, spreadsheets, and reports.
 
@@ -16,7 +16,7 @@ Runs are charged to the Apify account whose token the `ApifyClient` holds. See t
 
 ```yaml
 imports:
-  Actor: oci://ghcr.io/telorun/apify/apify-facebook-likes-scraper@0.0.358#sha256-…
+  Actor: oci://ghcr.io/telorun/apify/apify-facebook-likes-scraper@0.0.361#sha256-…
 ```
 
 Pin the digest with `telo upgrade`. The module re-exports `ApifyClient`, so it is the only import needed.

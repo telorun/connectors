@@ -2,7 +2,7 @@
 
 # Facebook Video Search Scraper
 
-The Apify actor [`apify/facebook-video-search-scraper`](https://apify.com/apify/facebook-video-search-scraper) as typed Telo kinds, generated from its build **0.0.309**. The module's version is that build number, and every run it starts is pinned to exactly that build, so the input types below are the ones the actor really runs with.
+The Apify actor [`apify/facebook-video-search-scraper`](https://apify.com/apify/facebook-video-search-scraper) as typed Telo kinds, generated from its build **0.0.312**. The module's version is that build number, and every run it starts is pinned to exactly that build, so the input types below are the ones the actor really runs with.
 
 Add keywords and extract all associated Facebook reels and videos. Get video data like video URL, video title, description, video owner profile and URL, date posted, views, duration, label, and much more. Export scraped data, schedule scraper via API, integrate with other tools or AI workflows.
 
@@ -16,7 +16,7 @@ Runs are charged to the Apify account whose token the `ApifyClient` holds. See t
 
 ```yaml
 imports:
-  Actor: oci://ghcr.io/telorun/apify/apify-facebook-video-search-scraper@0.0.309#sha256-…
+  Actor: oci://ghcr.io/telorun/apify/apify-facebook-video-search-scraper@0.0.312#sha256-…
 ```
 
 Pin the digest with `telo upgrade`. The module re-exports `ApifyClient`, so it is the only import needed.

@@ -8,7 +8,7 @@ Search for LinkedIn companies with filters and extract detailed company informat
 
 ## Pricing
 
-Pay per event — Actor Start $0.001, Short company $0.002, Full company $0.004 (Free-plan prices; paid plans pay less). Cap the spend with `maxTotalChargeUsd`.
+Pay per event — Short company $0.002, Full company $0.004, Actor Start $0.001 (Free-plan prices; paid plans pay less). Cap the spend with `maxTotalChargeUsd`.
 
 Runs are charged to the Apify account whose token the `ApifyClient` holds. See the [Store page](https://apify.com/harvestapi/linkedin-company-search) for current prices.
 

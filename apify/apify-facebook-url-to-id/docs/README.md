@@ -2,7 +2,7 @@
 
 # Facebook URL to ID
 
-The Apify actor [`apify/facebook-url-to-id`](https://apify.com/apify/facebook-url-to-id) as typed Telo kinds, generated from its build **0.0.338**. The module's version is that build number, and every run it starts is pinned to exactly that build, so the input types below are the ones the actor really runs with.
+The Apify actor [`apify/facebook-url-to-id`](https://apify.com/apify/facebook-url-to-id) as typed Telo kinds, generated from its build **0.0.341**. The module's version is that build number, and every run it starts is pinned to exactly that build, so the input types below are the ones the actor really runs with.
 
 Scraping any Facebook URL as data object with internal Facebook ID and metadata if-when available.
 
@@ -16,7 +16,7 @@ Runs are charged to the Apify account whose token the `ApifyClient` holds. See t
 
 ```yaml
 imports:
-  Actor: oci://ghcr.io/telorun/apify/apify-facebook-url-to-id@0.0.338#sha256-…
+  Actor: oci://ghcr.io/telorun/apify/apify-facebook-url-to-id@0.0.341#sha256-…
 ```
 
 Pin the digest with `telo upgrade`. The module re-exports `ApifyClient`, so it is the only import needed.

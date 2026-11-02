@@ -2,7 +2,7 @@
 
 # Amazon Reviews Scraper
 
-The Apify actor [`junglee/amazon-reviews-scraper`](https://apify.com/junglee/amazon-reviews-scraper) as typed Telo kinds, generated from its build **0.1.356**. The module's version is that build number, and every run it starts is pinned to exactly that build, so the input types below are the ones the actor really runs with.
+The Apify actor [`junglee/amazon-reviews-scraper`](https://apify.com/junglee/amazon-reviews-scraper) as typed Telo kinds, generated from its build **0.1.360**. The module's version is that build number, and every run it starts is pinned to exactly that build, so the input types below are the ones the actor really runs with.
 
 Amazon scraper to extract reviews from Amazon products. Scrape and download detailed reviews without using the Amazon API, including rating score, review description, reactions and images. Download your data as HTML table, JSON, CSV, Excel, XML.
 
@@ -16,7 +16,7 @@ Runs are charged to the Apify account whose token the `ApifyClient` holds. See t
 
 ```yaml
 imports:
-  Actor: oci://ghcr.io/telorun/apify/junglee-amazon-reviews-scraper@0.1.356#sha256-…
+  Actor: oci://ghcr.io/telorun/apify/junglee-amazon-reviews-scraper@0.1.360#sha256-…
 ```
 
 Pin the digest with `telo upgrade`. The module re-exports `ApifyClient`, so it is the only import needed.

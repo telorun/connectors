@@ -2,7 +2,7 @@
 
 # Playwright Scraper
 
-The Apify actor [`apify/playwright-scraper`](https://apify.com/apify/playwright-scraper) as typed Telo kinds, generated from its build **1.0.22**. The module's version is that build number, and every run it starts is pinned to exactly that build, so the input types below are the ones the actor really runs with.
+The Apify actor [`apify/playwright-scraper`](https://apify.com/apify/playwright-scraper) as typed Telo kinds, generated from its build **1.0.24**. The module's version is that build number, and every run it starts is pinned to exactly that build, so the input types below are the ones the actor really runs with.
 
 Crawls websites with the headless Chromium, Chrome, or Firefox browser and Playwright library using a provided server-side Node.js code. Supports both recursive crawling and a list of URLs. Supports login to a website.
 
@@ -16,7 +16,7 @@ Runs are charged to the Apify account whose token the `ApifyClient` holds. See t
 
 ```yaml
 imports:
-  Actor: oci://ghcr.io/telorun/apify/apify-playwright-scraper@1.0.22#sha256-…
+  Actor: oci://ghcr.io/telorun/apify/apify-playwright-scraper@1.0.24#sha256-…
 ```
 
 Pin the digest with `telo upgrade`. The module re-exports `ApifyClient`, so it is the only import needed.

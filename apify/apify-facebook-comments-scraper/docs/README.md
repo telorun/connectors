@@ -2,7 +2,7 @@
 
 # Facebook Comments Scraper
 
-The Apify actor [`apify/facebook-comments-scraper`](https://apify.com/apify/facebook-comments-scraper) as typed Telo kinds, generated from its build **0.0.374**. The module's version is that build number, and every run it starts is pinned to exactly that build, so the input types below are the ones the actor really runs with.
+The Apify actor [`apify/facebook-comments-scraper`](https://apify.com/apify/facebook-comments-scraper) as typed Telo kinds, generated from its build **0.0.377**. The module's version is that build number, and every run it starts is pinned to exactly that build, so the input types below are the ones the actor really runs with.
 
 Extract data from hundreds of Facebook comments from one or multiple Facebook posts. Get comment text, timestamp, likes count and basic commenter info. Download the data in JSON, CSV, Excel and use it in apps, spreadsheets, and reports.
 
@@ -16,7 +16,7 @@ Runs are charged to the Apify account whose token the `ApifyClient` holds. See t
 
 ```yaml
 imports:
-  Actor: oci://ghcr.io/telorun/apify/apify-facebook-comments-scraper@0.0.374#sha256-…
+  Actor: oci://ghcr.io/telorun/apify/apify-facebook-comments-scraper@0.0.377#sha256-…
 ```
 
 Pin the digest with `telo upgrade`. The module re-exports `ApifyClient`, so it is the only import needed.

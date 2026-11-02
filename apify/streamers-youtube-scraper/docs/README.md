@@ -2,7 +2,7 @@
 
 # YouTube Scraper
 
-The Apify actor [`streamers/youtube-scraper`](https://apify.com/streamers/youtube-scraper) as typed Telo kinds, generated from its build **0.0.319**. The module's version is that build number, and every run it starts is pinned to exactly that build, so the input types below are the ones the actor really runs with.
+The Apify actor [`streamers/youtube-scraper`](https://apify.com/streamers/youtube-scraper) as typed Telo kinds, generated from its build **0.0.322**. The module's version is that build number, and every run it starts is pinned to exactly that build, so the input types below are the ones the actor really runs with.
 
 YouTube crawler and video scraper. Alternative YouTube API with no limits or quotas. Extract and download channel name, likes, number of views, and number of subscribers.
 
@@ -16,7 +16,7 @@ Runs are charged to the Apify account whose token the `ApifyClient` holds. See t
 
 ```yaml
 imports:
-  Actor: oci://ghcr.io/telorun/apify/streamers-youtube-scraper@0.0.319#sha256-…
+  Actor: oci://ghcr.io/telorun/apify/streamers-youtube-scraper@0.0.322#sha256-…
 ```
 
 Pin the digest with `telo upgrade`. The module re-exports `ApifyClient`, so it is the only import needed.

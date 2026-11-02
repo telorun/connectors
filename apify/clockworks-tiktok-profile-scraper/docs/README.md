@@ -2,7 +2,7 @@
 
 # TikTok Profile Scraper
 
-The Apify actor [`clockworks/tiktok-profile-scraper`](https://apify.com/clockworks/tiktok-profile-scraper) as typed Telo kinds, generated from its build **0.0.490**. The module's version is that build number, and every run it starts is pinned to exactly that build, so the input types below are the ones the actor really runs with.
+The Apify actor [`clockworks/tiktok-profile-scraper`](https://apify.com/clockworks/tiktok-profile-scraper) as typed Telo kinds, generated from its build **0.0.508**. The module's version is that build number, and every run it starts is pinned to exactly that build, so the input types below are the ones the actor really runs with.
 
 Extract data from TikTok profiles and videos they post. Get TikTok profile data, URLs, numbers of shares, followers, comments, hearts, video and music metadata. Export scraped data, run the scraper via API, schedule and monitor runs or integrate with other tools.
 
@@ -16,7 +16,7 @@ Runs are charged to the Apify account whose token the `ApifyClient` holds. See t
 
 ```yaml
 imports:
-  Actor: oci://ghcr.io/telorun/apify/clockworks-tiktok-profile-scraper@0.0.490#sha256-…
+  Actor: oci://ghcr.io/telorun/apify/clockworks-tiktok-profile-scraper@0.0.508#sha256-…
 ```
 
 Pin the digest with `telo upgrade`. The module re-exports `ApifyClient`, so it is the only import needed.

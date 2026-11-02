@@ -2,7 +2,7 @@
 
 # Fast YouTube Channel Scraper
 
-The Apify actor [`streamers/youtube-channel-scraper`](https://apify.com/streamers/youtube-channel-scraper) as typed Telo kinds, generated from its build **0.0.252**. The module's version is that build number, and every run it starts is pinned to exactly that build, so the input types below are the ones the actor really runs with.
+The Apify actor [`streamers/youtube-channel-scraper`](https://apify.com/streamers/youtube-channel-scraper) as typed Telo kinds, generated from its build **0.0.255**. The module's version is that build number, and every run it starts is pinned to exactly that build, so the input types below are the ones the actor really runs with.
 
 This alternative YouTube Data API has no limits or quotas. Use it to scrape one or multiple YouTube channels: channel info, URL, total number of subscribers, videos and views, creation date. Try it and get basic video data. You can download extracted data in JSON, CSV, and Excel.
 
@@ -16,7 +16,7 @@ Runs are charged to the Apify account whose token the `ApifyClient` holds. See t
 
 ```yaml
 imports:
-  Actor: oci://ghcr.io/telorun/apify/streamers-youtube-channel-scraper@0.0.252#sha256-…
+  Actor: oci://ghcr.io/telorun/apify/streamers-youtube-channel-scraper@0.0.255#sha256-…
 ```
 
 Pin the digest with `telo upgrade`. The module re-exports `ApifyClient`, so it is the only import needed.

@@ -2,7 +2,7 @@
 
 # Facebook Hashtag Scraper
 
-The Apify actor [`apify/facebook-hashtag-scraper`](https://apify.com/apify/facebook-hashtag-scraper) as typed Telo kinds, generated from its build **0.0.138**. The module's version is that build number, and every run it starts is pinned to exactly that build, so the input types below are the ones the actor really runs with.
+The Apify actor [`apify/facebook-hashtag-scraper`](https://apify.com/apify/facebook-hashtag-scraper) as typed Telo kinds, generated from its build **0.0.141**. The module's version is that build number, and every run it starts is pinned to exactly that build, so the input types below are the ones the actor really runs with.
 
 Extract data from hundreds of Facebook posts using one or multiple hashtags. Get post text&URL, time of posting, basic poster info, image&video URLs, OCR text, likes, comments and shares count, and more. Download the data in JSON, CSV, Excel and use it in apps, spreadsheets, and reports.
 
@@ -16,7 +16,7 @@ Runs are charged to the Apify account whose token the `ApifyClient` holds. See t
 
 ```yaml
 imports:
-  Actor: oci://ghcr.io/telorun/apify/apify-facebook-hashtag-scraper@0.0.138#sha256-…
+  Actor: oci://ghcr.io/telorun/apify/apify-facebook-hashtag-scraper@0.0.141#sha256-…
 ```
 
 Pin the digest with `telo upgrade`. The module re-exports `ApifyClient`, so it is the only import needed.

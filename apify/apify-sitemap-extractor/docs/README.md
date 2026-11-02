@@ -2,7 +2,7 @@
 
 # Sitemap Extractor
 
-The Apify actor [`apify/sitemap-extractor`](https://apify.com/apify/sitemap-extractor) as typed Telo kinds, generated from its build **0.1.30**. The module's version is that build number, and every run it starts is pinned to exactly that build, so the input types below are the ones the actor really runs with.
+The Apify actor [`apify/sitemap-extractor`](https://apify.com/apify/sitemap-extractor) as typed Telo kinds, generated from its build **0.1.32**. The module's version is that build number, and every run it starts is pinned to exactly that build, so the input types below are the ones the actor really runs with.
 
 This Apify Actor extracts all URLs from a website's sitemaps and checks their status codes via lightweight HTTP requests. It provides a clean list of valid links, acting as an ideal pre-processor to ensure your larger crawling projects target only active URLs.
 
@@ -16,7 +16,7 @@ Runs are charged to the Apify account whose token the `ApifyClient` holds. See t
 
 ```yaml
 imports:
-  Actor: oci://ghcr.io/telorun/apify/apify-sitemap-extractor@0.1.30#sha256-…
+  Actor: oci://ghcr.io/telorun/apify/apify-sitemap-extractor@0.1.32#sha256-…
 ```
 
 Pin the digest with `telo upgrade`. The module re-exports `ApifyClient`, so it is the only import needed.

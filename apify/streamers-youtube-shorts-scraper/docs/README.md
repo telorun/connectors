@@ -2,7 +2,7 @@
 
 # YouTube Shorts Scraper
 
-The Apify actor [`streamers/youtube-shorts-scraper`](https://apify.com/streamers/youtube-shorts-scraper) as typed Telo kinds, generated from its build **0.0.261**. The module's version is that build number, and every run it starts is pinned to exactly that build, so the input types below are the ones the actor really runs with.
+The Apify actor [`streamers/youtube-shorts-scraper`](https://apify.com/streamers/youtube-shorts-scraper) as typed Telo kinds, generated from its build **0.0.264**. The module's version is that build number, and every run it starts is pinned to exactly that build, so the input types below are the ones the actor really runs with.
 
 Extract YouTube Shorts data from one or multiple YouTube channels. Get video URL, caption, timestamp, likes, dislikes, views and comments count, basic channel info, and more. This alternative YouTube API has no limits or quotas. Download the data in JSON, CSV, and Excel.
 
@@ -16,7 +16,7 @@ Runs are charged to the Apify account whose token the `ApifyClient` holds. See t
 
 ```yaml
 imports:
-  Actor: oci://ghcr.io/telorun/apify/streamers-youtube-shorts-scraper@0.0.261#sha256-…
+  Actor: oci://ghcr.io/telorun/apify/streamers-youtube-shorts-scraper@0.0.264#sha256-…
 ```
 
 Pin the digest with `telo upgrade`. The module re-exports `ApifyClient`, so it is the only import needed.

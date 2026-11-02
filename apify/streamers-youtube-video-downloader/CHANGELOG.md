@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.0.117 - 2026-11-02
+### Changed
+* Updated from build 0.0.112 to build 0.0.117 of the Apify actor `streamers/youtube-video-downloader`.
+
 ## 0.0.112 - 2026-10-26
 ### Changed
 * Updated from build 0.0.111 to build 0.0.112 of the Apify actor `streamers/youtube-video-downloader`.

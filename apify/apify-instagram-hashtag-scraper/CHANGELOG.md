@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.0.710 - 2026-11-02
+### Changed
+* Updated from build 0.0.707 to build 0.0.710 of the Apify actor `apify/instagram-hashtag-scraper`.
+
 ## 0.0.707 - 2026-10-26
 ### Changed
 * Updated from build 0.0.704 to build 0.0.707 of the Apify actor `apify/instagram-hashtag-scraper`.

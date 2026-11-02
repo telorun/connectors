@@ -2,7 +2,7 @@
 
 # Facebook Groups Scraper
 
-The Apify actor [`apify/facebook-groups-scraper`](https://apify.com/apify/facebook-groups-scraper) as typed Telo kinds, generated from its build **0.0.386**. The module's version is that build number, and every run it starts is pinned to exactly that build, so the input types below are the ones the actor really runs with.
+The Apify actor [`apify/facebook-groups-scraper`](https://apify.com/apify/facebook-groups-scraper) as typed Telo kinds, generated from its build **0.0.390**. The module's version is that build number, and every run it starts is pinned to exactly that build, so the input types below are the ones the actor really runs with.
 
 Extract data from one or multiple public Facebook groups. Get group and post URLs, post text, comments, timestamp, likes and comments count, and basic commentator info. Download the data in JSON, CSV, and Excel and use it in apps, spreadsheets, and reports.
 
@@ -16,7 +16,7 @@ Runs are charged to the Apify account whose token the `ApifyClient` holds. See t
 
 ```yaml
 imports:
-  Actor: oci://ghcr.io/telorun/apify/apify-facebook-groups-scraper@0.0.386#sha256-…
+  Actor: oci://ghcr.io/telorun/apify/apify-facebook-groups-scraper@0.0.390#sha256-…
 ```
 
 Pin the digest with `telo upgrade`. The module re-exports `ApifyClient`, so it is the only import needed.
@@ -53,7 +53,7 @@ Only these fields are accepted — `telo check` rejects any other.
 | --- | --- | --- | --- | --- |
 | `startUrls` | array | yes |  | 🔗 Facebook group URLs — Insert a URL of a valid Facebook group. Only public Facebook groups can be scraped. |
 | `resultsLimit` | integer |  |  | ✍️ Number of posts — Select the number of posts you want to scrape. If this limit is not set, as many results as possible will be returned. |
-| `viewOption` | string |  | `"CHRONOLOGICAL"` | 📜 Sorting order — Select sorting order by which the posts should be scraped. Please note that the Number of results field will be applied to New posts only. The BuySell items sorting will return results for BuySell groups only. |
+| `viewOption` | string |  | `"CHRONOLOGICAL"` | 📜 Sorting order — Select sorting order by which the posts should be scraped. Please note that the Time frame field will be applied to New posts only. The BuySell items sorting will return results for BuySell groups only. |
 | `onlyPostsNewerThan` | string |  |  | Posts newer than — Scrapes post from the provided date to the present day. The date should be in YYYY-MM-DD or full ISO absolute format or in relative format e.g. 1 days, 2 months, 3 years. The JSON input also supports adding time units (UTC timezone): Full or partial ISO timestamp (e.g., `2025-09-2 |
 
 ## Output

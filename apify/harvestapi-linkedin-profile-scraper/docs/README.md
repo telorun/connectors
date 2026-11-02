@@ -2,7 +2,7 @@
 
 # LinkedIn Profile Scraper + Email (No Cookies)
 
-The Apify actor [`harvestapi/linkedin-profile-scraper`](https://apify.com/harvestapi/linkedin-profile-scraper) as typed Telo kinds, generated from its build **0.0.138**. The module's version is that build number, and every run it starts is pinned to exactly that build, so the input types below are the ones the actor really runs with.
+The Apify actor [`harvestapi/linkedin-profile-scraper`](https://apify.com/harvestapi/linkedin-profile-scraper) as typed Telo kinds, generated from its build **0.0.140**. The module's version is that build number, and every run it starts is pinned to exactly that build, so the input types below are the ones the actor really runs with.
 
 Extract detailed information from LinkedIn profiles in bulk, including complete work experience, education history, skills and more. No cookies or account required.
 
@@ -16,7 +16,7 @@ Runs are charged to the Apify account whose token the `ApifyClient` holds. See t
 
 ```yaml
 imports:
-  Actor: oci://ghcr.io/telorun/apify/harvestapi-linkedin-profile-scraper@0.0.138#sha256-…
+  Actor: oci://ghcr.io/telorun/apify/harvestapi-linkedin-profile-scraper@0.0.140#sha256-…
 ```
 
 Pin the digest with `telo upgrade`. The module re-exports `ApifyClient`, so it is the only import needed.

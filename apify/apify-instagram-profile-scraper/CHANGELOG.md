@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.0.658 - 2026-11-02
+### Changed
+* Updated from build 0.0.655 to build 0.0.658 of the Apify actor `apify/instagram-profile-scraper`.
+
 ## 0.0.655 - 2026-10-26
 ### Changed
 * Updated from build 0.0.652 to build 0.0.655 of the Apify actor `apify/instagram-profile-scraper`.

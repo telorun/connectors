@@ -2,7 +2,7 @@
 
 # Web Scraper
 
-The Apify actor [`apify/web-scraper`](https://apify.com/apify/web-scraper) as typed Telo kinds, generated from its build **3.0.25**. The module's version is that build number, and every run it starts is pinned to exactly that build, so the input types below are the ones the actor really runs with.
+The Apify actor [`apify/web-scraper`](https://apify.com/apify/web-scraper) as typed Telo kinds, generated from its build **3.0.27**. The module's version is that build number, and every run it starts is pinned to exactly that build, so the input types below are the ones the actor really runs with.
 
 Crawls arbitrary websites using a web browser and extracts structured data from web pages using a provided JavaScript function. The Actor supports both recursive crawling and lists of URLs, and automatically manages concurrency for maximum performance.
 
@@ -16,7 +16,7 @@ Runs are charged to the Apify account whose token the `ApifyClient` holds. See t
 
 ```yaml
 imports:
-  Actor: oci://ghcr.io/telorun/apify/apify-web-scraper@3.0.25#sha256-…
+  Actor: oci://ghcr.io/telorun/apify/apify-web-scraper@3.0.27#sha256-…
 ```
 
 Pin the digest with `telo upgrade`. The module re-exports `ApifyClient`, so it is the only import needed.

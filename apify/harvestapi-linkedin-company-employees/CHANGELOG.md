@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.0.175 - 2026-11-02
+### Changed
+* Updated from build 0.0.165 to build 0.0.175 of the Apify actor `harvestapi/linkedin-company-employees`.
+
 ## 0.0.165 - 2026-10-26
 ### Changed
 * Updated from build 0.0.163 to build 0.0.165 of the Apify actor `harvestapi/linkedin-company-employees`.

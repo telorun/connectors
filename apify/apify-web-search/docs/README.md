@@ -2,7 +2,7 @@
 
 # Web Search
 
-The Apify actor [`apify/web-search`](https://apify.com/apify/web-search) as typed Telo kinds, generated from its build **0.0.20**. The module's version is that build number, and every run it starts is pinned to exactly that build, so the input types below are the ones the actor really runs with.
+The Apify actor [`apify/web-search`](https://apify.com/apify/web-search) as typed Telo kinds, generated from its build **0.0.21**. The module's version is that build number, and every run it starts is pinned to exactly that build, so the input types below are the ones the actor really runs with.
 
 Search the web and get organic results as JSON with title, URL, snippet, and position. You can filter by date, country, language, and domain. The Actor provides a real-time API.
 
@@ -16,7 +16,7 @@ Runs are charged to the Apify account whose token the `ApifyClient` holds. See t
 
 ```yaml
 imports:
-  Actor: oci://ghcr.io/telorun/apify/apify-web-search@0.0.20#sha256-…
+  Actor: oci://ghcr.io/telorun/apify/apify-web-search@0.0.21#sha256-…
 ```
 
 Pin the digest with `telo upgrade`. The module re-exports `ApifyClient`, so it is the only import needed.

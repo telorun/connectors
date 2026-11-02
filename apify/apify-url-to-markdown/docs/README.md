@@ -2,7 +2,7 @@
 
 # URL to markdown
 
-The Apify actor [`apify/url-to-markdown`](https://apify.com/apify/url-to-markdown) as typed Telo kinds, generated from its build **0.1.7**. The module's version is that build number, and every run it starts is pinned to exactly that build, so the input types below are the ones the actor really runs with.
+The Apify actor [`apify/url-to-markdown`](https://apify.com/apify/url-to-markdown) as typed Telo kinds, generated from its build **0.1.8**. The module's version is that build number, and every run it starts is pinned to exactly that build, so the input types below are the ones the actor really runs with.
 
 An Apify Actor that takes a URL as input and returns the content of the page in Markdown format.
 
@@ -16,7 +16,7 @@ Runs are charged to the Apify account whose token the `ApifyClient` holds. See t
 
 ```yaml
 imports:
-  Actor: oci://ghcr.io/telorun/apify/apify-url-to-markdown@0.1.7#sha256-…
+  Actor: oci://ghcr.io/telorun/apify/apify-url-to-markdown@0.1.8#sha256-…
 ```
 
 Pin the digest with `telo upgrade`. The module re-exports `ApifyClient`, so it is the only import needed.

@@ -2,7 +2,7 @@
 
 # RAG Web Browser
 
-The Apify actor [`apify/rag-web-browser`](https://apify.com/apify/rag-web-browser) as typed Telo kinds, generated from its build **1.0.33**. The module's version is that build number, and every run it starts is pinned to exactly that build, so the input types below are the ones the actor really runs with.
+The Apify actor [`apify/rag-web-browser`](https://apify.com/apify/rag-web-browser) as typed Telo kinds, generated from its build **1.0.35**. The module's version is that build number, and every run it starts is pinned to exactly that build, so the input types below are the ones the actor really runs with.
 
 Web search and fetch tool for AI agents and RAG pipelines. It queries Google Search, scrapes the top N pages using a full web browser, and returns their content as clean Markdown for further processing by an LLM. Can also fetch individual URLs.
 
@@ -16,7 +16,7 @@ Runs are charged to the Apify account whose token the `ApifyClient` holds. See t
 
 ```yaml
 imports:
-  Actor: oci://ghcr.io/telorun/apify/apify-rag-web-browser@1.0.33#sha256-…
+  Actor: oci://ghcr.io/telorun/apify/apify-rag-web-browser@1.0.35#sha256-…
 ```
 
 Pin the digest with `telo upgrade`. The module re-exports `ApifyClient`, so it is the only import needed.

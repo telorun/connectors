@@ -2,7 +2,7 @@
 
 # Reddit Scraper
 
-The Apify actor [`apify/reddit-scraper`](https://apify.com/apify/reddit-scraper) as typed Telo kinds, generated from its build **0.0.19**. The module's version is that build number, and every run it starts is pinned to exactly that build, so the input types below are the ones the actor really runs with.
+The Apify actor [`apify/reddit-scraper`](https://apify.com/apify/reddit-scraper) as typed Telo kinds, generated from its build **0.0.21**. The module's version is that build number, and every run it starts is pinned to exactly that build, so the input types below are the ones the actor really runs with.
 
 Scrape Reddit posts, comments, communities, and user profiles without a login or API key. Search any subreddit or keyword to see what people say about a brand or topic, with full comment threads and the scores that show what landed.
 
@@ -16,7 +16,7 @@ Runs are charged to the Apify account whose token the `ApifyClient` holds. See t
 
 ```yaml
 imports:
-  Actor: oci://ghcr.io/telorun/apify/apify-reddit-scraper@0.0.19#sha256-…
+  Actor: oci://ghcr.io/telorun/apify/apify-reddit-scraper@0.0.21#sha256-…
 ```
 
 Pin the digest with `telo upgrade`. The module re-exports `ApifyClient`, so it is the only import needed.
@@ -108,7 +108,7 @@ Each dataset item is typed from the actor's published dataset schema. Every fiel
 | `parentCommentId` | string \| null | ID of the comment this one replies to. Null for top-level comments. |
 | `depth` | number \| null | Nesting level of the comment, counted from the post's top-level comments (0 = top-level). Empty for a comment more than 8 levels deep scraped from its own permalink. |
 | `isSubmitter` | boolean \| null | Whether the comment author is also the author of the post. |
-| `isControversial` | boolean \| null | Whether Reddit flags the comment as controversial (heavily up- and downvoted). |
+| `isControversial` | boolean \| null | Whether Reddit flags the comment as controversial (heavily up- and downvoted). Only known for comments scraped from user profiles, empty for the comments of a post. |
 | `name` | string \| null | Community name, without the "r/" prefix. |
 | `description` | string \| null | Full community description from the sidebar, in Markdown. Null when Reddit hides it, as for a private, banned or quarantined community. |
 | `publicDescription` | string \| null | Short community description shown in search results and previews. |

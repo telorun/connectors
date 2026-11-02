@@ -2,7 +2,7 @@
 
 # Facebook Page Contact Info Scraper
 
-The Apify actor [`apify/facebook-page-contact-information`](https://apify.com/apify/facebook-page-contact-information) as typed Telo kinds, generated from its build **0.0.355**. The module's version is that build number, and every run it starts is pinned to exactly that build, so the input types below are the ones the actor really runs with.
+The Apify actor [`apify/facebook-page-contact-information`](https://apify.com/apify/facebook-page-contact-information) as typed Telo kinds, generated from its build **0.0.358**. The module's version is that build number, and every run it starts is pinned to exactly that build, so the input types below are the ones the actor really runs with.
 
 Get Facebook pages addresses, email, likes, website, check-ins, and phone information
 
@@ -16,7 +16,7 @@ Runs are charged to the Apify account whose token the `ApifyClient` holds. See t
 
 ```yaml
 imports:
-  Actor: oci://ghcr.io/telorun/apify/apify-facebook-page-contact-information@0.0.355#sha256-…
+  Actor: oci://ghcr.io/telorun/apify/apify-facebook-page-contact-information@0.0.358#sha256-…
 ```
 
 Pin the digest with `telo upgrade`. The module re-exports `ApifyClient`, so it is the only import needed.

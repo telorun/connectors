@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.0.81 - 2026-11-02
+### Changed
+* Updated from build 0.0.74 to build 0.0.81 of the Apify actor `apify/microsoft-copilot-search-scraper`.
+
 ## 0.0.74 - 2026-10-26
 ### Changed
 * Updated from build 0.0.73 to build 0.0.74 of the Apify actor `apify/microsoft-copilot-search-scraper`.

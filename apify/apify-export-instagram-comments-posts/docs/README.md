@@ -2,7 +2,7 @@
 
 # Export Instagram Comments and Posts
 
-The Apify actor [`apify/export-instagram-comments-posts`](https://apify.com/apify/export-instagram-comments-posts) as typed Telo kinds, generated from its build **0.0.63**. The module's version is that build number, and every run it starts is pinned to exactly that build, so the input types below are the ones the actor really runs with.
+The Apify actor [`apify/export-instagram-comments-posts`](https://apify.com/apify/export-instagram-comments-posts) as typed Telo kinds, generated from its build **0.0.64**. The module's version is that build number, and every run it starts is pinned to exactly that build, so the input types below are the ones the actor really runs with.
 
 Scrape Instagram posts and their comments in one run. Add a username and get post details: caption, likes, tagged users, timestamp, and comment details: text, usernames, profile pics, and likes. Export scraped data, schedule via API, and integrate with other tools or AI workflows.
 
@@ -16,7 +16,7 @@ Runs are charged to the Apify account whose token the `ApifyClient` holds. See t
 
 ```yaml
 imports:
-  Actor: oci://ghcr.io/telorun/apify/apify-export-instagram-comments-posts@0.0.63#sha256-…
+  Actor: oci://ghcr.io/telorun/apify/apify-export-instagram-comments-posts@0.0.64#sha256-…
 ```
 
 Pin the digest with `telo upgrade`. The module re-exports `ApifyClient`, so it is the only import needed.

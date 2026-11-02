@@ -2,7 +2,7 @@
 
 # Facebook Posts Scraper
 
-The Apify actor [`apify/facebook-posts-scraper`](https://apify.com/apify/facebook-posts-scraper) as typed Telo kinds, generated from its build **0.0.404**. The module's version is that build number, and every run it starts is pinned to exactly that build, so the input types below are the ones the actor really runs with.
+The Apify actor [`apify/facebook-posts-scraper`](https://apify.com/apify/facebook-posts-scraper) as typed Telo kinds, generated from its build **0.0.407**. The module's version is that build number, and every run it starts is pinned to exactly that build, so the input types below are the ones the actor really runs with.
 
 Extract posts, videos, and engagement metrics from Facebook pages. Get text captions, reactions, video transcripts, images, external links, collaborators, and more from Facebook pages and profiles. Export ad data, schedule runs via API, and integrate with other tools or AI workflows.
 
@@ -16,7 +16,7 @@ Runs are charged to the Apify account whose token the `ApifyClient` holds. See t
 
 ```yaml
 imports:
-  Actor: oci://ghcr.io/telorun/apify/apify-facebook-posts-scraper@0.0.404#sha256-…
+  Actor: oci://ghcr.io/telorun/apify/apify-facebook-posts-scraper@0.0.407#sha256-…
 ```
 
 Pin the digest with `telo upgrade`. The module re-exports `ApifyClient`, so it is the only import needed.

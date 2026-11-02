@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.0.238 - 2026-11-02
+### Changed
+* Updated from build 0.0.235 to build 0.0.238 of the Apify actor `maxcopell/tripadvisor-reviews`.
+
 ## 0.0.235 - 2026-10-26
 ### Changed
 * Updated from build 0.0.234 to build 0.0.235 of the Apify actor `maxcopell/tripadvisor-reviews`.

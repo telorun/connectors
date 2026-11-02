@@ -2,13 +2,13 @@
 
 # ⚡️Rapid Linkedin Jobs Scraper
 
-The Apify actor [`worldunboxer/rapid-linkedin-scraper`](https://apify.com/worldunboxer/rapid-linkedin-scraper) as typed Telo kinds, generated from its build **1.2.110**. The module's version is that build number, and every run it starts is pinned to exactly that build, so the input types below are the ones the actor really runs with.
+The Apify actor [`worldunboxer/rapid-linkedin-scraper`](https://apify.com/worldunboxer/rapid-linkedin-scraper) as typed Telo kinds, generated from its build **1.2.132**. The module's version is that build number, and every run it starts is pinned to exactly that build, so the input types below are the ones the actor really runs with.
 
 🔥$0.10/1K jobs. Advanced filters, 23 data fields, JSON/CSV/Excel export, cron schedules, webhooks and MCP for AI agents. Scrape Linkedin job postings without login cookies. Cost Effective Linkedin Jobs API for recruiting, job boards, lead generation and AI agents.
 
 ## Pricing
 
-Pay per event — Job result $0.0001, Detailed job result $0.00035, Actor Start $0.00005 (Free-plan prices; paid plans pay less). Cap the spend with `maxTotalChargeUsd`.
+Pay per event — Job result $0.0001, Job data enrichment $0.00025, Actor Start $0.00005 (Free-plan prices; paid plans pay less). Cap the spend with `maxTotalChargeUsd`.
 
 Runs are charged to the Apify account whose token the `ApifyClient` holds. See the [Store page](https://apify.com/worldunboxer/rapid-linkedin-scraper) for current prices.
 
@@ -16,7 +16,7 @@ Runs are charged to the Apify account whose token the `ApifyClient` holds. See t
 
 ```yaml
 imports:
-  Actor: oci://ghcr.io/telorun/apify/worldunboxer-rapid-linkedin-scraper@1.2.110#sha256-…
+  Actor: oci://ghcr.io/telorun/apify/worldunboxer-rapid-linkedin-scraper@1.2.132#sha256-…
 ```
 
 Pin the digest with `telo upgrade`. The module re-exports `ApifyClient`, so it is the only import needed.
@@ -51,16 +51,22 @@ The actor accepts fields beyond these.
 | Field | Type | Required | Default | Description |
 | --- | --- | --- | --- | --- |
 | `jobs_titles` | array |  |  | Job Titles / Keywords — Job titles to search for (e.g., 'Software Engineer', 'Data Scientist'). The scraper runs a search for each title and merges the results. |
-| `location` | string |  |  | Location — Enter a broad location (e.g., 'Worldwide', 'Europe', 'Canada') or a full search string (e.g., 'San Francisco, CA'). For multiple specific cities, enter the country here and list the cities below. |
-| `scrape_mode` | string |  | `"detailed"` | Scrape Mode — How much data to collect for each job. Quick uses search results only, so runs are faster. Detailed also opens each job's page for more fields. See the [Output Fields](https://apify.com/worldunboxer/rapid-linkedin-scraper#-output-fields) section of the README for the fields each mode r |
-| `cities` | array |  |  | Cities (Optional) — Optional. List specific cities to search (e.g., 'London', 'Manchester'). The scraper will loop through each. Note: Set the 'Location' field to the relevant country to ensure accurate city matching. |
-| `jobs_entries` | integer |  | `1000` | Number of Jobs Entries you want — Number of jobs you want to scrape. |
-| `company_names` | array |  |  | Company Names — Only search for these companies |
+| `location` | string |  |  | Location — Enter a broad location (e.g., 'Worldwide', 'Europe', 'Canada') or a full search string (e.g., 'San Francisco, CA'). |
+| `include_job_details` | boolean |  | `true` | Include Full Job Details — Open each job's page to add the full description, seniority, employment type, industries, applicants, salary and Easy Apply. Turn it off for a cheaper and faster run with listing data only: job ID & link, title, company name/URL/logo, location, posted date and hiring badge |
 | `posted_within` | string |  |  | Job Posting Time — Only return jobs posted within this period. To use a custom time window, leave this field unset. |
 | `easy_apply` | boolean |  | `false` | Easy Apply Only — Filter for jobs with simplified application |
-| `start_jobs` | integer |  |  | Search After how many jobs — Legacy field. No longer supported and has no effect on scraping results. |
-| `job_post_time` | string |  |  | Custom Job Post Time — Optional custom posting window, used only when 'Job Posting Time' above is not set. Enter the time in seconds prefixed with 'r' (e.g., 'r86400' for 1 day, 'r172800' for 2 days): 'r' followed by a positive whole number. |
-| `job_title` | string |  |  | Job Title (Legacy) — Legacy field, kept for backward compatibility with existing integrations. Its value is combined with 'Job Titles' above (not overridden by it) — every distinct title from both fields is searched. This field will be removed in a future version; migrate to 'Job Titles'. |
+| `early_applicant_only` | boolean |  | `false` | Early Applicant Only — Only jobs LinkedIn marks "Be an early applicant" |
+| `include_contact_details` | boolean |  | `false` | Include Contact Details — Requires Include Full Job Details. Also return contact details the poster wrote in the job description. These are personal data: enable only if you have a lawful basis under the laws that apply to you. See Legal and compliance in the README. |
+| `jobs_entries` | integer |  | `1000` | Number of Jobs Entries you want — Number of jobs you want to scrape. |
+| `company_names` | array |  |  | Company Names — Only search for these companies |
+| `cities` | array |  |  | Cities — Optional. List specific cities to search (e.g., 'London', 'Manchester'). The scraper searches each city on its own, without the 'Location' field. If several places share a name, add the state or country (e.g., 'Birmingham, Alabama'). |
+| `distance` | integer |  |  | Distance (miles) — Optional. Search radius in miles around the Location, Cities or Location IDs (e.g., 5, 25, 100). Leave empty for LinkedIn's default (25 miles). |
+| `search_urls` | array |  |  | Search URLs — Optional. Paste LinkedIn job search URLs (e.g. 'https://www.linkedin.com/jobs/search-results/?keywords=Software%20Engineer&geoId=101389470') instead of filling in the search fields. Include Full Job Details, Number of Jobs, Jobs per URL and Exclude Job IDs still apply. |
+| `jobs_per_url` | integer |  |  | Jobs per URL — Optional. Used with Search URLs: the most unique jobs to take from each address. Number of Jobs Entries still caps the whole run. Leave empty for no per-address limit. |
+| `geo_ids` | array |  |  | Location IDs — Optional. LinkedIn location IDs (numbers, e.g. '101389470') to search directly, without looking up a name. An ID can be a city, region or country. Combined with 'Cities': the places from both lists are searched, each on its own. A location's ID is the number after 'geoId=' in the addr |
+| `company_ids` | array |  |  | Company IDs — Optional. LinkedIn company IDs (numbers, e.g. '1337') to search directly, without looking up a name. Combined with 'Company Names': the companies from both lists are searched. A company's ID is the number after 'f_C=' in the address of a LinkedIn jobs search filtered by that company. |
+| `exclude_job_ids` | array |  |  | Exclude Job IDs — Optional. LinkedIn job IDs (numbers, e.g. '4419969671') to leave out. These jobs are skipped entirely: not returned, and not charged. Pass the job IDs of a previous run to receive only new jobs. |
+| `job_post_time` | string |  |  | Custom Job Post Time — Optional custom posting window, used only when 'Job Posting Time' is not set. Enter the time in seconds as a positive whole number (e.g., 86400 for 1 day, 172800 for 2 days). |
 
 ## Output
 

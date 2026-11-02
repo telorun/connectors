@@ -2,7 +2,7 @@
 
 # Facebook Ads Library Scraper
 
-The Apify actor [`apify/facebook-ads-scraper`](https://apify.com/apify/facebook-ads-scraper) as typed Telo kinds, generated from its build **0.0.391**. The module's version is that build number, and every run it starts is pinned to exactly that build, so the input types below are the ones the actor really runs with.
+The Apify actor [`apify/facebook-ads-scraper`](https://apify.com/apify/facebook-ads-scraper) as typed Telo kinds, generated from its build **0.0.394**. The module's version is that build number, and every run it starts is pinned to exactly that build, so the input types below are the ones the actor really runs with.
 
 Extract advertising data from Facebook, Instagram, WhatsApp, Threads. Get ads, publishers, prices, reach estimates, impressions, links, images, IDs, timestamps, product info, and more from Facebook Ad Library. Export ad data, schedule runs via API, and integrate with other tools or AI workflows.
 
@@ -16,7 +16,7 @@ Runs are charged to the Apify account whose token the `ApifyClient` holds. See t
 
 ```yaml
 imports:
-  Actor: oci://ghcr.io/telorun/apify/apify-facebook-ads-scraper@0.0.391#sha256-…
+  Actor: oci://ghcr.io/telorun/apify/apify-facebook-ads-scraper@0.0.394#sha256-…
 ```
 
 Pin the digest with `telo upgrade`. The module re-exports `ApifyClient`, so it is the only import needed.

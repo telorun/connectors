@@ -2,7 +2,7 @@
 
 # E-commerce Scraping Tool
 
-The Apify actor [`apify/e-commerce-scraping-tool`](https://apify.com/apify/e-commerce-scraping-tool) as typed Telo kinds, generated from its build **0.0.122**. The module's version is that build number, and every run it starts is pinned to exactly that build, so the input types below are the ones the actor really runs with.
+The Apify actor [`apify/e-commerce-scraping-tool`](https://apify.com/apify/e-commerce-scraping-tool) as typed Telo kinds, generated from its build **0.0.134**. The module's version is that build number, and every run it starts is pinned to exactly that build, so the input types below are the ones the actor really runs with.
 
 Scrape data from e-commerce websites with E-commerce Scraping Tool. Scrape almost any retail site in minutes, extract e-commerce data and use it to monitor price details over time or compare different e-commerce sites’ offerings.
 
@@ -16,7 +16,7 @@ Runs are charged to the Apify account whose token the `ApifyClient` holds. See t
 
 ```yaml
 imports:
-  Actor: oci://ghcr.io/telorun/apify/apify-e-commerce-scraping-tool@0.0.122#sha256-…
+  Actor: oci://ghcr.io/telorun/apify/apify-e-commerce-scraping-tool@0.0.134#sha256-…
 ```
 
 Pin the digest with `telo upgrade`. The module re-exports `ApifyClient`, so it is the only import needed.
@@ -59,6 +59,7 @@ Only these fields are accepted — `telo check` rejects any other.
 | `fieldsToAnalyze` | string[] |  |  | AI summary - data points — Select the data point(s) you want to pass to ai. These selected data points will be used to generate a summary. |
 | `customPrompt` | string |  |  | AI summary - custom prompt — Enter a custom prompt to instruct ai how to process the data points. If left blank, Apify’s default prompt will be used. |
 | `maxProductResults` | integer |  |  | Total maximum products — Defines the total number of product results to collect during the entire run. |
+| `deduplicateProducts` | boolean |  | `false` | Remove duplicate products — Saves each product only once per run, even when it appears under several URLs, on several pages or for several keywords. |
 | `searchEngineKeyword` | string |  |  | Keyword search — Search terms for finding products. Enter one keyword per line up to 50 keywords. Each keyword runs as an independent search. |
 | `scrapeModeSearchEngine` | string |  | `"Google Listing"` | Scrape mode — Select the type of data to scrape from Search engine results. |
 | `countryCode` | string |  | `"us"` | Country codes — Select the country/region to use for the Search Engine search context (affects currency, shipping, and availability). Default is United States (us). |

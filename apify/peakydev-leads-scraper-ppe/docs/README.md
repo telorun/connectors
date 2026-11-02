@@ -2,7 +2,7 @@
 
 # Leads Scraper ✅ $1/1k with EMAILS ✅ Apollo | LinkedIn Profile
 
-The Apify actor [`peakydev/leads-scraper-ppe`](https://apify.com/peakydev/leads-scraper-ppe) as typed Telo kinds, generated from its build **0.1.308**. The module's version is that build number, and every run it starts is pinned to exactly that build, so the input types below are the ones the actor really runs with.
+The Apify actor [`peakydev/leads-scraper-ppe`](https://apify.com/peakydev/leads-scraper-ppe) as typed Telo kinds, generated from its build **0.1.313**. The module's version is that build number, and every run it starts is pinned to exactly that build, so the input types below are the ones the actor really runs with.
 
 ✅  - Cheap ways to Extract leads with verified ☎️ Mobile  ✅ Work & Personal Emails.  Similar to Apollo, ZoomInfo, Lusha, LinkedIn | Google Maps
 
@@ -16,7 +16,7 @@ Runs are charged to the Apify account whose token the `ApifyClient` holds. See t
 
 ```yaml
 imports:
-  Actor: oci://ghcr.io/telorun/apify/peakydev-leads-scraper-ppe@0.1.308#sha256-…
+  Actor: oci://ghcr.io/telorun/apify/peakydev-leads-scraper-ppe@0.1.313#sha256-…
 ```
 
 Pin the digest with `telo upgrade`. The module re-exports `ApifyClient`, so it is the only import needed.

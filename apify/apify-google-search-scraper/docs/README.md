@@ -2,7 +2,7 @@
 
 # Google Search Results Scraper
 
-The Apify actor [`apify/google-search-scraper`](https://apify.com/apify/google-search-scraper) as typed Telo kinds, generated from its build **0.0.469**. The module's version is that build number, and every run it starts is pinned to exactly that build, so the input types below are the ones the actor really runs with.
+The Apify actor [`apify/google-search-scraper`](https://apify.com/apify/google-search-scraper) as typed Telo kinds, generated from its build **0.0.476**. The module's version is that build number, and every run it starts is pinned to exactly that build, so the input types below are the ones the actor really runs with.
 
 Scrape Google Search Engine Results Pages (SERPs). Select the country or language and extract organic and paid results, AI Mode, AI overviews, ads, queries, People Also Ask, prices, reviews, like a Google SERP API. Export data, run the scraper via API, schedule runs, or integrate with other tools.
 
@@ -16,7 +16,7 @@ Runs are charged to the Apify account whose token the `ApifyClient` holds. See t
 
 ```yaml
 imports:
-  Actor: oci://ghcr.io/telorun/apify/apify-google-search-scraper@0.0.469#sha256-…
+  Actor: oci://ghcr.io/telorun/apify/apify-google-search-scraper@0.0.476#sha256-…
 ```
 
 Pin the digest with `telo upgrade`. The module re-exports `ApifyClient`, so it is the only import needed.
@@ -65,10 +65,10 @@ Only these fields are accepted — `telo check` rejects any other.
 | `linkProspecting` | object |  |  | 🔗 Add-on: Link prospecting tool ($) — Charged events: search-page-scraped (base, per Google SERP page), website-content-scraped, lead-scraped (up to 5 contacts per domain, marketing and C-suite roles only), and one event per enabled AI engine query. See the Pricing tab (https://console.apify.com/ac |
 | `websiteContentScraper` | object |  | `{"enable":false}` | 🔍 Add-on: Full website content ($) — Get the full page content of every organic result as websiteContent.text, plus websiteContent.markdown when the page converts cleanly (null otherwise). Uses the Website Content Crawler. Charged event: website-content-scraped, per successfully scraped page. See t |
 | `focusOnPaidAds` | boolean |  | `false` | 📢 Add-on: Paid results (ads) extraction ($) — Turn on to capture the Google Ads shown for each query. |
-| `countryCode` | string |  |  | Country — Country of the Google results, passed to Google Search as the gl URL query parameter. By default, the Actor uses United States. Google Search URLs are used as they are. The country is also sent to the LLM search engines. ChatGPT, Gemini, Copilot and AI Mode do not support every country; if |
+| `countryCode` | string |  |  | Country — Country of the Google results, passed to Google Search as the gl URL query parameter. By default, the Actor uses United States. For Google Search URLs, the URL's own gl parameter or domain is used instead. The country is also sent to the LLM search engines. ChatGPT, Gemini, Copilot and AI  |
 | `searchLanguage` | string |  | `""` | Search language — Restricts search results to pages in a specific language. For example, choosing 'German' results in pages only in German. Passed to Google Search as the lr URL query parameter. Read more here (https://developers.google.com/custom-search/v1/reference/rest/v1/cse/list). |
 | `languageCode` | string |  | `""` | Interface language — Language of the Google Search interface (menus, buttons, etc. - not the search results themselves). Passed to Google Search as the hl URL query parameter. It can still affect results on international queries when no search-language restriction (the lr parameter) is set. Read mor |
-| `locationUule` | string |  |  | Exact location (Google UULE parameter) — The code for the exact location for the Google search. It's passed to Google Search as the uule URL query parameter. You can use the UULE code generator (https://padavvan.github.io/). Learn more about emulating local search (https://moz.com/ugc/geolocation-th |
+| `locationUule` | string |  |  | Exact location (Google UULE parameter) — The code for the exact location for the Google search. It's passed to Google Search as the uule URL query parameter. You can use the UULE code generator (https://padavvan.github.io/). Set Country to the location's country, otherwise Google ignores the locatio |
 | `forceExactMatch` | boolean |  | `false` | Force exact match — If checked, the scraper will search for the exact phrase in the query. This is done by wrapping the query in quotes. Note that this may return fewer results. Also note that if you're using operators such as OR or AND, the whole query will be wrapped in quotes, such as "Windows AN |
 | `site` | string |  |  | Site — Limits the search to a specific site, such as: site:example.com. Note that the site filter takes precedence over the relatedToSite filter. If both filters are set, the relatedToSite filter will be ignored and not added to the search queries. |
 | `relatedToSite` | string |  |  | Related to site — Filters pages related to a specific site, such as: related:example.com. Note that the site filter takes precedence over the relatedToSite filter. If both filters are set, the relatedToSite filter will be ignored and not added to the search queries. |

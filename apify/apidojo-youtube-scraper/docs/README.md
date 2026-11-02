@@ -2,7 +2,7 @@
 
 # Youtube Scraper (Pay Per Result)
 
-The Apify actor [`apidojo/youtube-scraper`](https://apify.com/apidojo/youtube-scraper) as typed Telo kinds, generated from its build **0.0.1068**. The module's version is that build number, and every run it starts is pinned to exactly that build, so the input types below are the ones the actor really runs with.
+The Apify actor [`apidojo/youtube-scraper`](https://apify.com/apidojo/youtube-scraper) as typed Telo kinds, generated from its build **0.0.1076**. The module's version is that build number, and every run it starts is pinned to exactly that build, so the input types below are the ones the actor really runs with.
 
 Experience unparalleled efficiency and depth with its ultra-fast capabilities in searching, URL, playlist, channel, and profile scraping. It comes equipped with a variety of filters to customize your data collection precisely. Plus, it's incredibly affordable at only $0.50 per 1000 videos!
 
@@ -16,7 +16,7 @@ Runs are charged to the Apify account whose token the `ApifyClient` holds. See t
 
 ```yaml
 imports:
-  Actor: oci://ghcr.io/telorun/apify/apidojo-youtube-scraper@0.0.1068#sha256-…
+  Actor: oci://ghcr.io/telorun/apify/apidojo-youtube-scraper@0.0.1076#sha256-…
 ```
 
 Pin the digest with `telo upgrade`. The module re-exports `ApifyClient`, so it is the only import needed.
@@ -63,7 +63,7 @@ Only these fields are accepted — `telo check` rejects any other.
 | `features` | string |  |  | Video features — Features for video. (any, 4k, hd, live, movie, cc, 3d, hdr, location, purchased, subtitles, vr180, vr360) |
 | `sort` | string |  |  | Sort by — Sorts search results by the given option. Only works with search keywords. |
 | `maxItems` | integer |  |  | Maximum number of items on output — Maximum number of items that you want as output. |
-| `customMapFunction` | string \| null |  |  | Custom map function — Function that takes each of the objects as argument and returns data that will be mapped by the function itself. This function is not intended for filtering, please don't use it for filtering purposes or you will get banned automatically. |
+| `customMapFunction` | string \| null |  |  | Custom map function — JavaScript function to transform each output video. Use to add computed fields, modify values, or remove unnecessary data. NOT intended for filtering - filtering may result in automatic bans. Must be a single synchronous function, e.g. (object) => { return {...object} }. It run |
 | `outputConnector` | string |  |  | Send results to Notion, Todoist, … (optional) — Pick an MCP connector you authorized in Console → Settings → API & Integrations → MCP connectors (e.g. Notion, Todoist — any service whose MCP server offers non-destructive write tools works best-effort). The scraped results are written through your ow |
 | `deliverTarget` | string |  |  | Destination target — Where to write into the connector — paste the URL or ID. Notion example: https://www.notion.so/My-Posts-24f8a1b2c3d44e5f8a9b0c1d2e3f4a5b. Leave empty for services that need no target (e.g. Todoist Inbox, Slack). For Notion, share the page or database with your connector first (N |
 | `deliverMode` | string |  | `"perPost"` | Write mode — perPost writes one record per scraped item; summary writes a single roll-up for the run. |

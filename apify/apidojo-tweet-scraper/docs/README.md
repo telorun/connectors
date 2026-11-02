@@ -2,7 +2,7 @@
 
 # Tweet Scraper V2 - X Scraper / Twitter Scraper / X.com Scraper
 
-The Apify actor [`apidojo/tweet-scraper`](https://apify.com/apidojo/tweet-scraper) as typed Telo kinds, generated from its build **0.0.1564**. The module's version is that build number, and every run it starts is pinned to exactly that build, so the input types below are the ones the actor really runs with.
+The Apify actor [`apidojo/tweet-scraper`](https://apify.com/apidojo/tweet-scraper) as typed Telo kinds, generated from its build **0.0.1572**. The module's version is that build number, and every run it starts is pinned to exactly that build, so the input types below are the ones the actor really runs with.
 
 Lightning-fast search, URL, list, and profile scraping, with customizable filters. At $0.40 per 1000 tweets, and 30-80 tweets per second, it is ideal for researchers, entrepreneurs, and businesses! Get comprehensive insights from Twitter (X) now!
 
@@ -16,7 +16,7 @@ Runs are charged to the Apify account whose token the `ApifyClient` holds. See t
 
 ```yaml
 imports:
-  Actor: oci://ghcr.io/telorun/apify/apidojo-tweet-scraper@0.0.1564#sha256-…
+  Actor: oci://ghcr.io/telorun/apify/apidojo-tweet-scraper@0.0.1572#sha256-…
 ```
 
 Pin the digest with `telo upgrade`. The module re-exports `ApifyClient`, so it is the only import needed.
@@ -76,6 +76,10 @@ Only these fields are accepted — `telo check` rejects any other.
 | `end` | string |  |  | End date — Returns tweets sent before the given date. |
 | `includeSearchTerms` | boolean |  |  | Include Search Terms — If selected, a field will be added to each tweets about the search term that was used to find it. |
 | `customMapFunction` | string \| null |  |  | Custom map function — Function that takes each of the objects as argument and returns data that will be mapped by the function itself. This function is not intended for filtering, please don't use it for filtering purposes or you will get banned automatically. |
+| `outputConnector` | string |  |  | Send results to Notion, Todoist, … (optional) — Pick an MCP connector you authorized in Console → Settings → API & Integrations → MCP connectors (e.g. Notion, Todoist — any service whose MCP server offers non-destructive write tools works best-effort). The scraped results are written through your ow |
+| `deliverTarget` | string |  |  | Destination target — Where to write into the connector — paste the URL or ID. Notion example: https://www.notion.so/My-Posts-24f8a1b2c3d44e5f8a9b0c1d2e3f4a5b. Leave empty for services that need no target (e.g. Todoist Inbox, Slack). For Notion, share the page or database with your connector first (N |
+| `deliverMode` | string |  | `"perPost"` | Write mode — perPost writes one record per scraped item; summary writes a single roll-up for the run. |
+| `deliverMaxItems` | integer |  |  | Max records to deliver — perPost only (optional) — Cap on how many records perPost mode writes to the connector; ignored in summary mode. Leave empty to deliver everything scraped. |
 
 ## Output
 
