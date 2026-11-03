@@ -387,7 +387,7 @@ schema:
       x-k3s-key: kube-controller-manager-arg
 
   examples:
-    - host: !ref node-a
+    - host: !ref nodeA
       token: !cel "secrets.k3sToken"
       version: v1.31.4+k3s1
       clusterInit: true
@@ -578,7 +578,7 @@ schema:
       x-k3s-key: server
 
   examples:
-    - host: !ref node-b
+    - host: !ref nodeB
       token: !cel "secrets.k3sToken"
       version: v1.31.4+k3s1
       server: https://10.0.0.11:6443

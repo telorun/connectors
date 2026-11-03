@@ -66,7 +66,7 @@ That confirms the kubelet came up. It does **not** confirm the node registered w
 ```yaml
 kind: K3s.Agent
 metadata: { name: agent-b }
-host: !ref node-b
+host: !ref nodeB
 token: !cel "secrets.k3sToken"
 version: v1.31.4+k3s1
 server: https://10.0.0.11:6443

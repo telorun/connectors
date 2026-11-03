@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.0 - 2026-11-03
+### Changed
+* Regenerated from build 0.0.53 of the Apify actor `cheap_scraper/linkedin-job-scraper` (was 0.0.53).
+
 ## 0.0.53 - 2026-10-26
 ### Changed
 * Updated from build 0.0.49 to build 0.0.53 of the Apify actor `cheap_scraper/linkedin-job-scraper`.

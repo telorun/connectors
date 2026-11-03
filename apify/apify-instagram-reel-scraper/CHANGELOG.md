@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.0 - 2026-11-03
+### Changed
+* Regenerated from build 0.0.626 of the Apify actor `apify/instagram-reel-scraper` (was 0.0.618).
+
 ## 0.0.618 - 2026-10-26
 ### Changed
 * Updated from build 0.0.614 to build 0.0.618 of the Apify actor `apify/instagram-reel-scraper`.

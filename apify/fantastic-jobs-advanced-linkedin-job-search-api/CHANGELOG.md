@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.0 - 2026-11-03
+### Changed
+* Regenerated from build 0.0.75 of the Apify actor `fantastic-jobs/advanced-linkedin-job-search-api` (was 0.0.74).
+
 ## 0.0.74 - 2026-10-26
 ### Changed
 * Updated from build 0.0.72 to build 0.0.74 of the Apify actor `fantastic-jobs/advanced-linkedin-job-search-api`.

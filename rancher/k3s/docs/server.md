@@ -18,14 +18,14 @@ Exactly one must be declared. This is the most valuable static check in the modu
 # The first server in a cluster. Once only, at the cluster's birth.
 kind: K3s.Server
 metadata: { name: server-a }
-host: !ref node-a
+host: !ref nodeA
 token: !cel "secrets.k3sToken"
 clusterInit: true
 
 # Every subsequent server joins.
 kind: K3s.Server
 metadata: { name: server-b }
-host: !ref node-b
+host: !ref nodeB
 token: !cel "secrets.k3sToken"
 server: https://10.0.0.11:6443
 ```
@@ -67,7 +67,7 @@ The schema cannot express this (there is no prior state to compare against), so 
 ```yaml
 kind: K3s.Server
 metadata: { name: server-a }
-host: !ref node-a
+host: !ref nodeA
 token: !cel "secrets.k3sToken"
 version: v1.31.4+k3s1
 clusterInit: true

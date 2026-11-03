@@ -6,14 +6,15 @@
 // apify/<user>-<actor>/:
 //
 //   telo.yaml          — `Run` + `Start` kinds over the core apify/apify module,
-//                        typed from the build's input and dataset schemas, with
-//                        metadata.version = the build number. Rewritten ONLY
-//                        when the build number changed (or with --force): an
-//                        unchanged version is already published and can never
-//                        be published again, so its manifest stays as it was.
+//                        typed from the default build's input and dataset schemas.
+//                        Runs carry no build pin (a pinned build breaks the day
+//                        Apify deletes it), so the module is versioned on its
+//                        own: the minor is bumped whenever the generated
+//                        manifest differs, and an unchanged manifest keeps its
+//                        published version. Never rewritten otherwise.
 //   docs/README.md     — always regenerated (pricing and descriptions move
 //                        between builds; docs are not part of the payload).
-//   CHANGELOG.md       — one entry per new build.
+//   CHANGELOG.md       — one entry per new module version.
 //
 // An actor that is gone from Apify (404) or marked deprecated there gets
 // `deprecated:` in apify/actors.yaml and a banner in its docs; its module is
@@ -47,7 +48,6 @@ import { renderChangelogEntry, renderDocs, renderManifest } from "./render.mjs";
 
 const argv = process.argv.slice(2);
 const today = new Date().toISOString().slice(0, 10);
-const SEMVER = /^\d+\.\d+\.\d+$/;
 
 if (argv.includes("--fixture")) {
   generateFixture();
@@ -105,30 +105,41 @@ async function generateOne(id) {
     if (err instanceof NotFoundError) return deprecate(id, dir, `${today}: has no default build on Apify`);
     throw err;
   }
-  if (!SEMVER.test(build.buildNumber ?? "")) {
-    throw new Error(`default build number '${build.buildNumber}' is not semver`);
-  }
 
   const previous = readModuleVersion(dir);
-  const version = build.buildNumber;
+  let version = previous ?? "0.1.0";
   let outcome = "unchanged";
   mkdirSync(join(dir, "docs"), { recursive: true });
-  if (previous !== version || force) {
-    writeFileSync(join(dir, "telo.yaml"), renderManifest({ id, act, build }));
-    if (previous !== version) {
+  const file = join(dir, "telo.yaml");
+  const current = existsSync(file) ? readFileSync(file, "utf8") : null;
+  const changed = current === null || payload(current) !== payload(renderManifest({ id, act, build, version }));
+  if (changed || force) {
+    if (changed && previous) version = bumpMinor(previous);
+    writeFileSync(file, renderManifest({ id, act, build, version }));
+    if (changed) {
       outcome = previous ? "updated" : "added";
       const changelog = join(dir, "CHANGELOG.md");
       const prior = existsSync(changelog) ? readFileSync(changelog, "utf8").replace(/^# Changelog\n+/, "") : "";
       writeFileSync(
         changelog,
-        `# Changelog\n\n${renderChangelogEntry({ id, build, previous, date: today })}${prior ? `\n${prior}` : ""}`,
+        `# Changelog\n\n${renderChangelogEntry({ id, build, version, previous, date: today })}${prior ? `\n${prior}` : ""}`,
       );
     } else {
       outcome = "regenerated";
     }
   }
-  writeFileSync(join(dir, "docs", "README.md"), renderDocs({ id, act, build }));
+  writeFileSync(join(dir, "docs", "README.md"), renderDocs({ id, act, build, version }));
   return { id, outcome, previous, version };
+}
+
+/** A manifest minus what moves without its types moving: the header comment and the version. */
+function payload(text) {
+  return text.replace(/^(#.*\n)+/, "").replace(/^  version: .*$/m, "");
+}
+
+function bumpMinor(v) {
+  const [major, minor] = v.split(".").map(Number);
+  return `${major}.${minor + 1}.0`;
 }
 
 /** Keep the module; record why it is deprecated in its docs. */
@@ -154,8 +165,8 @@ function report(rows) {
     if (!list.length) return;
     out.push(`### ${title} (${list.length})`, "", ...list.map(fmt), "");
   };
-  section("New modules", by("added"), (r) => `- \`apify/${moduleDirName(r.id)}\` — ${r.id} build ${r.version}`);
-  section("New builds", by("updated"), (r) => `- \`apify/${moduleDirName(r.id)}\` — ${r.previous} → ${r.version}`);
+  section("New modules", by("added"), (r) => `- \`apify/${moduleDirName(r.id)}\` — ${r.id} ${r.version}`);
+  section("Changed", by("updated"), (r) => `- \`apify/${moduleDirName(r.id)}\` — ${r.previous} → ${r.version}`);
   section("Regenerated in place (--force; not republished)", by("regenerated"), (r) => `- \`apify/${moduleDirName(r.id)}\` — ${r.version}`);
   section("Deprecated", by("deprecated"), (r) => `- \`${r.id}\` — ${r.detail}`);
   section("FAILED", by("failed"), (r) => `- \`${r.id}\` — ${r.detail}`);
@@ -168,6 +179,6 @@ function generateFixture() {
   const { id, act, build } = JSON.parse(readFileSync(join(ROOT, "scripts/apify/fixtures/acme-sample.json"), "utf8"));
   const dir = join(ROOT, "apify/apify/tests/__fixtures__/acme-sample");
   mkdirSync(dir, { recursive: true });
-  writeFileSync(join(dir, "telo.yaml"), renderManifest({ id, act, build, coreImport: "../../.." }));
+  writeFileSync(join(dir, "telo.yaml"), renderManifest({ id, act, build, version: build.buildNumber, coreImport: "../../.." }));
   console.log(`wrote ${join(dir, "telo.yaml")}`);
 }

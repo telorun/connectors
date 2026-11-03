@@ -3,9 +3,7 @@
 # === "aws:sqs"), dispatches to a JavaScript handler that returns a partial-batch
 # failure shape. Asserts the controller passes it through.
 kind: Telo.Application
-metadata:
-  name: LambdaSqsDispatchTest
-  version: 1.0.0
+metadata: { name: LambdaSqsDispatchTest, version: 1.0.0 }
 imports:
   Lambda: ..
   JavaScript: oci://ghcr.io/telorun/javascript@0.12.3#sha256-iUQQQDhaz0vY_ILjBbmwieUFhgVG8HXtPq-bwtcDWdA
@@ -18,8 +16,7 @@ targets:
 # Handler iterates the records and "fails" message id "bad" — surfaces it as a
 # partial-batch retry. Real consumers would do per-record business logic here.
 kind: JavaScript.Script
-metadata:
-  name: ProcessRecords
+metadata: { name: ProcessRecords }
 inputType:
   kind: Type.JsonSchema
   schema:
@@ -53,8 +50,7 @@ code: |
   }
 ---
 kind: Lambda.Sqs
-metadata:
-  name: Orders
+metadata: { name: Orders }
 queue:
   queueName: orders
 handler: !ref ProcessRecords
@@ -62,14 +58,12 @@ inputs:
   records: !cel "event.Records"
 ---
 kind: Lambda.Function
-metadata:
-  name: Main
+metadata: { name: main }
 handlers:
   - !ref Orders
 ---
 kind: Run.Sequence
-metadata:
-  name: TestSqsDispatch
+metadata: { name: TestSqsDispatch }
 steps:
   - name: InvokeFunction
     inputs:
@@ -84,10 +78,10 @@ steps:
             eventSource: "aws:sqs"
             eventSourceARN: arn:aws:sqs:us-east-1:000000000000:orders
       context: {}
-    invoke: !ref Main
+    invoke: !ref main
   - name: VerifyPartialBatch
     inputs:
-      batchItemFailures: "${{ steps.InvokeFunction.result.batchItemFailures }}"
+      batchItemFailures: !cel "steps.InvokeFunction.result.batchItemFailures"
     invoke:
       kind: Assert.Schema
       schema:

@@ -439,7 +439,7 @@ missing fragment costs prose and an unattributed patch, not a missed publish.
 Test-only, docs-only and plan-only edits need no fragment.
 
 **The one exception: generated Apify actor modules** (`apify/<user>-<actor>/`).
-Their `metadata.version` IS the Apify actor build they were generated from, so
+Their `metadata.version` is their own semver (the generator minor-bumps it when the manifest changes; runs are not pinned to an actor build), so
 `scripts/apify/generate.mjs` writes it, `apify/telo-workspace.yaml` releases
 only the core `apify` module, and `scripts/publish-modules.mjs` publishes any
 generated version not yet in the registry. They take no fragment and are never

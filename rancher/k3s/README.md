@@ -32,11 +32,11 @@ targets:
   - !ref agent-b
 ---
 kind: Shell.LocalHost
-metadata: { name: node-a }
+metadata: { name: nodeA }
 ---
 kind: K3s.Server
 metadata: { name: server-a }
-host: !ref node-a
+host: !ref nodeA
 token: !cel "secrets.k3sToken"
 version: v1.31.4+k3s1
 clusterInit: true
@@ -45,7 +45,7 @@ tlsSans: [k8s.example.com]
 ---
 kind: K3s.Agent
 metadata: { name: agent-b }
-host: !ref node-b
+host: !ref nodeB
 token: !cel "secrets.k3sToken"
 version: v1.31.4+k3s1
 server: https://10.0.0.11:6443

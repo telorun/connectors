@@ -4,7 +4,7 @@ metadata:
   version: 1.0.0
 # The per-actor template the generator emits, exercised through a module
 # generated from a fixture actor (scripts/apify/fixtures/acme-sample.json):
-# `Run` sends the caller's input verbatim to the pinned build and returns the
+# `Run` sends the caller's input verbatim to the actor and returns the
 # items; `Start` starts the run, keeps polling while the run is RUNNING, and
 # reads the run's dataset; the static run options reach the wire; a run that
 # finishes FAILED raises APIFY_RUN_NOT_SUCCEEDED; and the closed input type
@@ -70,7 +70,7 @@ steps:
       expected:
         method: POST
         path: /v2/acts/acme~sample/run-sync-get-dataset-items
-        query: { build: "1.2.34", maxTotalChargeUsd: "1.5" }
+        query: { maxTotalChargeUsd: "1.5" }
         body: { query: coffee, limit: 10 }
         auth: Bearer test-token
   - name: start

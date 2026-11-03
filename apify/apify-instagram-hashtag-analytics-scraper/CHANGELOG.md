@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.0 - 2026-11-03
+### Changed
+* Regenerated from build 0.0.596 of the Apify actor `apify/instagram-hashtag-analytics-scraper` (was 0.0.588).
+
 ## 0.0.588 - 2026-10-26
 ### Changed
 * Updated from build 0.0.585 to build 0.0.588 of the Apify actor `apify/instagram-hashtag-analytics-scraper`.

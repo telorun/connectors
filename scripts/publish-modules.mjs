@@ -22,7 +22,7 @@
 // rather than only on a release commit: a failed push heals on the next one.
 //
 // GENERATED MODULES (apify/<user>-<actor>) are outside `telo release`: their
-// metadata.version is the Apify actor build they were generated from, written by
+// metadata.version is their own semver (minor-bumped when the generated manifest changes), written by
 // scripts/apify/generate.mjs. They join the set after every released module (so
 // the core apify/apify they import is pushed first) and go through the same two
 // gates.
