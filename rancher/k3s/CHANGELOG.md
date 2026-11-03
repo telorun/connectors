@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.4.1 - 2026-11-03
+### Fixed
+* Rename the hyphenated `!ref node-a` / `!ref node-b` in the Server and Agent examples to `nodeA` / `nodeB`; newer telo CLIs reject hyphens in references. Examples and docs only, no change to behavior.
+* Templates dispatch with '!ref' to literally named entries and the token is passed with '!cel', replacing deprecated forms. No change to the public kinds.
+
 ## 0.4.0 - 2026-10-22
 ### Added
 * Bumped standard-module dependencies: shell 0.13.0, run 0.28.0.
