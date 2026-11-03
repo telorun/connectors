@@ -1,3 +1,0 @@
-modules:
-  k3s: Fixed
-body: "Rename the hyphenated `!ref node-a` / `!ref node-b` in the Server and Agent examples to `nodeA` / `nodeB`; newer telo CLIs reject hyphens in references. Examples and docs only, no change to behavior."

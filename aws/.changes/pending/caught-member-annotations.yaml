@@ -1,3 +1,0 @@
-modules:
-  lambda: Fixed
-body: "Mark the caught error's code and data members with x-telo-caught-member and drop an unread topology-role annotation, clearing analyzer deprecation warnings. No change to behavior."

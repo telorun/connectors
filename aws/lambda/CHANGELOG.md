@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.13.0 - 2026-11-03
+### Added
+* The shipped bootstraps now invoke the Lambda.Function named `main` (camelCase, per Telo's naming rule for resource instances) instead of `Main`; rename your Function resource and its `targets` reference from `Main` to `main`.
+### Fixed
+* Mark the caught error's code and data members with x-telo-caught-member and drop an unread topology-role annotation, clearing analyzer deprecation warnings. No change to behavior.
+
 ## 0.12.0 - 2026-10-22
 ### Added
 * Bumped http-dispatch to 0.16.0.

@@ -3,7 +3,7 @@
 # `telo release verify` reconciles it against the registry.
 modules:
   youtrack:
-    version: 0.4.0
+    version: 0.4.1
     registry: oci://ghcr.io/telorun/jetbrains
     layers:
-      manifest: sha256-hcvD4yqNpt_J3zmro5KrIldqXexY8St07FYEv7Nu0og
+      manifest: sha256-8VXCuyPJxbf_92rxdI79YQPNKsIJ7DcqD1Nap_hv6mM

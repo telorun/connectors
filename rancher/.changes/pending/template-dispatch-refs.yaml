@@ -1,3 +1,0 @@
-modules:
-  k3s: Fixed
-body: "Templates dispatch with '!ref' to literally named entries and the token is passed with '!cel', replacing deprecated forms. No change to the public kinds."
