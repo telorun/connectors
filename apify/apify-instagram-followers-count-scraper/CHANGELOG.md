@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.0 - 2026-11-03
+### Changed
+* Regenerated from build 0.0.625 of the Apify actor `apify/instagram-followers-count-scraper` (was 0.0.617).
+
 ## 0.0.617 - 2026-10-26
 ### Changed
 * Updated from build 0.0.614 to build 0.0.617 of the Apify actor `apify/instagram-followers-count-scraper`.

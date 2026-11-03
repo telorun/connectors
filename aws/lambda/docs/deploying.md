@@ -17,14 +17,14 @@ kind: Telo.Application
 metadata: { name: my-lambda, version: 1.0.0 }
 imports:
   Lambda: oci://ghcr.io/telorun/aws/lambda@0.9.0
-targets: [ Main ]
+targets: [ main ]
 ---
 kind: Lambda.HttpApi
 metadata: { name: Web }
 routes: [ ... ]
 ---
 kind: Lambda.Function
-metadata: { name: Main }
+metadata: { name: main }
 handlers:
   - { kind: Lambda.HttpApi, name: Web }
 ```

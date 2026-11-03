@@ -15,7 +15,7 @@ imports:
   Lambda: ${MODULE_SOURCES.lambda}
   Run: ${MODULE_SOURCES.run}
   Type: ${MODULE_SOURCES.type}
-targets: [!ref Main]
+targets: [!ref main]
 ---
 kind: Run.Value
 metadata: { name: Echo }
@@ -39,7 +39,7 @@ inputs:
   payload: !cel "event"
 ---
 kind: Lambda.Function
-metadata: { name: Main }
+metadata: { name: main }
 handlers:
   - !ref Greeter
 `;
@@ -53,7 +53,7 @@ imports:
   Lambda: ${MODULE_SOURCES.lambda}
   Run: ${MODULE_SOURCES.run}
   Type: ${MODULE_SOURCES.type}
-targets: [!ref Main]
+targets: [!ref main]
 ---
 kind: Run.Value
 metadata: { name: GreetById }
@@ -90,7 +90,7 @@ routes:
             body: !cel "result"
 ---
 kind: Lambda.Function
-metadata: { name: Main }
+metadata: { name: main }
 handlers:
   - !ref Web
 `;
@@ -104,7 +104,7 @@ imports:
   Lambda: ${MODULE_SOURCES.lambda}
   Run: ${MODULE_SOURCES.run}
   Type: ${MODULE_SOURCES.type}
-targets: [!ref Main]
+targets: [!ref main]
 ---
 kind: Run.Value
 metadata: { name: ProcessRecords }
@@ -138,7 +138,7 @@ inputs:
   records: !cel "event.Records"
 ---
 kind: Lambda.Function
-metadata: { name: Main }
+metadata: { name: main }
 handlers:
   - !ref Orders
 `;

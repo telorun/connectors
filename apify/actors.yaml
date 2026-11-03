@@ -1,5 +1,5 @@
 # Apify actors generated as typed Telo modules — one module per entry, at
-# apify/<username>-<name>/, versioned as the actor build it was generated from.
+# apify/<username>-<name>/, versioned on its own (minor bump when the generated manifest changes).
 # See apify/apify/docs/generated-actors.md.
 #
 # scripts/apify/seed.mjs adds the top 100 Store actors by total users and every

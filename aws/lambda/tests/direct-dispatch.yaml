@@ -3,9 +3,7 @@
 # Direct (catch-all), dispatches to a JavaScript handler, and returns
 # the result through Direct's returns: matching.
 kind: Telo.Application
-metadata:
-  name: LambdaDirectDispatchTest
-  version: 1.0.0
+metadata: { name: LambdaDirectDispatchTest, version: 1.0.0 }
 imports:
   Lambda: ..
   Run: oci://ghcr.io/telorun/run@0.26.0#sha256-ZhW56yiMCImqBh0wJ4mVaUvh5WuUVIaWErASFx--wCY
@@ -16,8 +14,7 @@ targets:
 # User-supplied invocable. Receives the Direct-resolved inputs and returns
 # a greeting payload.
 kind: Run.Value
-metadata:
-  name: Greet
+metadata: { name: Greet }
 inputType:
   kind: Telo.JsonSchema
   schema:
@@ -31,8 +28,7 @@ value:
 # Direct handler: maps the AWS event's `name` field to the JS handler's input,
 # returns the handler's result verbatim.
 kind: Lambda.Direct
-metadata:
-  name: Greeter
+metadata: { name: Greeter }
 handler: !ref Greet
 inputs:
   name: !cel "event.name"
@@ -41,8 +37,7 @@ inputs:
 # Direct is the catch-all classifier — any event shape lands here when no
 # other handler kind matches.
 kind: Lambda.Function
-metadata:
-  name: Main
+metadata: { name: main }
 handlers:
   - !ref Greeter
 ---
@@ -50,18 +45,17 @@ handlers:
 # (simulates `kernel.invoke` from a managed-runtime bootstrap), assert the
 # returned message.
 kind: Run.Sequence
-metadata:
-  name: TestDirectDispatch
+metadata: { name: TestDirectDispatch }
 steps:
   - name: InvokeFunction
     inputs:
       event:
         name: "World"
       context: {}
-    invoke: !ref Main
+    invoke: !ref main
   - name: VerifyMessage
     inputs:
-      message: "${{ steps.InvokeFunction.result.message }}"
+      message: !cel "steps.InvokeFunction.result.message"
     invoke:
       kind: Assert.Schema
       schema:

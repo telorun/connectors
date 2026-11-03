@@ -1,0 +1,5 @@
+modules:
+  lambda: Added
+body: The shipped bootstraps now invoke the Lambda.Function named `main` (camelCase, per
+  Telo's naming rule for resource instances) instead of `Main`; rename your Function
+  resource and its `targets` reference from `Main` to `main`.

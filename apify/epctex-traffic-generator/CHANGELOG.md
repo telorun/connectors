@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.0 - 2026-11-03
+### Changed
+* Regenerated from build 0.0.2037 of the Apify actor `epctex/traffic-generator` (was 0.0.2026).
+
 ## 0.0.2026 - 2026-10-26
 ### Changed
 * Updated from build 0.0.2021 to build 0.0.2026 of the Apify actor `epctex/traffic-generator`.

@@ -6,7 +6,7 @@
 #
 # Only the hand-written core module is released by `telo release`. Every other
 # directory here is a generated per-actor module (scripts/apify/generate.mjs)
-# whose version IS the Apify actor build it was generated from, so its version
+# whose version is its own semver, bumped by the generator when its manifest changes, so its version
 # is written by the generator and it is published by scripts/publish-modules.mjs
 # directly. See apify/README.md.
 release:

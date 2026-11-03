@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.3.0 - 2026-11-03
+### Changed
+* Regenerated from build 0.2.246 of the Apify actor `vdrmota/contact-info-scraper` (was 0.2.243).
+
 ## 0.2.243 - 2026-10-26
 ### Changed
 * Updated from build 0.2.242 to build 0.2.243 of the Apify actor `vdrmota/contact-info-scraper`.

@@ -28,7 +28,7 @@ metadata: { name: my-lambda, version: 1.0.0 }
 imports:
   Lambda: oci://ghcr.io/telorun/aws/lambda@0.9.0
   JS: oci://ghcr.io/telorun/javascript@0.12.0#sha256-HG9Ydrm-jnzR6H1phgJy_PUKxAtSUEy76QxmMn1VcLY
-targets: [ !ref Main ]
+targets: [ !ref main ]
 ---
 kind: JS.Script
 metadata: { name: Worker }
@@ -44,7 +44,7 @@ inputs:
   payload: !cel "event"
 ---
 kind: Lambda.Function
-metadata: { name: Main }
+metadata: { name: main }
 handlers:
   - !ref AdminTools
 ```
@@ -69,7 +69,7 @@ A single `Lambda.Function` can list multiple handler kinds. Bind the AWS-side ev
 
 ```yaml
 kind: Lambda.Function
-metadata: { name: Main }
+metadata: { name: main }
 handlers:
   - { kind: Lambda.HttpApi, name: WebApi }
   - { kind: Lambda.Sqs, name: OrderProcessor }

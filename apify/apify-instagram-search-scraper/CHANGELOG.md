@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.2.0 - 2026-11-03
+### Changed
+* Regenerated from build 0.1.565 of the Apify actor `apify/instagram-search-scraper` (was 0.1.557).
+
 ## 0.1.557 - 2026-10-26
 ### Changed
 * Updated from build 0.1.554 to build 0.1.557 of the Apify actor `apify/instagram-search-scraper`.

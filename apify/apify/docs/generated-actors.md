@@ -37,10 +37,14 @@ own input, typed by two shapes declared once in the module:
 
 ## Versioning — the exception to `telo release`
 
-A generated module's `metadata.version` **is** the build number of the actor
-build it was generated from (e.g. `apify/web-scraper` build `3.0.25` →
-module `3.0.25`), and both kinds run exactly that build (`build=3.0.25`). The
-types in a given version therefore always match the code that runs.
+A generated module's `metadata.version` is its own semver, **detached from the
+actor's build number**. Runs carry no `build` pin: Apify runs the actor's
+default build at run time, so a module never breaks when Apify deletes an old
+build (a pinned build number would). The generator bumps the module's minor
+version whenever the generated manifest changes (the actor's input or dataset
+schema, title or description moved) and leaves it alone otherwise; the build
+number it generated from is recorded in the manifest's header comment and the
+module's CHANGELOG.
 
 `telo release` cannot express that, so generated modules are outside it.
 `apify/telo-workspace.yaml` releases only the core `apify` module. The generator
@@ -51,14 +55,17 @@ first.
 
 Consequences:
 
-- A module's `telo.yaml` is rewritten **only when the actor's build number
-  changes**. That version is published once and never again, so a generator
-  fix reaches an actor with its next build. `--force` regenerates in place for
-  development; that output is not published until the build moves.
+- A module's `telo.yaml` is rewritten **only when the generated manifest
+  differs** (ignoring its header and version). That version is published once
+  and never again, so a generator fix reaches an actor on its next regeneration
+  that changes the manifest. `--force` regenerates in place for development;
+  that output is not published until the manifest changes.
 - Publishing rewrites the `../apify` import to the core version current at
   that moment. Each build is pinned to the core it was published with.
-- Apify may delete old builds of an actor. A module version whose build is gone
-  stops running and must be upgraded.
+- **Type drift.** Because runs use the default build, an actor that changes its
+  input schema between weekly regenerations can be ahead of the module's types:
+  a newly added field is rejected by the closed `Input` type until the next
+  regeneration, and a removed field fails with Apify's own error.
 
 ## The actor list
 
@@ -99,7 +106,7 @@ refresh never looks complete.
 **Weekly CI** (`.github/workflows/apify-actors.yml`, Mondays 04:00 UTC, also
 runnable by hand) runs seed, generate and `telo check` over the Apify modules,
 then opens or refreshes one pull request (`apify-actors/refresh`) whose body is
-both reports. Merging it publishes the new builds on the next push to `main`.
+both reports. Merging it publishes the changed modules on the next push to `main`.
 
 After changing the template in `scripts/apify/render.mjs`, run
 `pnpm run apify:fixture` and `telo ./apify/apify/tests/generated.yaml`. CI fails

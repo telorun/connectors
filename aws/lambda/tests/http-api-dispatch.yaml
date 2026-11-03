@@ -4,9 +4,7 @@
 # matches the path, dispatches to a JavaScript handler, renders the response
 # via dispatchReturns. Asserts on the JSON-shaped response envelope.
 kind: Telo.Application
-metadata:
-  name: LambdaHttpApiDispatchTest
-  version: 1.0.0
+metadata: { name: LambdaHttpApiDispatchTest, version: 1.0.0 }
 imports:
   Lambda: ..
   Run: oci://ghcr.io/telorun/run@0.26.0#sha256-ZhW56yiMCImqBh0wJ4mVaUvh5WuUVIaWErASFx--wCY
@@ -15,8 +13,7 @@ targets:
   - !ref TestHttpApiDispatch
 ---
 kind: Run.Value
-metadata:
-  name: GreetById
+metadata: { name: GreetById }
 inputType:
   kind: Telo.JsonSchema
   schema:
@@ -28,8 +25,7 @@ value:
   message: !cel "'Hello ' + inputs.id + '!'"
 ---
 kind: Lambda.HttpApi
-metadata:
-  name: Web
+metadata: { name: Web }
 routes:
   - request:
       method: GET
@@ -44,14 +40,12 @@ routes:
             body: !cel "result"
 ---
 kind: Lambda.Function
-metadata:
-  name: Main
+metadata: { name: main }
 handlers:
   - !ref Web
 ---
 kind: Run.Sequence
-metadata:
-  name: TestHttpApiDispatch
+metadata: { name: TestHttpApiDispatch }
 steps:
   - name: InvokeFunction
     inputs:
@@ -65,11 +59,11 @@ steps:
         headers:
           accept: application/json
       context: {}
-    invoke: !ref Main
+    invoke: !ref main
   - name: VerifyEnvelope
     inputs:
-      statusCode: "${{ steps.InvokeFunction.result.statusCode }}"
-      body: "${{ steps.InvokeFunction.result.body }}"
+      statusCode: !cel "steps.InvokeFunction.result.statusCode"
+      body: !cel "steps.InvokeFunction.result.body"
     invoke:
       kind: Assert.Schema
       schema:
