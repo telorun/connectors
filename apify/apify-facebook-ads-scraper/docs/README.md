@@ -2,7 +2,7 @@
 
 # Facebook Ads Library Scraper
 
-The Apify actor [`apify/facebook-ads-scraper`](https://apify.com/apify/facebook-ads-scraper) as typed Telo kinds, generated from its default build **0.0.395** (module version **0.1.0**). Runs use whatever build the actor has as default when they start, so they keep working as Apify retires old builds; the input types below are refreshed weekly and can lag an actor that changed its input since.
+The Apify actor [`apify/facebook-ads-scraper`](https://apify.com/apify/facebook-ads-scraper) as typed Telo kinds, generated from its default build **0.0.399** (module version **0.1.0**). Runs use whatever build the actor has as default when they start, so they keep working as Apify retires old builds; the input types below are refreshed weekly and can lag an actor that changed its input since.
 
 Extract advertising data from Facebook, Instagram, WhatsApp, Threads. Get ads, publishers, prices, reach estimates, impressions, links, images, IDs, timestamps, product info, and more from Facebook Ad Library. Export ad data, schedule runs via API, and integrate with other tools or AI workflows.
 

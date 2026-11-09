@@ -2,7 +2,7 @@
 
 # Facebook Groups Scraper
 
-The Apify actor [`apify/facebook-groups-scraper`](https://apify.com/apify/facebook-groups-scraper) as typed Telo kinds, generated from its default build **0.0.391** (module version **0.1.0**). Runs use whatever build the actor has as default when they start, so they keep working as Apify retires old builds; the input types below are refreshed weekly and can lag an actor that changed its input since.
+The Apify actor [`apify/facebook-groups-scraper`](https://apify.com/apify/facebook-groups-scraper) as typed Telo kinds, generated from its default build **0.0.395** (module version **0.1.0**). Runs use whatever build the actor has as default when they start, so they keep working as Apify retires old builds; the input types below are refreshed weekly and can lag an actor that changed its input since.
 
 Extract data from one or multiple public Facebook groups. Get group and post URLs, post text, comments, timestamp, likes and comments count, and basic commentator info. Download the data in JSON, CSV, and Excel and use it in apps, spreadsheets, and reports.
 

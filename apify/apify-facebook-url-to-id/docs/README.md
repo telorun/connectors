@@ -2,7 +2,7 @@
 
 # Facebook URL to ID
 
-The Apify actor [`apify/facebook-url-to-id`](https://apify.com/apify/facebook-url-to-id) as typed Telo kinds, generated from its default build **0.0.342** (module version **0.1.0**). Runs use whatever build the actor has as default when they start, so they keep working as Apify retires old builds; the input types below are refreshed weekly and can lag an actor that changed its input since.
+The Apify actor [`apify/facebook-url-to-id`](https://apify.com/apify/facebook-url-to-id) as typed Telo kinds, generated from its default build **0.0.346** (module version **0.1.0**). Runs use whatever build the actor has as default when they start, so they keep working as Apify retires old builds; the input types below are refreshed weekly and can lag an actor that changed its input since.
 
 Scraping any Facebook URL as data object with internal Facebook ID and metadata if-when available.
 

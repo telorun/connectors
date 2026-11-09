@@ -2,7 +2,7 @@
 
 # Instagram Post Scraper
 
-The Apify actor [`apify/instagram-post-scraper`](https://apify.com/apify/instagram-post-scraper) as typed Telo kinds, generated from its default build **0.0.654** (module version **0.1.0**). Runs use whatever build the actor has as default when they start, so they keep working as Apify retires old builds; the input types below are refreshed weekly and can lag an actor that changed its input since.
+The Apify actor [`apify/instagram-post-scraper`](https://apify.com/apify/instagram-post-scraper) as typed Telo kinds, generated from its default build **0.0.662** (module version **0.1.0**). Runs use whatever build the actor has as default when they start, so they keep working as Apify retires old builds; the input types below are refreshed weekly and can lag an actor that changed its input since.
 
 Scrape Instagram posts. Just add one or more Instagram usernames and get your data in seconds including caption, metrics, images, mentions, coauthors, recent comments, sponsored status, video duration, views. Export scraped data, schedule scraper via API, integrate with other tools or AI workflows.
 

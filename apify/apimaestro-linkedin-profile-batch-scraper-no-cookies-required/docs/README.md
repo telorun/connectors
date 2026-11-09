@@ -2,7 +2,7 @@
 
 # Profile Details Batch Scraper for LinkedIn + EMAIL (No Cookies)
 
-The Apify actor [`apimaestro/linkedin-profile-batch-scraper-no-cookies-required`](https://apify.com/apimaestro/linkedin-profile-batch-scraper-no-cookies-required) as typed Telo kinds, generated from its default build **0.1.135** (module version **0.2.0**). Runs use whatever build the actor has as default when they start, so they keep working as Apify retires old builds; the input types below are refreshed weekly and can lag an actor that changed its input since.
+The Apify actor [`apimaestro/linkedin-profile-batch-scraper-no-cookies-required`](https://apify.com/apimaestro/linkedin-profile-batch-scraper-no-cookies-required) as typed Telo kinds, generated from its default build **0.1.136** (module version **0.2.0**). Runs use whatever build the actor has as default when they start, so they keep working as Apify retires old builds; the input types below are refreshed weekly and can lag an actor that changed its input since.
 
 (no cookies need) Extract In Bulk  comprehensive LinkedIn profile data including work experience, education history, certifications, and location details. Get structured information from any public LinkedIn profile using their username.
 

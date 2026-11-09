@@ -2,7 +2,7 @@
 
 # Tiktok Scraper (Pay Per Result)
 
-The Apify actor [`apidojo/tiktok-scraper`](https://apify.com/apidojo/tiktok-scraper) as typed Telo kinds, generated from its default build **0.0.1150** (module version **0.1.0**). Runs use whatever build the actor has as default when they start, so they keep working as Apify retires old builds; the input types below are refreshed weekly and can lag an actor that changed its input since.
+The Apify actor [`apidojo/tiktok-scraper`](https://apify.com/apidojo/tiktok-scraper) as typed Telo kinds, generated from its default build **0.0.1156** (module version **0.1.0**). Runs use whatever build the actor has as default when they start, so they keep working as Apify retires old builds; the input types below are refreshed weekly and can lag an actor that changed its input since.
 
 Extract TikTok profiles, videos, hashtags, comments at 600 posts/sec. No proxy, 98% success rate. Scrape music, locations & user data with query builder. Export JSON/CSV, API integration. Perfect for influencer discovery, lead gen, market research. $0.30 per 1K posts.
 

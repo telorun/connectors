@@ -2,7 +2,7 @@
 
 # Facebook Followers & Following Scraper
 
-The Apify actor [`apify/facebook-followers-following-scraper`](https://apify.com/apify/facebook-followers-following-scraper) as typed Telo kinds, generated from its default build **0.0.339** (module version **0.1.0**). Runs use whatever build the actor has as default when they start, so they keep working as Apify retires old builds; the input types below are refreshed weekly and can lag an actor that changed its input since.
+The Apify actor [`apify/facebook-followers-following-scraper`](https://apify.com/apify/facebook-followers-following-scraper) as typed Telo kinds, generated from its default build **0.0.343** (module version **0.1.0**). Runs use whatever build the actor has as default when they start, so they keep working as Apify retires old builds; the input types below are refreshed weekly and can lag an actor that changed its input since.
 
 Extract data from Facebook pages and profiles about its followers and profiles it follows. Just enter the URL, and you'll get data such as follow type, profile's URL, image, title, and subtitle. You can integrate your workflow with tools such as Google Drive, Zapier, Make and much more.
 

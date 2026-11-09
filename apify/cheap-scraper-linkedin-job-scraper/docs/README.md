@@ -8,7 +8,7 @@ Scrape LinkedIn jobs by keywords and location or by LinkedIn search URLs, or bot
 
 ## Pricing
 
-Pay per event — result $0.0007, Actor Start $0.005 (Free-plan prices; paid plans pay less). Cap the spend with `maxTotalChargeUsd`.
+Pay per event — Job Result $0.0007, AI job analysis $0.0005, Actor Start $0.005 (Free-plan prices; paid plans pay less). Cap the spend with `maxTotalChargeUsd`.
 
 Runs are charged to the Apify account whose token the `ApifyClient` holds. See the [Store page](https://apify.com/cheap_scraper/linkedin-job-scraper) for current prices.
 

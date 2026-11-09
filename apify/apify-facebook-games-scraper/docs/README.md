@@ -2,7 +2,7 @@
 
 # Facebook Games Scraper
 
-The Apify actor [`apify/facebook-games-scraper`](https://apify.com/apify/facebook-games-scraper) as typed Telo kinds, generated from its default build **0.0.341** (module version **0.1.0**). Runs use whatever build the actor has as default when they start, so they keep working as Apify retires old builds; the input types below are refreshed weekly and can lag an actor that changed its input since.
+The Apify actor [`apify/facebook-games-scraper`](https://apify.com/apify/facebook-games-scraper) as typed Telo kinds, generated from its default build **0.0.345** (module version **0.1.0**). Runs use whatever build the actor has as default when they start, so they keep working as Apify retires old builds; the input types below are refreshed weekly and can lag an actor that changed its input since.
 
 Scrape and download Facebook Games names and live streams; followers count, concurrent viewer count, URL, and more. Get data from Facebook Games simply using one search query. Export scraped data, run the scraper via API, schedule and monitor runs, or integrate with other tools.
 

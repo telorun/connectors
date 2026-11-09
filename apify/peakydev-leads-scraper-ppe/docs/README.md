@@ -2,7 +2,7 @@
 
 # Leads Scraper ✅ $1/1k with EMAILS ✅ Apollo | LinkedIn Profile
 
-The Apify actor [`peakydev/leads-scraper-ppe`](https://apify.com/peakydev/leads-scraper-ppe) as typed Telo kinds, generated from its default build **0.1.313** (module version **0.2.0**). Runs use whatever build the actor has as default when they start, so they keep working as Apify retires old builds; the input types below are refreshed weekly and can lag an actor that changed its input since.
+The Apify actor [`peakydev/leads-scraper-ppe`](https://apify.com/peakydev/leads-scraper-ppe) as typed Telo kinds, generated from its default build **0.1.322** (module version **0.3.0**). Runs use whatever build the actor has as default when they start, so they keep working as Apify retires old builds; the input types below are refreshed weekly and can lag an actor that changed its input since.
 
 ✅  - Cheap ways to Extract leads with verified ☎️ Mobile  ✅ Work & Personal Emails.  Similar to Apollo, ZoomInfo, Lusha, LinkedIn | Google Maps
 
@@ -16,7 +16,7 @@ Runs are charged to the Apify account whose token the `ApifyClient` holds. See t
 
 ```yaml
 imports:
-  Actor: oci://ghcr.io/telorun/apify/peakydev-leads-scraper-ppe@0.2.0#sha256-…
+  Actor: oci://ghcr.io/telorun/apify/peakydev-leads-scraper-ppe@0.3.0#sha256-…
 ```
 
 Pin the digest with `telo upgrade`. The module re-exports `ApifyClient`, so it is the only import needed.
@@ -51,6 +51,7 @@ Only these fields are accepted — `telo check` rejects any other.
 | Field | Type | Required | Default | Description |
 | --- | --- | --- | --- | --- |
 | `totalResults` | integer |  | `50000` | 🔢 Total Results - Can fetch 50k per run — Total number leads to fetch per run |
+| `startPage` | integer |  |  | 📄 Start Page (optional) — Leave this empty to continue from where your last run with the same filters stopped (a new search starts at page 1). Enter a page number to start there instead. Each page holds 100 results, so page 11 starts at lead 1,001. Free plan runs don't remember progress, so enter t |
 | `companyMode` | boolean |  |  | 🏢 Return only Company Leads (NO People information) — When enabled, the Actor returns company leads only and does not return individual employee leads |
 | `firstName` | string |  |  | First Name — Filter by a person's first name. |
 | `lastName` | string |  |  | Last Name — Filter by a person's last name. |
@@ -63,13 +64,22 @@ Only these fields are accepted — `telo check` rejects any other.
 | `companyEmployeeSize` | string[] |  |  | Employee Size — Employee size ranges. |
 | `personCountry` | string[] |  |  | Person Country — The country of the person. |
 | `personState` | string[] |  |  | Person State (use full state names e.g California, Ontario) — The company state using full name codes. One per line |
+| `excludePersonCountry` | string[] |  |  | Exclude Person Country — Leave out people located in these countries. |
+| `excludePersonState` | string[] |  |  | Exclude Person State (use full state names e.g Texas) — Leave out people located in these states. One per line |
 | `companyCountry` | string[] |  |  | Country — The country where the company operates. |
+| `excludeCompanyCountry` | string[] |  |  | Exclude Country — Leave out companies located in these countries. |
 | `companyState` | string[] |  |  | State (use full state names e.g California, Ontario) — The company state using full name. One per line |
+| `excludeCompanyState` | string[] |  |  | Exclude State (use full state names e.g California, Ontario) — Leave out companies in these states. One per line |
 | `companyCity` | string[] |  |  | City (use full state names) — The city using full name. One per line |
+| `excludeCompanyCity` | string[] |  |  | Exclude City (use full city names) — Leave out companies in these cities. One per line |
 | `companyZip` | string[] |  |  | City Postal Codes e.g 90210, 92704 — Enter postal codes |
+| `excludeCompanyZip` | string[] |  |  | Exclude City Postal Codes e.g 90210, 92704 — Leave out companies with these postal codes |
 | `industry` | string[] |  |  | Industries — Specify one or more industries to filter companies. |
+| `excludeIndustry` | string[] |  |  | Exclude Industries — Leave out companies in these industries. |
 | `webKeywords` | string[] |  |  | Keywords used by the company e.g software design — Keywords related to the company |
+| `excludeWebKeywords` | string[] |  |  | Exclude keywords used by the company e.g staffing — Leave out companies tagged with these keywords |
 | `sicCodes` | string[] |  |  | SIC Codes e.g 4011 — Enter 4 digit SIC codes of the targeted company (one per line) e.g 4011 |
+| `excludeSicCodes` | string[] |  |  | Exclude SIC Codes e.g 7361 — Enter 4 digit SIC codes of companies to leave out (one per line) |
 | `revenue` | string[] |  |  | Revenue — Revenue range of the company |
 | `companyDomain` | string[] |  |  | List of domain of compananies e.g github.com. Enter one per line — Company domain or website names. Max 100 e.g github.com |
 | `maxPerCompany` | integer |  |  | Employee per Company — How many exployees to return per comapny domain |

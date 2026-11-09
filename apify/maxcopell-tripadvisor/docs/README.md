@@ -2,7 +2,7 @@
 
 # Tripadvisor Scraper
 
-The Apify actor [`maxcopell/tripadvisor`](https://apify.com/maxcopell/tripadvisor) as typed Telo kinds, generated from its default build **0.0.299** (module version **0.1.0**). Runs use whatever build the actor has as default when they start, so they keep working as Apify retires old builds; the input types below are refreshed weekly and can lag an actor that changed its input since.
+The Apify actor [`maxcopell/tripadvisor`](https://apify.com/maxcopell/tripadvisor) as typed Telo kinds, generated from its default build **0.0.302** (module version **0.1.0**). Runs use whatever build the actor has as default when they start, so they keep working as Apify retires old builds; the input types below are refreshed weekly and can lag an actor that changed its input since.
 
 This unofficial Tripadvisor API is a data extraction tool able to get data on hotels, restaurants, things to do, vacation rentals, attractions, tours, and public trips. Get pricing, contact details, amenities, awards, ratings, and more. Download your data in Excel, JSON, CSV, and other formats.
 

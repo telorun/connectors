@@ -2,7 +2,7 @@
 
 # YouTube Shorts Scraper
 
-The Apify actor [`streamers/youtube-shorts-scraper`](https://apify.com/streamers/youtube-shorts-scraper) as typed Telo kinds, generated from its default build **0.0.267** (module version **0.1.0**). Runs use whatever build the actor has as default when they start, so they keep working as Apify retires old builds; the input types below are refreshed weekly and can lag an actor that changed its input since.
+The Apify actor [`streamers/youtube-shorts-scraper`](https://apify.com/streamers/youtube-shorts-scraper) as typed Telo kinds, generated from its default build **0.0.268** (module version **0.1.0**). Runs use whatever build the actor has as default when they start, so they keep working as Apify retires old builds; the input types below are refreshed weekly and can lag an actor that changed its input since.
 
 Extract YouTube Shorts data from one or multiple YouTube channels. Get video URL, caption, timestamp, likes, dislikes, views and comments count, basic channel info, and more. This alternative YouTube API has no limits or quotas. Download the data in JSON, CSV, and Excel.
 

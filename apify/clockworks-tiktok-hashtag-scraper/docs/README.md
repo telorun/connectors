@@ -2,7 +2,7 @@
 
 # TikTok Hashtag Scraper
 
-The Apify actor [`clockworks/tiktok-hashtag-scraper`](https://apify.com/clockworks/tiktok-hashtag-scraper) as typed Telo kinds, generated from its default build **0.0.494** (module version **0.1.0**). Runs use whatever build the actor has as default when they start, so they keep working as Apify retires old builds; the input types below are refreshed weekly and can lag an actor that changed its input since.
+The Apify actor [`clockworks/tiktok-hashtag-scraper`](https://apify.com/clockworks/tiktok-hashtag-scraper) as typed Telo kinds, generated from its default build **0.0.497** (module version **0.1.0**). Runs use whatever build the actor has as default when they start, so they keep working as Apify retires old builds; the input types below are refreshed weekly and can lag an actor that changed its input since.
 
 Scrape TikTok hashtag data. Just add one or more hashtags and extract TikTok videos with that hashtag: URLs, likes, country of creation, video and music metadata, TikTok creator data. Export scraped data, run the scraper via API, schedule and monitor runs or integrate with other tools.
 

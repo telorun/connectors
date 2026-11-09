@@ -1,5 +1,5 @@
 # Apify actors generated as typed Telo modules — one module per entry, at
-# apify/<username>-<name>/, versioned on its own (minor bump when the generated manifest changes).
+# apify/<username>-<name>/, versioned as the actor build it was generated from.
 # See apify/apify/docs/generated-actors.md.
 #
 # scripts/apify/seed.mjs adds the top 100 Store actors by total users and every
@@ -17,6 +17,7 @@ actors:
   apidojo/tiktok-scraper: { seeded: true }
   apidojo/tweet-scraper: { seeded: true }
   apidojo/twitter-scraper-lite: { seeded: true }
+  apidojo/twitter-user-scraper: { seeded: true }
   apidojo/youtube-scraper: { seeded: true }
   apify/actor-benchmark: { seeded: true }
   apify/actor-light-fixture: { seeded: true }
@@ -127,6 +128,7 @@ actors:
   apify/screenshot-url: { seeded: true }
   apify/send-mail: { seeded: true }
   apify/sitemap-extractor: { seeded: true }
+  apify/snowflake-apify-snowflake: { seeded: true }
   apify/social-media-hashtag-research: { seeded: true }
   apify/super-scraper-api: { seeded: true }
   apify/threads-profile-api-scraper: { seeded: true }
@@ -152,6 +154,7 @@ actors:
   clockworks/tiktok-scraper: { seeded: true }
   clockworks/tiktok-video-scraper: { seeded: true }
   code_crafter/leads-finder: { seeded: true }
+  coderx/instagram-profile-scraper-bio-posts: { seeded: true }
   compass/Google-Maps-Reviews-Scraper: { seeded: true }
   compass/crawler-google-places: { seeded: true }
   compass/google-maps-extractor: { seeded: true }
@@ -168,10 +171,12 @@ actors:
   harvestapi/linkedin-company-employees: { seeded: true }
   harvestapi/linkedin-company-posts: { seeded: true }
   harvestapi/linkedin-company-search: { seeded: true }
+  harvestapi/linkedin-post-comments: { seeded: true }
   harvestapi/linkedin-post-search: { seeded: true }
   harvestapi/linkedin-profile-posts: { seeded: true }
   harvestapi/linkedin-profile-scraper: { seeded: true }
   harvestapi/linkedin-profile-search: { seeded: true }
+  harvestapi/linkedin-profile-search-by-name: { seeded: true }
   junglee/Amazon-crawler: { seeded: true }
   junglee/amazon-reviews-scraper: { seeded: true }
   junglee/free-amazon-product-scraper: { seeded: true }
@@ -179,6 +184,7 @@ actors:
   lukaskrivka/google-maps-with-contact-details: { seeded: true }
   maxcopell/tripadvisor: { seeded: true }
   maxcopell/tripadvisor-reviews: { seeded: true }
+  microworlds/crawler-google-places: { seeded: true }
   microworlds/leads-finder: { seeded: true }
   misceres/indeed-scraper: { seeded: true }
   one-api/skip-trace: { seeded: true }

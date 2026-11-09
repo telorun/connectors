@@ -2,7 +2,7 @@
 
 # Tweet Scraper V2 - X Scraper / Twitter Scraper / X.com Scraper
 
-The Apify actor [`apidojo/tweet-scraper`](https://apify.com/apidojo/tweet-scraper) as typed Telo kinds, generated from its default build **0.0.1573** (module version **0.1.0**). Runs use whatever build the actor has as default when they start, so they keep working as Apify retires old builds; the input types below are refreshed weekly and can lag an actor that changed its input since.
+The Apify actor [`apidojo/tweet-scraper`](https://apify.com/apidojo/tweet-scraper) as typed Telo kinds, generated from its default build **0.0.1579** (module version **0.1.0**). Runs use whatever build the actor has as default when they start, so they keep working as Apify retires old builds; the input types below are refreshed weekly and can lag an actor that changed its input since.
 
 Lightning-fast search, URL, list, and profile scraping, with customizable filters. At $0.40 per 1000 tweets, and 30-80 tweets per second, it is ideal for researchers, entrepreneurs, and businesses! Get comprehensive insights from Twitter (X) now!
 

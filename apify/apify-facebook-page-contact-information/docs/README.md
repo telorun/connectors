@@ -2,7 +2,7 @@
 
 # Facebook Page Contact Info Scraper
 
-The Apify actor [`apify/facebook-page-contact-information`](https://apify.com/apify/facebook-page-contact-information) as typed Telo kinds, generated from its default build **0.0.359** (module version **0.1.0**). Runs use whatever build the actor has as default when they start, so they keep working as Apify retires old builds; the input types below are refreshed weekly and can lag an actor that changed its input since.
+The Apify actor [`apify/facebook-page-contact-information`](https://apify.com/apify/facebook-page-contact-information) as typed Telo kinds, generated from its default build **0.0.363** (module version **0.1.0**). Runs use whatever build the actor has as default when they start, so they keep working as Apify retires old builds; the input types below are refreshed weekly and can lag an actor that changed its input since.
 
 Get Facebook pages addresses, email, likes, website, check-ins, and phone information
 

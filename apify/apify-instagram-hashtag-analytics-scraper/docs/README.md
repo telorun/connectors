@@ -2,7 +2,7 @@
 
 # Instagram Hashtag Analytics Scraper
 
-The Apify actor [`apify/instagram-hashtag-analytics-scraper`](https://apify.com/apify/instagram-hashtag-analytics-scraper) as typed Telo kinds, generated from its default build **0.0.596** (module version **0.1.0**). Runs use whatever build the actor has as default when they start, so they keep working as Apify retires old builds; the input types below are refreshed weekly and can lag an actor that changed its input since.
+The Apify actor [`apify/instagram-hashtag-analytics-scraper`](https://apify.com/apify/instagram-hashtag-analytics-scraper) as typed Telo kinds, generated from its default build **0.0.604** (module version **0.1.0**). Runs use whatever build the actor has as default when they start, so they keep working as Apify retires old builds; the input types below are refreshed weekly and can lag an actor that changed its input since.
 
 Extract detailed Instagram hashtag metrics fast. Get total post count, posts per day, top and latest posts, related hashtags (literal and semantic), and their usage frequency. Export scraped stats, run the scraper via API, schedule and monitor runs or integrate with other tools.
 

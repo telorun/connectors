@@ -2,7 +2,7 @@
 
 # Reddit Scraper Lite
 
-The Apify actor [`trudax/reddit-scraper-lite`](https://apify.com/trudax/reddit-scraper-lite) as typed Telo kinds, generated from its default build **5.8.7** (module version **5.9.0**). Runs use whatever build the actor has as default when they start, so they keep working as Apify retires old builds; the input types below are refreshed weekly and can lag an actor that changed its input since.
+The Apify actor [`trudax/reddit-scraper-lite`](https://apify.com/trudax/reddit-scraper-lite) as typed Telo kinds, generated from its default build **5.9.10** (module version **5.9.0**). Runs use whatever build the actor has as default when they start, so they keep working as Apify retires old builds; the input types below are refreshed weekly and can lag an actor that changed its input since.
 
 Pay Per Result, unlimited Reddit web scraper to crawl posts, comments, communities, and users without login. Limit web scraping by number of posts or items and extract all data in a dataset in multiple formats.
 

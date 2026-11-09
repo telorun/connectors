@@ -2,7 +2,7 @@
 
 # Facebook Likes and Reactions Scraper
 
-The Apify actor [`apify/facebook-likes-scraper`](https://apify.com/apify/facebook-likes-scraper) as typed Telo kinds, generated from its default build **0.0.362** (module version **0.1.0**). Runs use whatever build the actor has as default when they start, so they keep working as Apify retires old builds; the input types below are refreshed weekly and can lag an actor that changed its input since.
+The Apify actor [`apify/facebook-likes-scraper`](https://apify.com/apify/facebook-likes-scraper) as typed Telo kinds, generated from its default build **0.0.366** (module version **0.1.0**). Runs use whatever build the actor has as default when they start, so they keep working as Apify retires old builds; the input types below are refreshed weekly and can lag an actor that changed its input since.
 
 Extract Facebook likes data from one or multiple Facebook posts. Get post URL, reaction type (like, love, care, sad, angry, laugh), and basic liker info such as Facebook name and profile URL. Download the data in JSON, CSV Excel and use it in apps, spreadsheets, and reports.
 

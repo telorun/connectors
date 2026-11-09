@@ -2,7 +2,7 @@
 
 # Google Maps Extractor
 
-The Apify actor [`compass/google-maps-extractor`](https://apify.com/compass/google-maps-extractor) as typed Telo kinds, generated from its default build **0.1.682** (module version **0.2.0**). Runs use whatever build the actor has as default when they start, so they keep working as Apify retires old builds; the input types below are refreshed weekly and can lag an actor that changed its input since.
+The Apify actor [`compass/google-maps-extractor`](https://apify.com/compass/google-maps-extractor) as typed Telo kinds, generated from its default build **0.1.683** (module version **0.2.0**). Runs use whatever build the actor has as default when they start, so they keep working as Apify retires old builds; the input types below are refreshed weekly and can lag an actor that changed its input since.
 
 Extract data from hundreds of places fast. Scrape Google Maps by keyword, category, location, URLs & other filters. Get addresses, contact info, opening hours, popular times, prices, menus & more. Export scraped data, run the scraper via API, schedule and monitor runs, or integrate with other tools.
 
