@@ -16,9 +16,9 @@ requires:
   telo: ">=0.118.0"
 imports:
   GoogleAuth: ../auth
-  OAuth: oci://ghcr.io/telorun/oauth-client@0.9.0#sha256-SJrbgqaNLDvxqbJLqFUJRM24vUxj8jWy-pAJByPnB90
-  Http: oci://ghcr.io/telorun/http-server@0.38.0#sha256-QUCZmb_cvTor4YhWUAj3YdRj-kacNkmkXLnycjXLBtA
-  Run: oci://ghcr.io/telorun/run@0.28.0#sha256-CoPkA-u8-m4kjQAOTDr_TmsfA72HDpnoZI-hHz8N7kE
+  OAuth: oci://ghcr.io/telorun/oauth-client@0.12.3#sha256-iPpBFi79VXGMlMby_7yTBD6rBv0z0bO0K0LwH8RpjQo
+  Http: oci://ghcr.io/telorun/http-server@0.44.0#sha256-nW6yftlrG4eHd0e511nB8ArmN04Y2DKEkwRy5BaSldI
+  Run: oci://ghcr.io/telorun/run@0.32.1#sha256-kV5CLg3aUn7XH49UnwIQ1f1UmnA7s1XGvJyX67GfJN8
 # The address Google sends the browser back to. It lives in this library rather
 # than in google/auth because an address need must be forwarded by every
 # importer: on google/auth it would be forced on every Gmail, Drive and Sheets

@@ -13,13 +13,15 @@
 // Usage: node scripts/register-modules.mjs [--dry-run]
 // Env:   TELO_HUB (default http://localhost:8040)
 //        TELO_OCI_REGISTRY (required; e.g. oci://ghcr.io/telorun)
+//        TELO_HUB_TOKEN (optional; sent as a bearer token on POST /register)
 
 import { generatedModulePaths } from "./apify/lib.mjs";
 import { releaseIn, vendors } from "./release.mjs";
 
 const HUB = (process.env.TELO_HUB ?? "http://localhost:8040").replace(/\/+$/, "");
 const OCI_REGISTRY = process.env.TELO_OCI_REGISTRY?.replace(/\/+$/, "");
-const DRY_RUN = process.argv.includes("--dry-run");
+const HUB_TOKEN = process.env.TELO_HUB_TOKEN?.trim();
+const DRY_RUN =process.argv.includes("--dry-run");
 
 if (!OCI_REGISTRY) {
   console.error("TELO_OCI_REGISTRY is required to determine published module refs.");
@@ -56,7 +58,10 @@ async function registrationStatus(ref) {
 async function register(ref) {
   const res = await fetch(`${HUB}/register`, {
     method: "POST",
-    headers: { "content-type": "application/json" },
+    headers: {
+      "content-type": "application/json",
+      ...(HUB_TOKEN && { authorization: `Bearer ${HUB_TOKEN}` }),
+    },
     body: JSON.stringify({ ref }),
   });
   return { status: res.status, body: await readJson(res) };

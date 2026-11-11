@@ -1,0 +1,3 @@
+modules:
+  k3s: Fixed
+body: "Declare the minimum telo runtime (requires.telo >=0.89.0)."

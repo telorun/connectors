@@ -12,7 +12,7 @@ metadata:
   repository: https://github.com/telorun/connectors
   license: MIT
 imports:
-  Http: oci://ghcr.io/telorun/http-client@0.23.0#sha256-6WAIh0ajnTlkWNuP-59e1qNVUXVSJDWZxvPVACQg1AM
+  Http: oci://ghcr.io/telorun/http-client@0.25.0#sha256-bkm9YuaTBexTNH0QDyW8_O3h9Msg5vQZl9c62NIboLE
 exports:
   kinds:
     - ApifyClient
