@@ -8,22 +8,22 @@ modules:
     layers:
       manifest: sha256-qR5Yogt1d9ayKD2wGj_Vn4gTRwbhtZwCcvOx8ClkCfw
   drive:
-    version: 0.3.2
+    version: 0.4.0
     registry: oci://ghcr.io/telorun/google
     layers:
-      manifest: sha256-ICNHFswW_FVa0RpeDE9OyZNZ6-ZwUHExhz9Vpe8x4fE
+      manifest: sha256-xAlzl1P30WpFpKj0we7j_MdhicYySL7vjfEpd6_EfzQ
   gmail:
-    version: 0.2.2
+    version: 0.3.0
     registry: oci://ghcr.io/telorun/google
     layers:
-      manifest: sha256-hs1Cila40SRdEAOWF-_tHw6QIgYm0a_39gquhxh8ye4
+      manifest: sha256-YLXk_ZGBNLNJltizXta5eanMSCXRd-qjKW0_MmG2yZo
   sheets:
     version: 0.5.2
     registry: oci://ghcr.io/telorun/google
     layers:
       manifest: sha256-MztXsK5JEjwSRf02KnOcZF2fqYGitqewWEZd_15X5ks
   sign-in:
-    version: 0.1.2
+    version: 0.1.3
     registry: oci://ghcr.io/telorun/google
     layers:
-      manifest: sha256-U1If5Wrx6D5PGxVsYH8I4MM-eVkU_K9BEb4C2h0lChw
+      manifest: sha256-Q8ovfoNIw8WbxHKuggOyY3NrfNX9mj9DPRyo3PuNgcA
