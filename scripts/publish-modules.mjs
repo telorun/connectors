@@ -118,6 +118,7 @@ for (const vendor of vendors()) {
     if (existsSync(manifest)) {
       modules.push({
         path: `${vendor}/${key}`,
+        vendor,
         manifest,
         destination: `${ociRegistry}/${vendor}/${key}`,
       });
@@ -128,7 +129,12 @@ for (const vendor of vendors()) {
 // Generated modules, after every released one: each imports a released sibling.
 for (const path of generatedModulePaths()) {
   const [vendor, key] = path.split("/");
-  modules.push({ path, manifest: join(ROOT, path, "telo.yaml"), destination: `${ociRegistry}/${vendor}/${key}` });
+  modules.push({
+    path,
+    vendor,
+    manifest: join(ROOT, path, "telo.yaml"),
+    destination: `${ociRegistry}/${vendor}/${key}`,
+  });
 }
 
 const queued = new Set();
@@ -233,7 +239,16 @@ console.log("");
 const failures = [];
 for (const m of publishOrder) {
   try {
-    execFileSync(TELO, ["publish", m.destination, m.manifest], { stdio: "inherit", cwd: ROOT });
+    // `telo publish` checks the destination against the one the vendor's
+    // telo-workspace.yaml assigns, `<registry>/<directory name>`, and reads that
+    // registry from TELO_OCI_REGISTRY. Hand it the vendor base — the same one
+    // scripts/release.mjs passes as --registry — not the org base, or every module
+    // is refused for publishing to `<vendor>/<name>` instead of `<name>`.
+    execFileSync(TELO, ["publish", m.destination, m.manifest], {
+      stdio: "inherit",
+      cwd: ROOT,
+      env: { ...process.env, TELO_OCI_REGISTRY: `${ociRegistry}/${m.vendor}` },
+    });
   } catch (err) {
     failures.push({ path: m.path, message: err instanceof Error ? err.message : String(err) });
     console.error(`\n  push failed for ${m.path} — continuing with remaining modules.`);
