@@ -1,6 +1,0 @@
-modules:
-  auth: Fixed
-  drive: Fixed
-  gmail: Fixed
-  sheets: Fixed
-body: "Declare the minimum telo runtime (requires.telo >=0.88.0), and pass GoogleClient's retry initialDelay and maxDelay to http-client as CEL durations, which the current Telo.Duration schema requires."
