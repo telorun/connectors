@@ -8,7 +8,6 @@ imports:
   Lambda: ..
   JavaScript: oci://ghcr.io/telorun/javascript@0.12.3#sha256-iUQQQDhaz0vY_ILjBbmwieUFhgVG8HXtPq-bwtcDWdA
   Type: oci://ghcr.io/telorun/type@0.12.1#sha256-tKywEmG8dPFv9UhLgvWmpcDk_FdLDZVORhEIKMFxpVM
-  Run: oci://ghcr.io/telorun/run@0.26.0#sha256-ZhW56yiMCImqBh0wJ4mVaUvh5WuUVIaWErASFx--wCY
   Assert: oci://ghcr.io/telorun/assert@0.18.0#sha256-mSy7HGMq_UoQUvt4WbQCIO_uqXcRZwRlmROp6DfLDjY
 targets:
   - !ref TestSqsDispatch
@@ -62,7 +61,7 @@ metadata: { name: main }
 handlers:
   - !ref Orders
 ---
-kind: Run.Sequence
+kind: Telo.Sequence
 metadata: { name: TestSqsDispatch }
 steps:
   - name: InvokeFunction

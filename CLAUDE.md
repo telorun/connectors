@@ -123,7 +123,7 @@ Capabilities a kind can have (the lifecycle role):
   expressions (`!cel "variables.token"`) AND string interpolations
   (`!cel "'Bearer ' + secrets.apiKey"`).
 - CEL scopes: `variables`, `secrets` (always); `ports.X` (root app); `resources.X`
-  (after that resource snapshots); `steps.<name>.result` (inside a `Run.Sequence`
+  (after that resource snapshots); `steps.<name>.result` (inside a `Telo.Sequence`
   step); `request` (inside an HTTP handler); `self` and `inputs` (inside a
   `Telo.Definition` body — see below).
 - A resource `metadata.name` must contain NO dot — the `!ref` grammar splits on
@@ -135,7 +135,7 @@ Capabilities a kind can have (the lifecycle role):
 
 `inputs:` maps caller/request data INTO the resource you are dispatching to, and
 it belongs at the **DISPATCH SITE** — right next to the reference that names what
-to call (`handler:` on an Http.Api route, `invoke:` on a Run.Sequence step or
+to call (`handler:` on an Http.Api route, `invoke:` on a Telo.Sequence step or
 `targets` step, `tool:` on an Ai.Tools entry). Put a resource's STATIC config on
 the resource itself; put the PER-CALL `inputs:` at the place that CALLS it. CEL is
 evaluated in the dispatch site's scope, not the resource's — a standalone resource
@@ -175,13 +175,13 @@ Key `x-telo-*` annotations:
   | --- | --- | --- |
   | `dependency` | A live instance is injected and consumed — not called by you. | an operation's `client`, an S3 `bucketRef`, a server's `mounts[].mount` |
   | `trigger.inbound` | An entry point an inbound event dispatches to. Pair with `x-telo-topology-role: handler`. | an HTTP route `handler`, a Lambda handler |
-  | `call` | You invoke it inline as part of your own execution. | a `Codec.Encoder` piped inline, a `Run.Sequence` step's `invoke` |
+  | `call` | You invoke it inline as part of your own execution. | a `Codec.Encoder` piped inline, a `Telo.Sequence` step's `invoke` |
   | `schema` | It supplies a type, not a runtime value. | `inputType:` / `outputType:` |
   | `detached` | Dispatched in the background; you do not await it. | `Run`'s background `invoke` |
 
   For a dispatch slot prefer `kind: Telo.Executable` over an
   `anyOf: [Telo.Invocable, Telo.Runnable]` — one kind covers both capabilities,
-  so dual-mode kinds like `Run.Sequence` (a Runnable whose controller also
+  so dual-mode kinds like `Telo.Sequence` (a Runnable whose controller also
   implements `invoke()`) fit and the kernel calls whichever is appropriate.
   When in doubt, copy the slot from the standard module that does the same job
   (`telo module manifest`) rather than guessing a `use`.
@@ -373,7 +373,7 @@ docs page, which has run ahead of the runtime before.
   `replace(replace(x, '+', '-'), '/', '_')` and strip `=`.
 - Fixed-width chunking (e.g. RFC 2045 76-char lines):
   `join(range((size(s) + 75) / 76).map(i, slice(s, i * 76, int(min([(i + 1) * 76, size(s)])))), '\r\n')`.
-- `Run.Value` `bindings:` are the way to keep a long expression readable — named
+- `Telo.Value` `bindings:` are the way to keep a long expression readable — named
   intermediates, evaluated on demand, referenced bare by later bindings.
 
 ## Validation & testing

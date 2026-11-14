@@ -4,8 +4,8 @@ Typed [Gmail API v1](https://developers.google.com/gmail/api/reference/rest)
 operations for Telo manifests. A friendly `Http.Client` (`GmailClient`),
 Invocable operations covering the whole REST surface, and a small set of
 composition helpers that turn friendly fields into the base64url RFC 2822 string
-Gmail actually wants. Built on the `google/auth`, `http-client`, `multipart` and
-`run` modules — no controller code.
+Gmail actually wants. Built on the `google/auth`, `http-client` and `multipart`
+modules — no controller code.
 
 ## Import
 
@@ -113,7 +113,7 @@ The 429s that follow are retried automatically.
 Requests whose body is a stream cannot be replayed. The six `*Upload`
 operations frame a multipart body as a stream, so they disable retry on their
 own request: a transient failure surfaces as the real HTTP error. Retry those at
-the call site (a `Run.Sequence` step `retry:` re-invokes the whole operation and
+the call site (a `Telo.Sequence` step `retry:` re-invokes the whole operation and
 re-encodes). A credential refresh on 401 needs a replay too, so a refreshing
 credential that renews *before* expiry is the right pairing for uploads.
 
@@ -302,7 +302,7 @@ client: !ref Mail
 Send HTML with an inline logo and a PDF read from disk:
 
 ```yaml
-kind: Run.Sequence
+kind: Telo.Sequence
 metadata: { name: report }
 steps:
   - name: logo

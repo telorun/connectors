@@ -14,16 +14,15 @@ metadata:
     Media-upload variants raise the 5 MB JSON ceiling to Gmail's 35 MB message
     limit. BuildRawMessage and SendEmail compose an RFC 2822 message — plain
     text, HTML, attachments, inline images — from friendly fields;
-    DecodeMessageBody reads one back. Built on the google/auth, http-client,
-    multipart and run modules — no controller code.
+    DecodeMessageBody reads one back. Built on the google/auth, http-client and
+    multipart modules — no controller code.
   repository: https://github.com/telorun/connectors
   license: MIT
-requires: { telo: ">=0.88.0" }
+requires: { telo: ">=0.135.0" }
 imports:
   GoogleAuth: ../auth
   Http: oci://ghcr.io/telorun/http-client@0.25.0#sha256-bkm9YuaTBexTNH0QDyW8_O3h9Msg5vQZl9c62NIboLE
   Multipart: oci://ghcr.io/telorun/multipart@0.5.0#sha256-HYqZbfzXOf-YAU7TMyZEFFDBDxeMdyRAoNf4_lAj-Zo
-  Run: oci://ghcr.io/telorun/run@0.32.1#sha256-kV5CLg3aUn7XH49UnwIQ1f1UmnA7s1XGvJyX67GfJN8
 exports:
   kinds:
     - GmailClient
@@ -5478,7 +5477,7 @@ inputs:
 # limit and avoids inflating the payload by a third.
 # The framed body is a stream and cannot be replayed, so retry is disabled on this
 # request: a transient failure surfaces as the real HTTP error rather than
-# ERR_HTTP_BODY_NOT_REPLAYABLE. Retry at the call site — a Run.Sequence step
+# ERR_HTTP_BODY_NOT_REPLAYABLE. Retry at the call site — a Telo.Sequence step
 # `retry:` re-invokes the whole operation and re-encodes.
 kind: Telo.Definition
 metadata:
@@ -5554,7 +5553,7 @@ resources:
     throwOnHttpError: true
     retry:
       attempts: 0
-  - kind: Run.Sequence
+  - kind: Telo.Sequence
     metadata:
       name: seq
     inputType:
@@ -5610,7 +5609,7 @@ inputs:
 # Gmail's delivery scanning.
 # The framed body is a stream and cannot be replayed, so retry is disabled on this
 # request: a transient failure surfaces as the real HTTP error rather than
-# ERR_HTTP_BODY_NOT_REPLAYABLE. Retry at the call site — a Run.Sequence step
+# ERR_HTTP_BODY_NOT_REPLAYABLE. Retry at the call site — a Telo.Sequence step
 # `retry:` re-invokes the whole operation and re-encodes.
 kind: Telo.Definition
 metadata:
@@ -5693,7 +5692,7 @@ resources:
     throwOnHttpError: true
     retry:
       attempts: 0
-  - kind: Run.Sequence
+  - kind: Telo.Sequence
     metadata:
       name: seq
     inputType:
@@ -5757,7 +5756,7 @@ inputs:
 # Gmail's normal delivery processing.
 # The framed body is a stream and cannot be replayed, so retry is disabled on this
 # request: a transient failure surfaces as the real HTTP error rather than
-# ERR_HTTP_BODY_NOT_REPLAYABLE. Retry at the call site — a Run.Sequence step
+# ERR_HTTP_BODY_NOT_REPLAYABLE. Retry at the call site — a Telo.Sequence step
 # `retry:` re-invokes the whole operation and re-encodes.
 kind: Telo.Definition
 metadata:
@@ -5850,7 +5849,7 @@ resources:
     throwOnHttpError: true
     retry:
       attempts: 0
-  - kind: Run.Sequence
+  - kind: Telo.Sequence
     metadata:
       name: seq
     inputType:
@@ -5920,7 +5919,7 @@ inputs:
 # media-upload form of CreateDraft, for a draft with large attachments.
 # The framed body is a stream and cannot be replayed, so retry is disabled on this
 # request: a transient failure surfaces as the real HTTP error rather than
-# ERR_HTTP_BODY_NOT_REPLAYABLE. Retry at the call site — a Run.Sequence step
+# ERR_HTTP_BODY_NOT_REPLAYABLE. Retry at the call site — a Telo.Sequence step
 # `retry:` re-invokes the whole operation and re-encodes.
 kind: Telo.Definition
 metadata:
@@ -5995,7 +5994,7 @@ resources:
     throwOnHttpError: true
     retry:
       attempts: 0
-  - kind: Run.Sequence
+  - kind: Telo.Sequence
     metadata:
       name: seq
     inputType:
@@ -6049,7 +6048,7 @@ inputs:
 # media-upload form of UpdateDraft.
 # The framed body is a stream and cannot be replayed, so retry is disabled on this
 # request: a transient failure surfaces as the real HTTP error rather than
-# ERR_HTTP_BODY_NOT_REPLAYABLE. Retry at the call site — a Run.Sequence step
+# ERR_HTTP_BODY_NOT_REPLAYABLE. Retry at the call site — a Telo.Sequence step
 # `retry:` re-invokes the whole operation and re-encodes.
 kind: Telo.Definition
 metadata:
@@ -6127,7 +6126,7 @@ resources:
     throwOnHttpError: true
     retry:
       attempts: 0
-  - kind: Run.Sequence
+  - kind: Telo.Sequence
     metadata:
       name: seq
     inputType:
@@ -6185,7 +6184,7 @@ inputs:
 # uploaded message and send it.
 # The framed body is a stream and cannot be replayed, so retry is disabled on this
 # request: a transient failure surfaces as the real HTTP error rather than
-# ERR_HTTP_BODY_NOT_REPLAYABLE. Retry at the call site — a Run.Sequence step
+# ERR_HTTP_BODY_NOT_REPLAYABLE. Retry at the call site — a Telo.Sequence step
 # `retry:` re-invokes the whole operation and re-encodes.
 kind: Telo.Definition
 metadata:
@@ -6259,7 +6258,7 @@ resources:
     throwOnHttpError: true
     retry:
       attempts: 0
-  - kind: Run.Sequence
+  - kind: Telo.Sequence
     metadata:
       name: seq
     inputType:
@@ -6446,7 +6445,7 @@ outputType:
         type: string
         description: The RFC 2822 message itself, for inspection or for an upload operation.
 resources:
-  - kind: Run.Value
+  - kind: Telo.Value
     metadata:
       name: mime
     inputType:
@@ -6721,7 +6720,7 @@ resources:
     metadata:
       name: send
     client: !cel "self.client"
-  - kind: Run.Sequence
+  - kind: Telo.Sequence
     metadata:
       name: seq
     inputType:
@@ -6847,7 +6846,7 @@ outputType:
           `attachmentId` is set; small parts arrive inline in `data` instead.
         items: { type: object, additionalProperties: true }
 resources:
-  - kind: Run.Value
+  - kind: Telo.Value
     metadata:
       name: decode
     inputType:
@@ -6954,7 +6953,7 @@ outputType:
           The payload decoded as UTF-8. Meaningful for a text part; binary
           content will not survive the round trip, so use `base64` for that.
 resources:
-  - kind: Run.Value
+  - kind: Telo.Value
     metadata:
       name: decode
     inputType:
@@ -7012,7 +7011,7 @@ outputType:
         type: string
         description: Unpadded base64url, ready for `message.raw`.
 resources:
-  - kind: Run.Value
+  - kind: Telo.Value
     metadata:
       name: encode
     inputType:

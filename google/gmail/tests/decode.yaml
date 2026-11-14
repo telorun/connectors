@@ -13,7 +13,6 @@ metadata:
 # the attachment without mistaking either body part for one.
 imports:
   Gmail: ../
-  Run: oci://ghcr.io/telorun/run@0.26.0#sha256-ZhW56yiMCImqBh0wJ4mVaUvh5WuUVIaWErASFx--wCY
   Assert: oci://ghcr.io/telorun/assert@0.18.0#sha256-mSy7HGMq_UoQUvt4WbQCIO_uqXcRZwRlmROp6DfLDjY
 targets:
   - !ref test
@@ -27,7 +26,7 @@ metadata: { name: decodeB64 }
 kind: Gmail.EncodeBase64Url
 metadata: { name: encodeB64 }
 ---
-kind: Run.Sequence
+kind: Telo.Sequence
 metadata: { name: test }
 steps:
   - name: decodeMessage

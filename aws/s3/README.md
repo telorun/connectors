@@ -6,7 +6,7 @@ Read and write objects in an S3-compatible bucket from a Telo manifest. Targets 
 
 - **Declarative bucket binding** — `S3.Bucket` carries credentials and endpoint config once; every `Get`/`Put`/`List` references it by name.
 - **Stream-friendly** — `S3.Put` accepts byte streams (codecs compose), so large uploads don't buffer in memory.
-- **Listing as a first-class operation** — `S3.List` returns paginated keys for iteration in `Run.Sequence`.
+- **Listing as a first-class operation** — `S3.List` returns paginated keys for iteration in `Telo.Sequence`.
 - **A blob store** — `S3.Bucket` extends `Blob.Store`, so the storage-neutral `Blob.Put`/`Get`/`Head`/`Delete` run against a bucket, with streamed multipart uploads.
 - **Provider-agnostic** — point `S3.Bucket` at any S3-API endpoint and the rest of the manifest doesn't change.
 

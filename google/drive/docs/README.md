@@ -4,7 +4,7 @@ Typed [Google Drive API v3](https://developers.google.com/drive/api/reference/re
 operations for Telo manifests. A friendly `Http.Client` (`GoogleDriveClient`,
 authenticated by a static OAuth2 access token or a refreshing
 `Http.Credential`), plus Invocable operations covering the whole REST surface.
-Built on the `google/auth`, `http-client`, `multipart` and `run` modules — no
+Built on the `google/auth`, `http-client` and `multipart` modules — no
 controller code.
 
 ## Import
@@ -87,7 +87,7 @@ Google's usage-limit guidance asks for. `retryAttempts: 0` turns it off.
 Requests whose body is a stream cannot be replayed. `UploadFile` and
 `UpdateFileContent` frame a multipart body as a stream, so they disable retry
 on their own request: a transient failure surfaces as the real HTTP error.
-Retry those at the call site (a `Run.Sequence` step `retry:` re-invokes the whole
+Retry those at the call site (a `Telo.Sequence` step `retry:` re-invokes the whole
 operation and re-encodes). A credential refresh on 401 needs a replay too, so a
 refreshing credential that renews *before* expiry is the right pairing for
 uploads.
@@ -201,7 +201,7 @@ client: !ref Drive
 Upload a large binary read from disk, resumably:
 
 ```yaml
-kind: Run.Sequence
+kind: Telo.Sequence
 metadata: { name: ship }
 steps:
   - name: read

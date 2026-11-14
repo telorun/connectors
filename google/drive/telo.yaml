@@ -11,15 +11,14 @@ metadata:
     trash, ids, watch, labels), permissions, comments, replies, revisions,
     shared drives, changes, about, channels and apps. A RefreshAccessToken
     helper exchanges an OAuth2 refresh token for a fresh access token. Built on
-    the http-client, multipart and run modules — no controller code.
+    the http-client and multipart modules — no controller code.
   repository: https://github.com/telorun/connectors
   license: MIT
-requires: { telo: ">=0.88.0" }
+requires: { telo: ">=0.128.0" }
 imports:
   GoogleAuth: ../auth
   Http: oci://ghcr.io/telorun/http-client@0.25.0#sha256-bkm9YuaTBexTNH0QDyW8_O3h9Msg5vQZl9c62NIboLE
   Multipart: oci://ghcr.io/telorun/multipart@0.5.0#sha256-HYqZbfzXOf-YAU7TMyZEFFDBDxeMdyRAoNf4_lAj-Zo
-  Run: oci://ghcr.io/telorun/run@0.32.1#sha256-kV5CLg3aUn7XH49UnwIQ1f1UmnA7s1XGvJyX67GfJN8
 exports:
   kinds:
     - GoogleDriveClient
@@ -1194,7 +1193,7 @@ inputs:
 # The framed body is a stream, so it cannot be replayed: retry is disabled on
 # this request (a transient failure surfaces as the real HTTP error rather than
 # ERR_HTTP_BODY_NOT_REPLAYABLE). Retry at the call site if needed — a
-# Run.Sequence step `retry:` re-invokes the whole operation and re-encodes.
+# Telo.Sequence step `retry:` re-invokes the whole operation and re-encodes.
 kind: Telo.Definition
 metadata:
   name: UploadFile
@@ -1277,7 +1276,7 @@ resources:
     throwOnHttpError: true
     retry:
       attempts: 0
-  - kind: Run.Sequence
+  - kind: Telo.Sequence
     metadata:
       name: seq
     inputType:
@@ -1436,7 +1435,7 @@ resources:
     throwOnHttpError: true
     retry:
       attempts: 0
-  - kind: Run.Sequence
+  - kind: Telo.Sequence
     metadata:
       name: seq
     inputType:
@@ -1815,7 +1814,7 @@ resources:
     client: !cel "self.client"
     throwOnHttpError: true
     success: [200, 201, 308]
-  - kind: Run.Sequence
+  - kind: Telo.Sequence
     metadata:
       name: seq
     inputType:

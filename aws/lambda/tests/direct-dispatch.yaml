@@ -6,14 +6,13 @@ kind: Telo.Application
 metadata: { name: LambdaDirectDispatchTest, version: 1.0.0 }
 imports:
   Lambda: ..
-  Run: oci://ghcr.io/telorun/run@0.26.0#sha256-ZhW56yiMCImqBh0wJ4mVaUvh5WuUVIaWErASFx--wCY
   Assert: oci://ghcr.io/telorun/assert@0.18.0#sha256-mSy7HGMq_UoQUvt4WbQCIO_uqXcRZwRlmROp6DfLDjY
 targets:
   - !ref TestDirectDispatch
 ---
 # User-supplied invocable. Receives the Direct-resolved inputs and returns
 # a greeting payload.
-kind: Run.Value
+kind: Telo.Value
 metadata: { name: Greet }
 inputType:
   kind: Telo.JsonSchema
@@ -41,10 +40,10 @@ metadata: { name: main }
 handlers:
   - !ref Greeter
 ---
-# Run.Sequence drives the test: call the Function with a synthetic payload
+# Telo.Sequence drives the test: call the Function with a synthetic payload
 # (simulates `kernel.invoke` from a managed-runtime bootstrap), assert the
 # returned message.
-kind: Run.Sequence
+kind: Telo.Sequence
 metadata: { name: TestDirectDispatch }
 steps:
   - name: InvokeFunction

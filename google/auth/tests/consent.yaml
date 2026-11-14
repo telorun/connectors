@@ -17,7 +17,6 @@ imports:
   OAuth: oci://ghcr.io/telorun/oauth-client@0.8.0#sha256-wREbvf_KoYtM7gJYN8nA5WmYuC9iN7aibaklxQVt3to
   Mem: oci://ghcr.io/telorun/kv-store-memory@0.7.0#sha256-i1Nen64mCl25XONkoBGRqiTptxBSBA8zBcW6om9autg
   Server: oci://ghcr.io/telorun/http-server@0.44.0#sha256-nW6yftlrG4eHd0e511nB8ArmN04Y2DKEkwRy5BaSldI
-  Run: oci://ghcr.io/telorun/run@0.26.0#sha256-ZhW56yiMCImqBh0wJ4mVaUvh5WuUVIaWErASFx--wCY
   Assert: oci://ghcr.io/telorun/assert@0.18.0#sha256-mSy7HGMq_UoQUvt4WbQCIO_uqXcRZwRlmROp6DfLDjY
 ports:
   http:
@@ -84,7 +83,7 @@ source: !ref hintedTokens
 # `state` and `code_challenge` are freshly generated per call, so they are
 # dropped and the rest compared exactly; sorting removes any dependence on the
 # order oauth-client happens to append parameters in.
-kind: Run.Value
+kind: Telo.Value
 metadata: { name: queryOf }
 inputType:
   kind: Telo.JsonSchema
@@ -101,7 +100,7 @@ value:
     sort(split(size(parts) > 1 ? parts[1] : '', '&')
       .filter(p, !p.startsWith('state=') && !p.startsWith('code_challenge=')))
 ---
-kind: Run.Value
+kind: Telo.Value
 metadata: { name: echoAuth }
 inputType:
   kind: Telo.JsonSchema
@@ -135,7 +134,7 @@ routes:
               token_type: Bearer
               expires_in: 3600
 ---
-kind: Run.Sequence
+kind: Telo.Sequence
 metadata: { name: test }
 with:
   - kind: Server.Server

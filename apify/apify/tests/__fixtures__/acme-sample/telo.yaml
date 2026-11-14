@@ -257,7 +257,7 @@ resources:
           waitForFinish: 60
     outputs:
       run: !cel "steps.poll.result.body.data"
-  - kind: Flow.Sequence
+  - kind: Telo.Sequence
     metadata:
       name: seq
     inputType:

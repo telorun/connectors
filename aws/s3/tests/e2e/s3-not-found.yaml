@@ -11,7 +11,6 @@ metadata:
     the docker-compose `storage` service; override via the `S3_*` env vars.
 imports:
   S3: ../../
-  Run: oci://ghcr.io/telorun/run@0.22.0#sha256-FeYAHs_krf06Dk68n5Mtjp0wLSfOvDLslREHP54BiJM
   Assert: oci://ghcr.io/telorun/assert@0.16.0#sha256-0a8uEwCZG2ElZ7CxeDYfL3gbDFLj-92_jHEOeJbI6m0
 variables:
   s3Endpoint:
@@ -51,7 +50,7 @@ kind: S3.Get
 metadata: { name: GetObject }
 bucketRef: !ref Store
 ---
-kind: Run.Sequence
+kind: Telo.Sequence
 metadata: { name: CheckNotFound }
 steps:
   - name: attempt

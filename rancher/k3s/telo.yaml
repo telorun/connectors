@@ -12,10 +12,9 @@ metadata:
     a changed version or a changed rendered config triggers work. Every k3s
     setting is a schema field, so `telo check` rejects a misspelled flag or a
     control-plane option placed on an agent.
-requires: { telo: ">=0.89.0" }
+requires: { telo: ">=0.128.0" }
 imports:
   Shell: oci://ghcr.io/telorun/shell@0.13.2#sha256-Kn6rjKno79QZjBSMbjgQNNEAeg4AR7bPnchryZ4sOYk
-  Run: oci://ghcr.io/telorun/run@0.32.1#sha256-kV5CLg3aUn7XH49UnwIQ1f1UmnA7s1XGvJyX67GfJN8
 exports:
   kinds:
     - Node
@@ -403,7 +402,7 @@ resources:
       name: sh
     host: !cel "self.host"
 
-  - kind: Run.Sequence
+  - kind: Telo.Sequence
     metadata:
       name: converge
     steps:
@@ -591,7 +590,7 @@ resources:
       name: sh
     host: !cel "self.host"
 
-  - kind: Run.Sequence
+  - kind: Telo.Sequence
     metadata:
       name: converge
     steps:

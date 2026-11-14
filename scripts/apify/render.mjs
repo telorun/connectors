@@ -250,7 +250,7 @@ export function renderManifest({ id, act, build, version, coreImport = "../apify
         outputs: { run: cel("steps.poll.result.body.data") },
       },
       {
-        kind: "Flow.Sequence",
+        kind: "Telo.Sequence",
         metadata: { name: "seq" },
         inputType: {
           kind: "Telo.JsonSchema",
@@ -376,7 +376,7 @@ export function renderDocs({ id, act, build, version, deprecated }) {
     "client: !ref apify",
     "maxTotalChargeUsd: 1     # optional: timeout, memory, maxItems, maxTotalChargeUsd",
     "---",
-    "kind: Run.Sequence",
+    "kind: Telo.Sequence",
     "metadata: { name: main }",
     "steps:",
     "  - name: scrape",

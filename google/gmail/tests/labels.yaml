@@ -8,7 +8,6 @@ metadata:
 imports:
   Gmail: ../
   Stub: ./__fixtures__/gmail-stub.yaml
-  Run: oci://ghcr.io/telorun/run@0.26.0#sha256-ZhW56yiMCImqBh0wJ4mVaUvh5WuUVIaWErASFx--wCY
   Assert: oci://ghcr.io/telorun/assert@0.18.0#sha256-mSy7HGMq_UoQUvt4WbQCIO_uqXcRZwRlmROp6DfLDjY
   Server: oci://ghcr.io/telorun/http-server@0.44.0#sha256-nW6yftlrG4eHd0e511nB8ArmN04Y2DKEkwRy5BaSldI
 ports:
@@ -51,7 +50,7 @@ kind: Gmail.DeleteLabel
 metadata: { name: deleteLabel }
 client: !ref stub
 ---
-kind: Run.Sequence
+kind: Telo.Sequence
 metadata: { name: test }
 # The stub is mounted inline in the sequence scope, so it starts
 # before the steps and is torn down when they finish.
