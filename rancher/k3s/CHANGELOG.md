@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.4.2 - 2026-11-14
+### Fixed
+* Declare the minimum telo runtime (requires.telo >=0.89.0).
+
 ## 0.4.1 - 2026-11-03
 ### Fixed
 * Rename the hyphenated `!ref node-a` / `!ref node-b` in the Server and Agent examples to `nodeA` / `nodeB`; newer telo CLIs reject hyphens in references. Examples and docs only, no change to behavior.

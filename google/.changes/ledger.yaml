@@ -3,27 +3,27 @@
 # `telo release verify` reconciles it against the registry.
 modules:
   auth:
-    version: 0.2.1
+    version: 0.2.2
     registry: oci://ghcr.io/telorun/google
     layers:
-      manifest: sha256-OyuBDOM9IgYID70bRKS3sF2MIAYFtLR3naDqxOEbSoE
+      manifest: sha256-qR5Yogt1d9ayKD2wGj_Vn4gTRwbhtZwCcvOx8ClkCfw
   drive:
-    version: 0.3.1
+    version: 0.3.2
     registry: oci://ghcr.io/telorun/google
     layers:
-      manifest: sha256-yf_gEmR0UdqfuqIwQaabHGwDlecSm2fXNAomxi0RvFI
+      manifest: sha256-ICNHFswW_FVa0RpeDE9OyZNZ6-ZwUHExhz9Vpe8x4fE
   gmail:
-    version: 0.2.1
+    version: 0.2.2
     registry: oci://ghcr.io/telorun/google
     layers:
-      manifest: sha256-HAD45TS-ah_5Lne5gOI1pXvAvPnkKPwwnsQgVjRZSXg
+      manifest: sha256-hs1Cila40SRdEAOWF-_tHw6QIgYm0a_39gquhxh8ye4
   sheets:
-    version: 0.5.1
+    version: 0.5.2
     registry: oci://ghcr.io/telorun/google
     layers:
-      manifest: sha256-Mp_C7oSrXbKg_lHif198s_gqPZdbBHWFxAqjaWKCAgs
+      manifest: sha256-MztXsK5JEjwSRf02KnOcZF2fqYGitqewWEZd_15X5ks
   sign-in:
-    version: 0.1.1
+    version: 0.1.2
     registry: oci://ghcr.io/telorun/google
     layers:
-      manifest: sha256-VA7q2ytC-sLXdlWGki0_tbz79Rvb4nVD4QZuPYMWfTM
+      manifest: sha256-U1If5Wrx6D5PGxVsYH8I4MM-eVkU_K9BEb4C2h0lChw

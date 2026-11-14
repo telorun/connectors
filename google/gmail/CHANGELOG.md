@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.2.2 - 2026-11-14
+### Fixed
+* Declare the minimum telo runtime (requires.telo >=0.88.0), and pass GoogleClient's retry initialDelay and maxDelay to http-client as CEL durations, which the current Telo.Duration schema requires.
+
 ## 0.2.1 - 2026-11-03
 ### Fixed
 * Templates name their internal resources with literals and dispatch with '!ref', replacing the deprecated computed names and '{ kind, name }' invoke form that current Telo rejects at runtime. No change to the public kinds.

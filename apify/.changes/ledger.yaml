@@ -3,7 +3,7 @@
 # `telo release verify` reconciles it against the registry.
 modules:
   apify:
-    version: 0.1.0
+    version: 0.1.1
     registry: oci://ghcr.io/telorun/apify
     layers:
-      manifest: sha256-u0XJxj-w5u58N-6diZUT0F69OH2Kt-7vfh7zk3V3B1E
+      manifest: sha256-Fu0dg2zhm_HZ0QuPpQFW7w1Jtil8ikKKb4X8NP-ykSM
