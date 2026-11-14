@@ -11,7 +11,6 @@ metadata:
 imports:
   Yt: ../
   Server: oci://ghcr.io/telorun/http-server@0.44.0#sha256-nW6yftlrG4eHd0e511nB8ArmN04Y2DKEkwRy5BaSldI
-  Run: oci://ghcr.io/telorun/run@0.26.0#sha256-ZhW56yiMCImqBh0wJ4mVaUvh5WuUVIaWErASFx--wCY
   Assert: oci://ghcr.io/telorun/assert@0.18.0#sha256-mSy7HGMq_UoQUvt4WbQCIO_uqXcRZwRlmROp6DfLDjY
 targets:
   - !ref testOperations
@@ -49,7 +48,7 @@ client: !ref stub
 ---
 # Generic echo handler: returns the request context it is fed, so a route can
 # reflect what the operation actually sent back into the response body.
-kind: Run.Value
+kind: Telo.Value
 metadata: { name: echo }
 inputType:
   kind: Telo.JsonSchema
@@ -166,7 +165,7 @@ routes:
               received:
                 body: !cel "result.body"
 ---
-kind: Run.Sequence
+kind: Telo.Sequence
 metadata: { name: testOperations }
 # The stub server is declared inline in the sequence scope so it starts before
 # the steps and is torn down when they finish. Scope entries are inline resource

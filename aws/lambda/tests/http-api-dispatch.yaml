@@ -7,12 +7,11 @@ kind: Telo.Application
 metadata: { name: LambdaHttpApiDispatchTest, version: 1.0.0 }
 imports:
   Lambda: ..
-  Run: oci://ghcr.io/telorun/run@0.26.0#sha256-ZhW56yiMCImqBh0wJ4mVaUvh5WuUVIaWErASFx--wCY
   Assert: oci://ghcr.io/telorun/assert@0.18.0#sha256-mSy7HGMq_UoQUvt4WbQCIO_uqXcRZwRlmROp6DfLDjY
 targets:
   - !ref TestHttpApiDispatch
 ---
-kind: Run.Value
+kind: Telo.Value
 metadata: { name: GreetById }
 inputType:
   kind: Telo.JsonSchema
@@ -44,7 +43,7 @@ metadata: { name: main }
 handlers:
   - !ref Web
 ---
-kind: Run.Sequence
+kind: Telo.Sequence
 metadata: { name: TestHttpApiDispatch }
 steps:
   - name: InvokeFunction

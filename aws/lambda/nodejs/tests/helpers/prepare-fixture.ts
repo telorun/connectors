@@ -25,12 +25,11 @@ const LAMBDA_MODULE_DIR = resolve(LAMBDA_PKG_DIR, "..");
 
 /** Sibling modules the fixtures import, by digest-pinned OCI ref. The kernel
  *  resolves these itself on cold boot inside the container (which has a
- *  network, same as CI), so nothing here is vendored: `run` ships its
- *  controller as a `pkg:telo/local/js` bundle inside its own OCI layers, which
- *  a copied `telo.yaml` alone would leave behind. Only `@telorun/lambda` — the
+ *  network, same as CI), so nothing here is vendored: a published module ships
+ *  its controller inside its own OCI layers, which a copied `telo.yaml` alone
+ *  would leave behind. Only `@telorun/lambda` — the
  *  package under test, unpublished at this version — is sourced locally. */
 const OCI_MODULES = {
-  run: "oci://ghcr.io/telorun/run@0.26.0#sha256-ZhW56yiMCImqBh0wJ4mVaUvh5WuUVIaWErASFx--wCY",
   type: "oci://ghcr.io/telorun/type@0.8.0#sha256-z56gxs4HbdWHlUWWvLRFFHPy5wX52SU5A1Fo61s20-g",
 } as const;
 
@@ -61,7 +60,6 @@ function resolveKernelVersion(): string {
  *  copied local module directory; the siblings are the OCI refs above. */
 export const MODULE_SOURCES = {
   lambda: "./modules/lambda",
-  run: OCI_MODULES.run,
   type: OCI_MODULES.type,
 } as const;
 

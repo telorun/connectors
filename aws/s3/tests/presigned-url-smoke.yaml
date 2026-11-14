@@ -13,7 +13,6 @@ metadata:
 imports:
   S3: ../
   JS: oci://ghcr.io/telorun/javascript@0.12.3#sha256-iUQQQDhaz0vY_ILjBbmwieUFhgVG8HXtPq-bwtcDWdA
-  Run: oci://ghcr.io/telorun/run@0.26.0#sha256-ZhW56yiMCImqBh0wJ4mVaUvh5WuUVIaWErASFx--wCY
   Assert: oci://ghcr.io/telorun/assert@0.18.0#sha256-mSy7HGMq_UoQUvt4WbQCIO_uqXcRZwRlmROp6DfLDjY
 # The two negative cases feed their invalid values through variables: the
 # analyzer statically rejects an out-of-contract literal at a dispatch site, but
@@ -61,7 +60,7 @@ code: |
     };
   }
 ---
-kind: Run.Sequence
+kind: Telo.Sequence
 metadata: { name: TestPresign }
 steps:
   - name: Sign
@@ -110,7 +109,7 @@ steps:
           expires: { const: "60" }
         required: [ expires ]
 ---
-kind: Run.Sequence
+kind: Telo.Sequence
 metadata: { name: TestPresignPut }
 steps:
   - name: Sign
@@ -138,7 +137,7 @@ steps:
           signedHeaders: { const: content-type;host }
         required: [ path, hasSignature, signedHeaders ]
 ---
-kind: Run.Sequence
+kind: Telo.Sequence
 metadata: { name: TestContentTypeOnGet }
 steps:
   - name: TrySign
@@ -160,7 +159,7 @@ steps:
               code: { const: ERR_INVALID_INPUT }
             required: [ code ]
 ---
-kind: Run.Sequence
+kind: Telo.Sequence
 metadata: { name: TestEmptyKey }
 steps:
   - name: TrySign
@@ -185,7 +184,7 @@ steps:
               code: { const: ERR_INPUT_INVALID }
             required: [ code ]
 ---
-kind: Run.Sequence
+kind: Telo.Sequence
 metadata: { name: TestExpiryOutOfRange }
 steps:
   - name: TrySign

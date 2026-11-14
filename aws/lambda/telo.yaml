@@ -90,7 +90,7 @@ schema:
           handler:
             x-telo-topology-role: handler
             # Telo.Executable covers either capability, so dual-mode kinds like
-            # Run.Sequence (Runnable whose controller also implements invoke())
+            # Telo.Sequence (Runnable whose controller also implements invoke())
             # fit — the kernel calls whichever is appropriate.
             x-telo-ref:
               kind: Telo.Executable

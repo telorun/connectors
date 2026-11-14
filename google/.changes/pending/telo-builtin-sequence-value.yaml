@@ -1,0 +1,3 @@
+modules:
+  sign-in: Fixed
+body: "Use the built-in Telo.Sequence in place of the deprecated Run.Sequence, and drop the run import. Behavior is unchanged."

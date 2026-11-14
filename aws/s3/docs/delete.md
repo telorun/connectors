@@ -7,7 +7,7 @@ sidebar_label: S3.Delete
 
 > Examples below assume this module is imported with an `imports:` entry under alias `S3`. Kind references (`S3.Delete`, `S3.Bucket`) follow that alias — if you import the module under a different name, substitute your alias accordingly.
 
-Removes an object from a bucket declared as `S3.Bucket`. Invocable — invoke per request or inside a `Run.Sequence` step. Delete is idempotent: removing a key that does not exist still succeeds.
+Removes an object from a bucket declared as `S3.Bucket`. Invocable — invoke per request or inside a `Telo.Sequence` step. Delete is idempotent: removing a key that does not exist still succeeds.
 
 ---
 

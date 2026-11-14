@@ -162,7 +162,7 @@ Add a new tab via `BatchUpdateSpreadsheet`:
       - addSheet: { properties: { title: "July" } }
 ```
 
-Refresh the access token, then read (in a `Run.Sequence`):
+Refresh the access token, then read (in a `Telo.Sequence`):
 
 ```yaml
 - name: Refresh

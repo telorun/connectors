@@ -70,7 +70,7 @@ kind: Apify.RunActorSync
 metadata: { name: scrape }
 client: !ref apify
 ---
-kind: Run.Sequence
+kind: Telo.Sequence
 metadata: { name: main }
 steps:
   - name: scrape

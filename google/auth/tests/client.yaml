@@ -13,7 +13,6 @@ imports:
   GoogleAuth: ../
   Http: oci://ghcr.io/telorun/http-client@0.22.0#sha256-UyC8nQDnKHXyPpPPHC7TS8MicesLsgDUKWBYObf5oQ4
   Server: oci://ghcr.io/telorun/http-server@0.44.0#sha256-nW6yftlrG4eHd0e511nB8ArmN04Y2DKEkwRy5BaSldI
-  Run: oci://ghcr.io/telorun/run@0.26.0#sha256-ZhW56yiMCImqBh0wJ4mVaUvh5WuUVIaWErASFx--wCY
   Assert: oci://ghcr.io/telorun/assert@0.18.0#sha256-mSy7HGMq_UoQUvt4WbQCIO_uqXcRZwRlmROp6DfLDjY
 ports:
   http:
@@ -51,7 +50,7 @@ client: !ref credClient
 throwOnHttpError: true
 inputs: { url: /ping, method: GET }
 ---
-kind: Run.Value
+kind: Telo.Value
 metadata: { name: echo }
 inputType:
   kind: Telo.JsonSchema
@@ -86,7 +85,7 @@ expect:
     - code: SCHEMA_VIOLATION
       message: "must match exactly one schema in oneOf"
 ---
-kind: Run.Sequence
+kind: Telo.Sequence
 metadata: { name: test }
 with:
   - kind: Server.Server

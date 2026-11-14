@@ -18,7 +18,6 @@ imports:
   GoogleAuth: ../auth
   OAuth: oci://ghcr.io/telorun/oauth-client@0.12.3#sha256-iPpBFi79VXGMlMby_7yTBD6rBv0z0bO0K0LwH8RpjQo
   Http: oci://ghcr.io/telorun/http-server@0.44.0#sha256-nW6yftlrG4eHd0e511nB8ArmN04Y2DKEkwRy5BaSldI
-  Run: oci://ghcr.io/telorun/run@0.32.1#sha256-kV5CLg3aUn7XH49UnwIQ1f1UmnA7s1XGvJyX67GfJN8
 # The address Google sends the browser back to. It lives in this library rather
 # than in google/auth because an address need must be forwarded by every
 # importer: on google/auth it would be forced on every Gmail, Drive and Sheets
@@ -96,7 +95,7 @@ resources:
   # `inputs` are evaluated by the server per request, where `self` is not in
   # scope. Only `self` and the `site` need go into it — never the request — so a
   # forged Host header cannot move where Google sends the code.
-  - kind: Run.Sequence
+  - kind: Telo.Sequence
     metadata: { name: begin }
     steps:
       - name: authorize

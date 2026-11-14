@@ -37,7 +37,6 @@ imports:
   Multipart: oci://ghcr.io/telorun/multipart@0.2.2#sha256-RCqiT4UMwrVeRq1hU1xxkysRSxX4NC5DzsdrbbEBxv8
   Ptc: oci://ghcr.io/telorun/plain-text-codec@0.10.4#sha256-Z1My-TDPdE13s63NSi5rT0Qg0CZf-7tAXbJBRcBGCOQ
   Server: oci://ghcr.io/telorun/http-server@0.44.0#sha256-nW6yftlrG4eHd0e511nB8ArmN04Y2DKEkwRy5BaSldI
-  Run: oci://ghcr.io/telorun/run@0.26.0#sha256-ZhW56yiMCImqBh0wJ4mVaUvh5WuUVIaWErASFx--wCY
 exports:
   resources:
     - api
@@ -47,7 +46,7 @@ exports:
 # Routes forward `body` only when the request has a Content-Type: a bodyless
 # POST reaches the handler with `request.body` present but undefined, which
 # `orValue` cannot default.
-kind: Run.Value
+kind: Telo.Value
 metadata: { name: echo }
 inputType:
   kind: Telo.JsonSchema
@@ -77,7 +76,7 @@ metadata: { name: collect }
 ---
 # Media-upload handler: splits the multipart/related body the operation framed
 # back into its metadata + content parts.
-kind: Run.Sequence
+kind: Telo.Sequence
 metadata: { name: multipartUpload }
 inputType:
   kind: Telo.JsonSchema
@@ -109,7 +108,7 @@ outputs:
 ---
 # OAuth token handler: collects the form-encoded body so a test can check the
 # grant RefreshAccessToken builds.
-kind: Run.Sequence
+kind: Telo.Sequence
 metadata: { name: tokenHandler }
 inputType:
   kind: Telo.JsonSchema

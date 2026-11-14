@@ -33,7 +33,7 @@ metadata: { name: scrape }
 client: !ref apify
 maxTotalChargeUsd: 1     # optional: timeout, memory, maxItems, maxTotalChargeUsd
 ---
-kind: Run.Sequence
+kind: Telo.Sequence
 metadata: { name: main }
 steps:
   - name: scrape

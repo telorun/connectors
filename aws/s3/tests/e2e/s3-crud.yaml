@@ -10,7 +10,6 @@ metadata:
     docker-compose `storage` service; override via the `S3_*` env vars.
 imports:
   S3: ../../
-  Run: oci://ghcr.io/telorun/run@0.22.0#sha256-FeYAHs_krf06Dk68n5Mtjp0wLSfOvDLslREHP54BiJM
   Assert: oci://ghcr.io/telorun/assert@0.16.0#sha256-0a8uEwCZG2ElZ7CxeDYfL3gbDFLj-92_jHEOeJbI6m0
   PlainText: oci://ghcr.io/telorun/plain-text-codec@0.10.0#sha256-XFk43aL3kJ13u9QMjWKGMRt6wEqojl6xhszxInqrbXY
 variables:
@@ -67,7 +66,7 @@ kind: S3.Delete
 metadata: { name: DeleteObject }
 bucketRef: !ref Store
 ---
-kind: Run.Sequence
+kind: Telo.Sequence
 metadata:
   name: Lifecycle
 steps:

@@ -1,9 +1,9 @@
 import { MODULE_SOURCES } from "./prepare-fixture.js";
 
 /** Minimal Telo.Application fixtures, one per handler kind. Each imports the
- *  Lambda / Run / Type modules by relative path from the LIVE workspace copy
+ *  Lambda / Type modules by relative path from the LIVE workspace copy
  *  `prepare-fixture` lays down in the fixture (no published-version pins to
- *  maintain) plus a small `Run.Value` handler so the E2E test exercises
+ *  maintain) plus a small `Telo.Value` handler so the E2E test exercises
  *  Function → handler-kind → user invocable → outcome rendering end to end. */
 
 export const directManifest = `\
@@ -13,11 +13,10 @@ metadata:
   version: 1.0.0
 imports:
   Lambda: ${MODULE_SOURCES.lambda}
-  Run: ${MODULE_SOURCES.run}
   Type: ${MODULE_SOURCES.type}
 targets: [!ref main]
 ---
-kind: Run.Value
+kind: Telo.Value
 metadata: { name: Echo }
 inputType:
   kind: Type.JsonSchema
@@ -51,11 +50,10 @@ metadata:
   version: 1.0.0
 imports:
   Lambda: ${MODULE_SOURCES.lambda}
-  Run: ${MODULE_SOURCES.run}
   Type: ${MODULE_SOURCES.type}
 targets: [!ref main]
 ---
-kind: Run.Value
+kind: Telo.Value
 metadata: { name: GreetById }
 inputType:
   kind: Type.JsonSchema
@@ -102,11 +100,10 @@ metadata:
   version: 1.0.0
 imports:
   Lambda: ${MODULE_SOURCES.lambda}
-  Run: ${MODULE_SOURCES.run}
   Type: ${MODULE_SOURCES.type}
 targets: [!ref main]
 ---
-kind: Run.Value
+kind: Telo.Value
 metadata: { name: ProcessRecords }
 inputType:
   kind: Type.JsonSchema

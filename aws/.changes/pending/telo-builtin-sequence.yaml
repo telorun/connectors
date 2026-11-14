@@ -1,0 +1,3 @@
+modules:
+  lambda: Fixed
+body: "Refer to the built-in Telo.Sequence rather than the deprecated Run.Sequence in the Direct handler comment. Behavior is unchanged."
