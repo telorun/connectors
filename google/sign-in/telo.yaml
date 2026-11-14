@@ -13,7 +13,7 @@ metadata:
   license: MIT
 requires:
   # `Telo.PublicUrl` is a kernel-declared need type from 0.118.0.
-  telo: ">=0.118.0"
+  telo: ">=0.129.0"
 imports:
   GoogleAuth: ../auth
   OAuth: oci://ghcr.io/telorun/oauth-client@0.12.3#sha256-iPpBFi79VXGMlMby_7yTBD6rBv0z0bO0K0LwH8RpjQo
@@ -82,7 +82,7 @@ schema:
       description: >-
         Where the browser is sent once the grant is stored. Defaults to /.
     pendingTtl:
-      type: string
+      x-telo-type: { name: Telo.Duration, minimum: 0s }
       x-telo-eval: compile
       description: >-
         How long the user has to finish consenting before the callback is

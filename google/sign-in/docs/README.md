@@ -113,7 +113,7 @@ must be `https`.
 | `source` | **Required.** The `GoogleTokenSource` the grant is stored in. |
 | `path` | Where sign-in starts; the callback is `<path>/callback`. Defaults to `/auth/google`. |
 | `returnTo` | Where the browser goes once the grant is stored. Defaults to `/`. |
-| `pendingTtl` | How long the user has to finish consenting. Defaults to oauth-client's `10m`. |
+| `pendingTtl` | How long the user has to finish consenting, as a duration (`10m`, `90s`). Defaults to oauth-client's `10m`. |
 
 ## `redirect_uri_mismatch`
 
