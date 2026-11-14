@@ -3,10 +3,10 @@
 # `telo release verify` reconciles it against the registry.
 modules:
   lambda:
-    version: 0.13.1
+    version: 0.13.2
     registry: oci://ghcr.io/telorun/aws
     layers:
-      manifest: sha256-q9GH6f1u4zAEz6ep7BscXlwq0EqNzECBmfdI5GfMFDs
+      manifest: sha256-aX3cGFlfoF0G6Qd6xbjU32WWFYQK4XbDDYiIL-x5-R8
   s3:
     version: 0.9.1
     registry: oci://ghcr.io/telorun/aws

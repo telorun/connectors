@@ -1,3 +1,0 @@
-modules:
-  k3s: Added
-body: "Use the built-in Telo.Sequence in place of the deprecated Run.Sequence, and drop the run import. Behavior is unchanged, but the built-in needs a newer runtime: requires.telo rises to >=0.128.0."

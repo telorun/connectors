@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.5.0 - 2026-11-14
+### Added
+* Use the built-in Telo.Sequence in place of the deprecated Run.Sequence, and drop the run import. Behavior is unchanged, but the built-in needs a newer runtime: requires.telo rises to >=0.128.0.
+
 ## 0.4.2 - 2026-11-14
 ### Fixed
 * Declare the minimum telo runtime (requires.telo >=0.89.0).

@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.13.2 - 2026-11-14
+### Fixed
+* Refer to the built-in Telo.Sequence rather than the deprecated Run.Sequence in the Direct handler comment. Behavior is unchanged.
+
 ## 0.13.0 - 2026-11-03
 ### Added
 * The shipped bootstraps now invoke the Lambda.Function named `main` (camelCase, per Telo's naming rule for resource instances) instead of `Main`; rename your Function resource and its `targets` reference from `Main` to `main`.

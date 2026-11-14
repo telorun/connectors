@@ -3,7 +3,7 @@
 # `telo release verify` reconciles it against the registry.
 modules:
   k3s:
-    version: 0.4.2
+    version: 0.5.0
     registry: oci://ghcr.io/telorun/rancher
     layers:
-      manifest: sha256-CfCq_T0QVhW5sQY00Exz3yAHkYkuvxPpaV4_8utKTAU
+      manifest: sha256-o9PGPRUDD4sIHjue0NsFONojXvXxMfFRX5ic3nzCsxk
