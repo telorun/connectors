@@ -2,7 +2,7 @@
 
 # Instagram Comments Scraper
 
-The Apify actor [`apify/instagram-comment-scraper`](https://apify.com/apify/instagram-comment-scraper) as typed Telo kinds, generated from its default build **0.0.654** (module version **0.1.0**). Runs use whatever build the actor has as default when they start, so they keep working as Apify retires old builds; the input types below are refreshed weekly and can lag an actor that changed its input since.
+The Apify actor [`apify/instagram-comment-scraper`](https://apify.com/apify/instagram-comment-scraper) as typed Telo kinds, generated from its default build **0.0.662** (module version **0.1.0**). Runs use whatever build the actor has as default when they start, so they keep working as Apify retires old builds; the input types below are refreshed weekly and can lag an actor that changed its input since.
 
 Scrape Instagram comments from posts or reels. Just add one or more Instagram post URLs to get comment text, post and comment IDs, replies, timestamp, owner IDs, usernames, profile pics. Export scraped datasets, run the scraper via API, schedule and monitor runs or integrate with other tools.
 

@@ -2,7 +2,7 @@
 
 # Facebook Photos Scraper
 
-The Apify actor [`apify/facebook-photos-scraper`](https://apify.com/apify/facebook-photos-scraper) as typed Telo kinds, generated from its default build **0.0.355** (module version **0.1.0**). Runs use whatever build the actor has as default when they start, so they keep working as Apify retires old builds; the input types below are refreshed weekly and can lag an actor that changed its input since.
+The Apify actor [`apify/facebook-photos-scraper`](https://apify.com/apify/facebook-photos-scraper) as typed Telo kinds, generated from its default build **0.0.359** (module version **0.1.0**). Runs use whatever build the actor has as default when they start, so they keep working as Apify retires old builds; the input types below are refreshed weekly and can lag an actor that changed its input since.
 
 Extract data from one or multiple Facebook images. Get image ID, Facebook photo URL, image URL, OCR text, and more. Download the data in JSON, CSV, and Excel and use it in apps, spreadsheets, and reports.
 

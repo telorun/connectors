@@ -2,7 +2,7 @@
 
 # Linkedin Post Scraper ✅ No cookies
 
-The Apify actor [`supreme_coder/linkedin-post`](https://apify.com/supreme_coder/linkedin-post) as typed Telo kinds, generated from its default build **1.3.63** (module version **1.4.0**). Runs use whatever build the actor has as default when they start, so they keep working as Apify retires old builds; the input types below are refreshed weekly and can lag an actor that changed its input since.
+The Apify actor [`supreme_coder/linkedin-post`](https://apify.com/supreme_coder/linkedin-post) as typed Telo kinds, generated from its default build **1.3.64** (module version **1.4.0**). Runs use whatever build the actor has as default when they start, so they keep working as Apify retires old builds; the input types below are refreshed weekly and can lag an actor that changed its input since.
 
 Scrape unlimited Linkedin posts without risking your Linkedin account. Live data, Super fast scraping at affordable cost. High success rate
 

@@ -2,7 +2,7 @@
 
 # TikTok Comments Scraper
 
-The Apify actor [`clockworks/tiktok-comments-scraper`](https://apify.com/clockworks/tiktok-comments-scraper) as typed Telo kinds, generated from its default build **0.0.496** (module version **0.1.0**). Runs use whatever build the actor has as default when they start, so they keep working as Apify retires old builds; the input types below are refreshed weekly and can lag an actor that changed its input since.
+The Apify actor [`clockworks/tiktok-comments-scraper`](https://apify.com/clockworks/tiktok-comments-scraper) as typed Telo kinds, generated from its default build **0.0.499** (module version **0.1.0**). Runs use whatever build the actor has as default when they start, so they keep working as Apify retires old builds; the input types below are refreshed weekly and can lag an actor that changed its input since.
 
 Extract TikTok comments. Just add a TikTok URL and get TikTok video and profile data: comments, URLs, numbers of shares, followers, hashtags, hearts, video, and music metadata. Export scraped data, run the scraper via API, schedule and monitor runs or integrate with other tools.
 

@@ -2,7 +2,7 @@
 
 # Linkedin Jobs Scraper
 
-The Apify actor [`curious_coder/linkedin-jobs-scraper`](https://apify.com/curious_coder/linkedin-jobs-scraper) as typed Telo kinds, generated from its default build **1.7.18** (module version **1.8.0**). Runs use whatever build the actor has as default when they start, so they keep working as Apify retires old builds; the input types below are refreshed weekly and can lag an actor that changed its input since.
+The Apify actor [`curious_coder/linkedin-jobs-scraper`](https://apify.com/curious_coder/linkedin-jobs-scraper) as typed Telo kinds, generated from its default build **1.7.21** (module version **1.8.0**). Runs use whatever build the actor has as default when they start, so they keep working as Apify retires old builds; the input types below are refreshed weekly and can lag an actor that changed its input since.
 
 Scrape Linkedin jobs from jobs search results using search URLs or filters. Get full job details, job poster and company details.
 

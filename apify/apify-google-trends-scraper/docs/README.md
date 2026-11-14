@@ -2,13 +2,13 @@
 
 # Google Trends Scraper
 
-The Apify actor [`apify/google-trends-scraper`](https://apify.com/apify/google-trends-scraper) as typed Telo kinds, generated from its default build **0.0.143** (module version **0.1.0**). Runs use whatever build the actor has as default when they start, so they keep working as Apify retires old builds; the input types below are refreshed weekly and can lag an actor that changed its input since.
+The Apify actor [`apify/google-trends-scraper`](https://apify.com/apify/google-trends-scraper) as typed Telo kinds, generated from its default build **0.0.145** (module version **0.2.0**). Runs use whatever build the actor has as default when they start, so they keep working as Apify retires old builds; the input types below are refreshed weekly and can lag an actor that changed its input since.
 
 Scrape data from Google Trends by search terms or URLs. Specify locations, define time ranges, select categories to get interest by subregion and over time, related queries and topics, and more. Export scraped data, run the scraper via API, schedule and monitor runs, or integrate with other tools.
 
 ## Pricing
 
-Pay per event — Result $0.003 (Free-plan prices; paid plans pay less). Cap the spend with `maxTotalChargeUsd`.
+Pay per event — Result $0.006, Actor Start $0.00005 (Free-plan prices; paid plans pay less). Cap the spend with `maxTotalChargeUsd`.
 
 Runs are charged to the Apify account whose token the `ApifyClient` holds. See the [Store page](https://apify.com/apify/google-trends-scraper) for current prices.
 
@@ -16,7 +16,7 @@ Runs are charged to the Apify account whose token the `ApifyClient` holds. See t
 
 ```yaml
 imports:
-  Actor: oci://ghcr.io/telorun/apify/apify-google-trends-scraper@0.1.0#sha256-…
+  Actor: oci://ghcr.io/telorun/apify/apify-google-trends-scraper@0.2.0#sha256-…
 ```
 
 Pin the digest with `telo upgrade`. The module re-exports `ApifyClient`, so it is the only import needed.
@@ -55,7 +55,6 @@ Only these fields are accepted — `telo check` rejects any other.
 | `timeRange` | string |  | `""` | Time range — Choose a predefined search's time range (defaults to 'Past 12 months') |
 | `geo` | string |  | `""` | Geo area — Get results from a specific geo area (defaults to 'Worldwide'). This maps to different fields in the dataset results: smaller countries like Greece return just 'interestByCity' data, while larger ones like the United States return 'interestBySubregion' data as well. When omitted (Worldwid |
 | `viewedFrom` | string |  |  | Country to view Trends from — Country for residential proxies to ensure correct results |
-| `skipDebugScreen` | boolean |  | `false` | Do not save snapshot — By default, a snapshot of each visited Google Trends page is saved to the key-value store |
 | `startUrls` | array |  |  | Google Trends URLs — Copy a Google Trends URL and paste it here. |
 | `spreadsheetId` | string |  |  | Google Sheet ID — (Optional) ID of the Google Sheet from where search terms will be loaded.  Spreadsheet must have only one column. Row 1 is considered the title of the column so it will not be loaded as a search term. The provided spreadsheet must be publicly available. Check the actor documentatio |
 | `category` | string |  | `""` | Category of trends — Choose a category to filter the search for (defaults to 'All categories') |
@@ -63,7 +62,6 @@ Only these fields are accepted — `telo check` rejects any other.
 | `customTimeRange` | string |  |  | Custom time range — Provide custom time range. If present, it takes precedence over regular timeRange. Format is: `YYYY-MM-DD YYYY-MM-DD`. See examples in the documentation. |
 | `maxConcurrency` | integer |  | `10` | Max concurrency — How many pages will be opened in parallel if enough CPU is available. |
 | `maxRequestRetries` | integer |  | `7` | Max request retries — How many times will the Actor retry a request if it fails. |
-| `pageLoadTimeoutSecs` | integer |  | `180` | Page load timeout — How long it will wait for page loading before it abandons the loading and tries again. |
 
 ## Output
 

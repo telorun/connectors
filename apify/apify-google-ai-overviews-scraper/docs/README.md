@@ -2,7 +2,7 @@
 
 # Google AI Overviews Scraper
 
-The Apify actor [`apify/google-ai-overviews-scraper`](https://apify.com/apify/google-ai-overviews-scraper) as typed Telo kinds, generated from its default build **0.0.74** (module version **0.1.0**). Runs use whatever build the actor has as default when they start, so they keep working as Apify retires old builds; the input types below are refreshed weekly and can lag an actor that changed its input since.
+The Apify actor [`apify/google-ai-overviews-scraper`](https://apify.com/apify/google-ai-overviews-scraper) as typed Telo kinds, generated from its default build **0.0.79** (module version **0.1.0**). Runs use whatever build the actor has as default when they start, so they keep working as Apify retires old builds; the input types below are refreshed weekly and can lag an actor that changed its input since.
 
 Scrape Google AI Overviews for any search query. Extract the AI Overview answer and cited sources as JSON, CSV, or Excel. Track AI search visibility, monitor brand citations, and run AEO and GEO reports in any country or language. Connect your AI agents via MCP. No code needed.
 

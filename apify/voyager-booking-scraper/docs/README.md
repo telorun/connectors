@@ -2,7 +2,7 @@
 
 # Booking Scraper
 
-The Apify actor [`voyager/booking-scraper`](https://apify.com/voyager/booking-scraper) as typed Telo kinds, generated from its default build **0.0.201** (module version **0.1.0**). Runs use whatever build the actor has as default when they start, so they keep working as Apify retires old builds; the input types below are refreshed weekly and can lag an actor that changed its input since.
+The Apify actor [`voyager/booking-scraper`](https://apify.com/voyager/booking-scraper) as typed Telo kinds, generated from its default build **0.0.203** (module version **0.1.0**). Runs use whatever build the actor has as default when they start, so they keep working as Apify retires old builds; the input types below are refreshed weekly and can lag an actor that changed its input since.
 
 Scrape Booking with this hotels scraper and get data about accommodation on Booking.com. You can crawl by keywords or URLs for hotel prices, ratings, addresses, number of reviews, stars. You can also download all that room and hotel data from Booking.com with a few clicks: CSV, JSON, HTML, and Excel
 

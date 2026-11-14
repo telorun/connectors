@@ -2,7 +2,7 @@
 
 # Google AI Mode Scraper
 
-The Apify actor [`apify/google-ai-mode-scraper`](https://apify.com/apify/google-ai-mode-scraper) as typed Telo kinds, generated from its default build **0.0.86** (module version **0.1.0**). Runs use whatever build the actor has as default when they start, so they keep working as Apify retires old builds; the input types below are refreshed weekly and can lag an actor that changed its input since.
+The Apify actor [`apify/google-ai-mode-scraper`](https://apify.com/apify/google-ai-mode-scraper) as typed Telo kinds, generated from its default build **0.0.91** (module version **0.1.0**). Runs use whatever build the actor has as default when they start, so they keep working as Apify retires old builds; the input types below are refreshed weekly and can lag an actor that changed its input since.
 
 Scrape Google AI Mode answers for any search query. Extract the full AI-generated response, cited sources with links and titles, and follow-up questions. Set location and language per query. Ideal for GEO, and answer-engine monitoring. Connect to your agent via MCP or export to JSON, CSV, or Excel.
 

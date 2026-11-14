@@ -2,7 +2,7 @@
 
 # Amazon Reviews Scraper
 
-The Apify actor [`junglee/amazon-reviews-scraper`](https://apify.com/junglee/amazon-reviews-scraper) as typed Telo kinds, generated from its default build **0.1.361** (module version **0.2.0**). Runs use whatever build the actor has as default when they start, so they keep working as Apify retires old builds; the input types below are refreshed weekly and can lag an actor that changed its input since.
+The Apify actor [`junglee/amazon-reviews-scraper`](https://apify.com/junglee/amazon-reviews-scraper) as typed Telo kinds, generated from its default build **0.1.362** (module version **0.2.0**). Runs use whatever build the actor has as default when they start, so they keep working as Apify retires old builds; the input types below are refreshed weekly and can lag an actor that changed its input since.
 
 Amazon scraper to extract reviews from Amazon products. Scrape and download detailed reviews without using the Amazon API, including rating score, review description, reactions and images. Download your data as HTML table, JSON, CSV, Excel, XML.
 

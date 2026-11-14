@@ -2,7 +2,7 @@
 
 # Facebook Events Scraper
 
-The Apify actor [`apify/facebook-events-scraper`](https://apify.com/apify/facebook-events-scraper) as typed Telo kinds, generated from its default build **0.0.94** (module version **0.1.0**). Runs use whatever build the actor has as default when they start, so they keep working as Apify retires old builds; the input types below are refreshed weekly and can lag an actor that changed its input since.
+The Apify actor [`apify/facebook-events-scraper`](https://apify.com/apify/facebook-events-scraper) as typed Telo kinds, generated from its default build **0.0.95** (module version **0.1.0**). Runs use whatever build the actor has as default when they start, so they keep working as Apify retires old builds; the input types below are refreshed weekly and can lag an actor that changed its input since.
 
 Facebook Events Scraper extracts data such as event name, location, description or number of users who are interested. You can use URLs of specific events or come up with search queries and explore pretty much unlimited number of events. Search queries can be combined with various search filters.
 

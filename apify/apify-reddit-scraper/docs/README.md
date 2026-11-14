@@ -2,7 +2,7 @@
 
 # Reddit Scraper
 
-The Apify actor [`apify/reddit-scraper`](https://apify.com/apify/reddit-scraper) as typed Telo kinds, generated from its default build **0.0.21** (module version **0.1.0**). Runs use whatever build the actor has as default when they start, so they keep working as Apify retires old builds; the input types below are refreshed weekly and can lag an actor that changed its input since.
+The Apify actor [`apify/reddit-scraper`](https://apify.com/apify/reddit-scraper) as typed Telo kinds, generated from its default build **0.0.23** (module version **0.2.0**). Runs use whatever build the actor has as default when they start, so they keep working as Apify retires old builds; the input types below are refreshed weekly and can lag an actor that changed its input since.
 
 Scrape Reddit posts, comments, communities, and user profiles without a login or API key. Search any subreddit or keyword to see what people say about a brand or topic, with full comment threads and the scores that show what landed.
 
@@ -16,7 +16,7 @@ Runs are charged to the Apify account whose token the `ApifyClient` holds. See t
 
 ```yaml
 imports:
-  Actor: oci://ghcr.io/telorun/apify/apify-reddit-scraper@0.1.0#sha256-…
+  Actor: oci://ghcr.io/telorun/apify/apify-reddit-scraper@0.2.0#sha256-…
 ```
 
 Pin the digest with `telo upgrade`. The module re-exports `ApifyClient`, so it is the only import needed.
@@ -56,7 +56,7 @@ Only these fields are accepted — `telo check` rejects any other.
 | `includeNsfw` | boolean |  | `false` | Include NSFW — Include adult (18+) content in results. When disabled, NSFW posts and communities are skipped even when passed directly as start URLs. A skipped post URL, or a skipped community in communities mode, gets an item with the "nsfw-skipped" reason; in posts or comments mode a community who |
 | `communityNames` | array |  |  | Names — Community names (e.g. "python", "r/webdev"). |
 | `communityQueries` | array |  |  | Queries — Search queries scoped to the specified communities. Uses Reddit's built-in community search. |
-| `communitySort` | string |  | `"hot"` | Sort — Sort order for community post listings. |
+| `communitySort` | string |  | `"hot"` | Sort — Sort order for community post listings. With community queries, rising and controversial sort by relevance, since Reddit's search has neither order. |
 | `communityTimeFilter` | string |  | `"all"` | Time filter — Time window for "Top" or "Controversial" sort. |
 | `maxPostsPerCommunity` | integer |  |  | Max posts — Maximum posts to scrape from each community. In comments mode these are the posts whose comments get scraped. Posts skipped as NSFW never use up the limit, and neither do posts with no comments in comments mode. Applies to each community query separately. Leave empty to scrape all availa |
 | `includeCommunityRules` | boolean |  | `false` | Include rules — Get community rules alongside community details. |

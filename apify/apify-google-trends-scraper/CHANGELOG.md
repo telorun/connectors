@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.2.0 - 2026-11-09
+### Changed
+* Regenerated from build 0.0.145 of the Apify actor `apify/google-trends-scraper` (was 0.1.0).
+
 ## 0.1.0 - 2026-11-03
 ### Changed
 * Regenerated from build 0.0.143 of the Apify actor `apify/google-trends-scraper` (was 0.0.142).

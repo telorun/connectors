@@ -2,7 +2,7 @@
 
 # Web Fetch
 
-The Apify actor [`apify/web-fetch`](https://apify.com/apify/web-fetch) as typed Telo kinds, generated from its default build **0.0.31** (module version **0.1.0**). Runs use whatever build the actor has as default when they start, so they keep working as Apify retires old builds; the input types below are refreshed weekly and can lag an actor that changed its input since.
+The Apify actor [`apify/web-fetch`](https://apify.com/apify/web-fetch) as typed Telo kinds, generated from its default build **0.0.32** (module version **0.1.0**). Runs use whatever build the actor has as default when they start, so they keep working as Apify retires old builds; the input types below are refreshed weekly and can lag an actor that changed its input since.
 
 Download any web page by URL and convert it to clean Markdown, plain text, HTML, and other formats. Automatically renders JavaScript and works around bot blocking. The Actor provides a real-time API for quick response times.
 

@@ -2,7 +2,7 @@
 
 # Contact Details Scraper
 
-The Apify actor [`vdrmota/contact-info-scraper`](https://apify.com/vdrmota/contact-info-scraper) as typed Telo kinds, generated from its default build **0.2.246** (module version **0.3.0**). Runs use whatever build the actor has as default when they start, so they keep working as Apify retires old builds; the input types below are refreshed weekly and can lag an actor that changed its input since.
+The Apify actor [`vdrmota/contact-info-scraper`](https://apify.com/vdrmota/contact-info-scraper) as typed Telo kinds, generated from its default build **0.2.248** (module version **0.3.0**). Runs use whatever build the actor has as default when they start, so they keep working as Apify retires old builds; the input types below are refreshed weekly and can lag an actor that changed its input since.
 
 Email extractor and lead scraper to extract and download emails, phone numbers, Facebook, Twitter, LinkedIn, Instagram, Threads, Snapchat, and Telegram profiles from any website. Extract contact information at scale from lists of URLs and download the data as Excel, CSV, JSON, HTML, and XML.
 

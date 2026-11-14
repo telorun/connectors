@@ -2,7 +2,7 @@
 
 # Reddit Scraper - Posts, Comments, Search & Subreddits
 
-The Apify actor [`harshmaur/reddit-scraper`](https://apify.com/harshmaur/reddit-scraper) as typed Telo kinds, generated from its default build **0.0.786** (module version **0.1.0**). Runs use whatever build the actor has as default when they start, so they keep working as Apify retires old builds; the input types below are refreshed weekly and can lag an actor that changed its input since.
+The Apify actor [`harshmaur/reddit-scraper`](https://apify.com/harshmaur/reddit-scraper) as typed Telo kinds, generated from its default build **0.0.796** (module version **0.1.0**). Runs use whatever build the actor has as default when they start, so they keep working as Apify retires old builds; the input types below are refreshed weekly and can lag an actor that changed its input since.
 
 Scrape Reddit posts, comments, subreddits, user profiles, and keyword search results - no API key, no rate limits, no login. From $2 per 1,000 results, pay only for what you use. Full comment threads, 60+ fields per post, media and galleries. Works with AI Agents, MCP, n8n, Make, Zapier and more.
 

@@ -2,7 +2,7 @@
 
 # Meta Brand Collaboration Scraper
 
-The Apify actor [`apify/brand-collaboration-scraper`](https://apify.com/apify/brand-collaboration-scraper) as typed Telo kinds, generated from its default build **0.0.127** (module version **0.1.0**). Runs use whatever build the actor has as default when they start, so they keep working as Apify retires old builds; the input types below are refreshed weekly and can lag an actor that changed its input since.
+The Apify actor [`apify/brand-collaboration-scraper`](https://apify.com/apify/brand-collaboration-scraper) as typed Telo kinds, generated from its default build **0.0.131** (module version **0.1.0**). Runs use whatever build the actor has as default when they start, so they keep working as Apify retires old builds; the input types below are refreshed weekly and can lag an actor that changed its input since.
 
 Extract branded content partnerships from Meta Ad Library. Get creators, brand partners, content types, dates, and links from Instagram and Facebook. Enrich with profile and post details. Export data, schedule runs via API, and integrate with other tools or AI workflows workflows.
 

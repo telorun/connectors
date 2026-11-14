@@ -2,7 +2,7 @@
 
 # Instagram Reel Scraper
 
-The Apify actor [`apify/instagram-reel-scraper`](https://apify.com/apify/instagram-reel-scraper) as typed Telo kinds, generated from its default build **0.0.626** (module version **0.1.0**). Runs use whatever build the actor has as default when they start, so they keep working as Apify retires old builds; the input types below are refreshed weekly and can lag an actor that changed its input since.
+The Apify actor [`apify/instagram-reel-scraper`](https://apify.com/apify/instagram-reel-scraper) as typed Telo kinds, generated from its default build **0.0.634** (module version **0.1.0**). Runs use whatever build the actor has as default when they start, so they keep working as Apify retires old builds; the input types below are refreshed weekly and can lag an actor that changed its input since.
 
 Scrape or download Instagram reels. Just add Instagram profile or reel URL, and get caption, timestamp, transcript, hashtags, mentions, tagged users, comments, likes, shares, views, duration, and downloaded video. Export scraped data, schedule via API, and integrate with other tools or AI workflows.
 

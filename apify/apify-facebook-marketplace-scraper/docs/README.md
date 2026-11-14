@@ -2,7 +2,7 @@
 
 # Facebook Marketplace Scraper
 
-The Apify actor [`apify/facebook-marketplace-scraper`](https://apify.com/apify/facebook-marketplace-scraper) as typed Telo kinds, generated from its default build **0.0.346** (module version **0.1.0**). Runs use whatever build the actor has as default when they start, so they keep working as Apify retires old builds; the input types below are refreshed weekly and can lag an actor that changed its input since.
+The Apify actor [`apify/facebook-marketplace-scraper`](https://apify.com/apify/facebook-marketplace-scraper) as typed Telo kinds, generated from its default build **0.0.350** (module version **0.1.0**). Runs use whatever build the actor has as default when they start, so they keep working as Apify retires old builds; the input types below are refreshed weekly and can lag an actor that changed its input since.
 
 Extract data from one or multiple Facebook Marketplace listings. Scrape data on apartments, whole categories, items for sale, prices, location and sellers. Export scraped data in JSON, CSV, and Excel, run the scraper via API, schedule and monitor runs or integrate with other tools.
 

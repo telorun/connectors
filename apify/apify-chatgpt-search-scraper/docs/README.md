@@ -2,7 +2,7 @@
 
 # ChatGPT Search Scraper
 
-The Apify actor [`apify/chatgpt-search-scraper`](https://apify.com/apify/chatgpt-search-scraper) as typed Telo kinds, generated from its default build **0.0.82** (module version **0.1.0**). Runs use whatever build the actor has as default when they start, so they keep working as Apify retires old builds; the input types below are refreshed weekly and can lag an actor that changed its input since.
+The Apify actor [`apify/chatgpt-search-scraper`](https://apify.com/apify/chatgpt-search-scraper) as typed Telo kinds, generated from its default build **0.0.87** (module version **0.1.0**). Runs use whatever build the actor has as default when they start, so they keep working as Apify retires old builds; the input types below are refreshed weekly and can lag an actor that changed its input since.
 
 Scrape ChatGPT Search results at scale without an API. Extract AI-generated answers, cited sources, URLs, and follow-up questions for any query. Track brand visibility in AI search, monitor citations, and run GEO and SEO research. Export to JSON, CSV, or Excel and connect with your AI.
 

@@ -2,7 +2,7 @@
 
 # YouTube Video Downloader
 
-The Apify actor [`streamers/youtube-video-downloader`](https://apify.com/streamers/youtube-video-downloader) as typed Telo kinds, generated from its default build **0.0.119** (module version **0.1.0**). Runs use whatever build the actor has as default when they start, so they keep working as Apify retires old builds; the input types below are refreshed weekly and can lag an actor that changed its input since.
+The Apify actor [`streamers/youtube-video-downloader`](https://apify.com/streamers/youtube-video-downloader) as typed Telo kinds, generated from its default build **0.0.121** (module version **0.1.0**). Runs use whatever build the actor has as default when they start, so they keep working as Apify retires old builds; the input types below are refreshed weekly and can lag an actor that changed its input since.
 
 Download YouTube videos in bulk and convert them to MP4, MP3, AVI, and other formats. Choose quality up to 4K, extract audio, download subtitles, or generate AI transcripts, then save files to your own cloud storage. Ideal for bulk archiving, offline viewing, and automated download pipelines.
 

@@ -2,7 +2,7 @@
 
 # Instagram Scraper
 
-The Apify actor [`apify/instagram-scraper`](https://apify.com/apify/instagram-scraper) as typed Telo kinds, generated from its default build **0.0.838** (module version **0.1.0**). Runs use whatever build the actor has as default when they start, so they keep working as Apify retires old builds; the input types below are refreshed weekly and can lag an actor that changed its input since.
+The Apify actor [`apify/instagram-scraper`](https://apify.com/apify/instagram-scraper) as typed Telo kinds, generated from its default build **0.0.846** (module version **0.1.0**). Runs use whatever build the actor has as default when they start, so they keep working as Apify retires old builds; the input types below are refreshed weekly and can lag an actor that changed its input since.
 
 Extract Instagram posts, reels, profiles, places, hashtags, carousels, and comments. Get data from Instagram using one or more Instagram URLs or search queries: content, context, metrics, metadata. Export scraped data, run the scraper via API, schedule and monitor runs or integrate with other tools.
 

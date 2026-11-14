@@ -2,7 +2,7 @@
 
 # Gemini Search Scraper
 
-The Apify actor [`apify/gemini-search-scraper`](https://apify.com/apify/gemini-search-scraper) as typed Telo kinds, generated from its default build **0.0.102** (module version **0.1.0**). Runs use whatever build the actor has as default when they start, so they keep working as Apify retires old builds; the input types below are refreshed weekly and can lag an actor that changed its input since.
+The Apify actor [`apify/gemini-search-scraper`](https://apify.com/apify/gemini-search-scraper) as typed Telo kinds, generated from its default build **0.0.107** (module version **0.1.0**). Runs use whatever build the actor has as default when they start, so they keep working as Apify retires old builds; the input types below are refreshed weekly and can lag an actor that changed its input since.
 
 No-code scraper for Google Gemini AI search. Run any prompt and extract Gemini's AI responses, cited sources, and links at scale. Track brand visibility in AI search (GEO), monitor competitors, and run market research. Export to JSON, CSV, or Excel. No API key needed.
 

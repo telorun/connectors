@@ -2,7 +2,7 @@
 
 # Instagram Mentions Scraper
 
-The Apify actor [`apify/instagram-tagged-scraper`](https://apify.com/apify/instagram-tagged-scraper) as typed Telo kinds, generated from its default build **0.0.596** (module version **0.1.0**). Runs use whatever build the actor has as default when they start, so they keep working as Apify retires old builds; the input types below are refreshed weekly and can lag an actor that changed its input since.
+The Apify actor [`apify/instagram-tagged-scraper`](https://apify.com/apify/instagram-tagged-scraper) as typed Telo kinds, generated from its default build **0.0.604** (module version **0.1.0**). Runs use whatever build the actor has as default when they start, so they keep working as Apify retires old builds; the input types below are refreshed weekly and can lag an actor that changed its input since.
 
 Extract data from tagged posts and mentions on Instagram. Just add one or more Instagram usernames and get post text, hashtags, mentions, comments, images, likes, locations, and metadata. Export scraped data, run the scraper via API, schedule and monitor runs, or integrate with other tools.
 

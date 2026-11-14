@@ -2,7 +2,7 @@
 
 # LinkedIn Profile Search Scraper (No Cookies) Find all people
 
-The Apify actor [`harvestapi/linkedin-profile-search`](https://apify.com/harvestapi/linkedin-profile-search) as typed Telo kinds, generated from its default build **0.0.295** (module version **0.1.0**). Runs use whatever build the actor has as default when they start, so they keep working as Apify retires old builds; the input types below are refreshed weekly and can lag an actor that changed its input since.
+The Apify actor [`harvestapi/linkedin-profile-search`](https://apify.com/harvestapi/linkedin-profile-search) as typed Telo kinds, generated from its default build **0.0.296** (module version **0.1.0**). Runs use whatever build the actor has as default when they start, so they keep working as Apify retires old builds; the input types below are refreshed weekly and can lag an actor that changed its input since.
 
 Search for LinkedIn profiles with filters and extract detailed profile information, including work experience, education history, location, and more. No cookies or account required.
 

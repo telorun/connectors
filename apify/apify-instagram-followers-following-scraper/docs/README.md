@@ -2,7 +2,7 @@
 
 # Instagram Followers and Following Scraper
 
-The Apify actor [`apify/instagram-followers-following-scraper`](https://apify.com/apify/instagram-followers-following-scraper) as typed Telo kinds, generated from its default build **0.0.185** (module version **0.1.0**). Runs use whatever build the actor has as default when they start, so they keep working as Apify retires old builds; the input types below are refreshed weekly and can lag an actor that changed its input since.
+The Apify actor [`apify/instagram-followers-following-scraper`](https://apify.com/apify/instagram-followers-following-scraper) as typed Telo kinds, generated from its default build **0.0.193** (module version **0.1.0**). Runs use whatever build the actor has as default when they start, so they keep working as Apify retires old builds; the input types below are refreshed weekly and can lag an actor that changed its input since.
 
 Scrape Instagram followers' names. Just add Instagram profile and extract followers' username, name, profile picture URL, private or public status, verified status and Instagram user ID. Export scraped data, schedule scraper via API, and integrate with other tools or AI workflows.
 

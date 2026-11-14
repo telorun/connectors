@@ -2,7 +2,7 @@
 
 # Instagram API Scraper
 
-The Apify actor [`apify/instagram-api-scraper`](https://apify.com/apify/instagram-api-scraper) as typed Telo kinds, generated from its default build **0.1.684** (module version **0.2.0**). Runs use whatever build the actor has as default when they start, so they keep working as Apify retires old builds; the input types below are refreshed weekly and can lag an actor that changed its input since.
+The Apify actor [`apify/instagram-api-scraper`](https://apify.com/apify/instagram-api-scraper) as typed Telo kinds, generated from its default build **0.1.692** (module version **0.2.0**). Runs use whatever build the actor has as default when they start, so they keep working as Apify retires old builds; the input types below are refreshed weekly and can lag an actor that changed its input since.
 
 Scrape and download Instagram posts, profiles, places, hashtags, photos without login. Supports search keywords and URL lists. Download your data as HTML table, JSON, CSV, Excel, XML, and RSS feed.
 

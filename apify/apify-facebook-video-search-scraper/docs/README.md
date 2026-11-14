@@ -2,7 +2,7 @@
 
 # Facebook Video Search Scraper
 
-The Apify actor [`apify/facebook-video-search-scraper`](https://apify.com/apify/facebook-video-search-scraper) as typed Telo kinds, generated from its default build **0.0.313** (module version **0.1.0**). Runs use whatever build the actor has as default when they start, so they keep working as Apify retires old builds; the input types below are refreshed weekly and can lag an actor that changed its input since.
+The Apify actor [`apify/facebook-video-search-scraper`](https://apify.com/apify/facebook-video-search-scraper) as typed Telo kinds, generated from its default build **0.0.317** (module version **0.1.0**). Runs use whatever build the actor has as default when they start, so they keep working as Apify retires old builds; the input types below are refreshed weekly and can lag an actor that changed its input since.
 
 Add keywords and extract all associated Facebook reels and videos. Get video data like video URL, video title, description, video owner profile and URL, date posted, views, duration, label, and much more. Export scraped data, schedule scraper via API, integrate with other tools or AI workflows.
 

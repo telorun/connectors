@@ -2,7 +2,7 @@
 
 # Facebook Reviews Scraper
 
-The Apify actor [`apify/facebook-reviews-scraper`](https://apify.com/apify/facebook-reviews-scraper) as typed Telo kinds, generated from its default build **0.0.369** (module version **0.1.0**). Runs use whatever build the actor has as default when they start, so they keep working as Apify retires old builds; the input types below are refreshed weekly and can lag an actor that changed its input since.
+The Apify actor [`apify/facebook-reviews-scraper`](https://apify.com/apify/facebook-reviews-scraper) as typed Telo kinds, generated from its default build **0.0.373** (module version **0.1.0**). Runs use whatever build the actor has as default when they start, so they keep working as Apify retires old builds; the input types below are refreshed weekly and can lag an actor that changed its input since.
 
 Extract data from hundreds of Facebook reviews from one or multiple Facebook pages. Get review text, timestamp, review URL, likes and comments count and basic reviewer info. Download the data in JSON, CSV, Excel and use it in apps, spreadsheets, and reports.
 

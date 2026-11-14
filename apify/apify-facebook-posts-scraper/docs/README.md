@@ -2,7 +2,7 @@
 
 # Facebook Posts Scraper
 
-The Apify actor [`apify/facebook-posts-scraper`](https://apify.com/apify/facebook-posts-scraper) as typed Telo kinds, generated from its default build **0.0.408** (module version **0.1.0**). Runs use whatever build the actor has as default when they start, so they keep working as Apify retires old builds; the input types below are refreshed weekly and can lag an actor that changed its input since.
+The Apify actor [`apify/facebook-posts-scraper`](https://apify.com/apify/facebook-posts-scraper) as typed Telo kinds, generated from its default build **0.0.412** (module version **0.1.0**). Runs use whatever build the actor has as default when they start, so they keep working as Apify retires old builds; the input types below are refreshed weekly and can lag an actor that changed its input since.
 
 Extract posts, videos, and engagement metrics from Facebook pages. Get text captions, reactions, video transcripts, images, external links, collaborators, and more from Facebook pages and profiles. Export ad data, schedule runs via API, and integrate with other tools or AI workflows.
 

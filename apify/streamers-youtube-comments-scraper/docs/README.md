@@ -2,7 +2,7 @@
 
 # YouTube Comments Scraper
 
-The Apify actor [`streamers/youtube-comments-scraper`](https://apify.com/streamers/youtube-comments-scraper) as typed Telo kinds, generated from its default build **0.0.261** (module version **0.1.0**). Runs use whatever build the actor has as default when they start, so they keep working as Apify retires old builds; the input types below are refreshed weekly and can lag an actor that changed its input since.
+The Apify actor [`streamers/youtube-comments-scraper`](https://apify.com/streamers/youtube-comments-scraper) as typed Telo kinds, generated from its default build **0.0.262** (module version **0.1.0**). Runs use whatever build the actor has as default when they start, so they keep working as Apify retires old builds; the input types below are refreshed weekly and can lag an actor that changed its input since.
 
 This alternative YouTube Data API has no limits or quotas. Extract YouTube comments data from one or multiple YouTube videos: full comment text, posting date, author username, video title, videoId. Download YouTube comments in JSON, CSV, and Excel.
 
