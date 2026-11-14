@@ -23,7 +23,7 @@ imports:
   Stub: ./__fixtures__/gmail-stub.yaml
   Run: oci://ghcr.io/telorun/run@0.26.0#sha256-ZhW56yiMCImqBh0wJ4mVaUvh5WuUVIaWErASFx--wCY
   Assert: oci://ghcr.io/telorun/assert@0.18.0#sha256-mSy7HGMq_UoQUvt4WbQCIO_uqXcRZwRlmROp6DfLDjY
-  Server: oci://ghcr.io/telorun/http-server@0.29.2#sha256-9MtWZqXF9agsYRx97nLMJZW7YYwXpW2dLYcn_oA4kUs
+  Server: oci://ghcr.io/telorun/http-server@0.44.0#sha256-nW6yftlrG4eHd0e511nB8ArmN04Y2DKEkwRy5BaSldI
 ports:
   http:
     env: TEST_GMAIL_COMPOSE_PORT
@@ -54,7 +54,8 @@ metadata: { name: test }
 with:
   - kind: Server.Server
     metadata: { name: StubServer }
-    port: !cel "ports.http"
+    listen:
+      port: !cel "ports.http"
     mounts:
       - path: /
         mount: !ref Stub.api

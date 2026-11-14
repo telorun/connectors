@@ -1,0 +1,3 @@
+modules:
+  sign-in: Fixed
+body: "BrowserSignIn's pendingTtl is now declared as a Telo.Duration, matching the oauth-client field it is forwarded into; the current analyzer rejected the string declaration (TEMPLATE_FORWARD_INCOMPATIBLE). Duration strings such as 10m are still accepted."
