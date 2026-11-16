@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.3.0 - 2026-11-16
+### Changed
+* Regenerated from build 0.1.323 of the Apify actor `peakydev/leads-scraper-ppe` (was 0.2.0).
+
 ## 0.2.0 - 2026-11-03
 ### Changed
 * Regenerated from build 0.1.313 of the Apify actor `peakydev/leads-scraper-ppe` (was 0.1.308).

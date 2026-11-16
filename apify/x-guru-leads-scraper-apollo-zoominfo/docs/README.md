@@ -2,7 +2,7 @@
 
 # 💎 Leads Scraper $1/1K With EMAILS | 300M base | Like Apollo
 
-The Apify actor [`x_guru/Leads-Scraper-apollo-zoominfo`](https://apify.com/x_guru/Leads-Scraper-apollo-zoominfo) as typed Telo kinds, generated from its default build **1.0.54** (module version **1.1.0**). Runs use whatever build the actor has as default when they start, so they keep working as Apify retires old builds; the input types below are refreshed weekly and can lag an actor that changed its input since.
+The Apify actor [`x_guru/Leads-Scraper-apollo-zoominfo`](https://apify.com/x_guru/Leads-Scraper-apollo-zoominfo) as typed Telo kinds, generated from its default build **1.0.58** (module version **1.2.0**). Runs use whatever build the actor has as default when they start, so they keep working as Apify retires old builds; the input types below are refreshed weekly and can lag an actor that changed its input since.
 
 Extract up to 100K leads per run with Emails, LinkedIn URLs, Phone Numbers & More! Similar to Apollo, ZoomInfo, Lusha. 300M+ Verified Database! Only $1 per 1,000 leads. 🚀 Powered by Dievio.com
 
@@ -16,7 +16,7 @@ Runs are charged to the Apify account whose token the `ApifyClient` holds. See t
 
 ```yaml
 imports:
-  Actor: oci://ghcr.io/telorun/apify/x-guru-leads-scraper-apollo-zoominfo@1.1.0#sha256-…
+  Actor: oci://ghcr.io/telorun/apify/x-guru-leads-scraper-apollo-zoominfo@1.2.0#sha256-…
 ```
 
 Pin the digest with `telo upgrade`. The module re-exports `ApifyClient`, so it is the only import needed.
@@ -66,7 +66,7 @@ Only these fields are accepted — `telo check` rejects any other.
 | `inferred_salary` | string[] |  |  | Inferred Salary — Filter by estimated salary range |
 | `funding_start_date` | string |  |  | Funding Start Date — Filter companies funded after this date (YYYY-MM-DD) |
 | `funding_end_date` | string |  |  | Funding End Date — Filter companies funded before this date (YYYY-MM-DD) |
-| `business_model` | string[] |  |  | Business Model — Filter by business model: B2B, B2C, B2B2C, Marketplace, SaaS, E-commerce |
+| `business_model` | string[] |  |  | Business Model — Match business-model keywords in profile industry and summary text. This is a text filter, not a verified company classification. |
 | `company_location_country` | string[] |  |  | Country — Filter by company's country (select from list) |
 | `company_location_region` | string[] |  |  | State / Region — Filter by company's state/region (US states + major regions) |
 | `company_location_locality` | array |  |  | City — Filter by company's city |
@@ -74,9 +74,10 @@ Only these fields are accepted — `telo check` rejects any other.
 | `email_status` | string |  | `"all"` | Email Status (Could result in fewer leads) — Filter by email availability |
 | `include_emails` | boolean |  | `true` | Include Emails — Include email addresses in results |
 | `include_phones` | boolean |  | `false` | Include Phone Numbers — Only return profiles with phone numbers |
-| `start_after_id` | string |  |  | Start after ID (large exports) — Recommended pagination for large exports. After a run, open the PAGINATION key-value record and copy next_start_after_id here to fetch the next batch without duplicates. |
+| `start_after_id` | string |  |  | Start after ID (large exports) — ID cursor for simple searches. Complex searches return continuation_token instead. Use the complete PAGINATION.recommended_next_input object to keep all filters and the correct continuation mode. |
 | `page` | integer |  | `1` | Page Number (simple pagination) — Simple page number for small exports. Page 2 skips the first Max Results records. For large exports, use Start after ID instead. |
 | `offset` | integer |  |  | Offset (advanced) — Optional exact number of matching records to skip. Deep offsets can be slower than Start after ID. |
+| `continuation_token` | string |  |  | Continuation token (optional) — For interrupted or complex searches, use the full PAGINATION.recommended_next_input object. This token retains the exact collection position for the same filters and source snapshot. Leave empty for a new search. |
 
 ## Output
 

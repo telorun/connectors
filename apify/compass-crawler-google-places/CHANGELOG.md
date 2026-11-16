@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.16.0 - 2026-11-16
+### Changed
+* Regenerated from build 0.14.793 of the Apify actor `compass/crawler-google-places` (was 0.15.0).
+
 ## 0.15.0 - 2026-11-03
 ### Changed
 * Regenerated from build 0.14.782 of the Apify actor `compass/crawler-google-places` (was 0.14.776).

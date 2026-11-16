@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.2.0 - 2026-11-16
+### Changed
+* Regenerated from build 0.0.553 of the Apify actor `compass/Google-Maps-Reviews-Scraper` (was 0.1.0).
+
 ## 0.1.0 - 2026-11-03
 ### Changed
 * Regenerated from build 0.0.544 of the Apify actor `compass/Google-Maps-Reviews-Scraper` (was 0.0.540).

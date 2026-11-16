@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.2.0 - 2026-11-16
+### Changed
+* Regenerated from build 0.0.421 of the Apify actor `apify/facebook-posts-scraper` (was 0.1.0).
+
 ## 0.1.0 - 2026-11-03
 ### Changed
 * Regenerated from build 0.0.408 of the Apify actor `apify/facebook-posts-scraper` (was 0.0.404).
