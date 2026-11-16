@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.3.0 - 2026-11-16
+### Changed
+* Regenerated from build 0.1.56 of the Apify actor `apimaestro/linkedin-profile-detail` (was 0.2.0).
+
 ## 0.2.0 - 2026-11-03
 ### Changed
 * Regenerated from build 0.1.56 of the Apify actor `apimaestro/linkedin-profile-detail` (was 0.1.56).

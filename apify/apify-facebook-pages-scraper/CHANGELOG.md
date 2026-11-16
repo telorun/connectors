@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.2.0 - 2026-11-16
+### Changed
+* Regenerated from build 0.0.542 of the Apify actor `apify/facebook-pages-scraper` (was 0.1.0).
+
 ## 0.1.0 - 2026-11-03
 ### Changed
 * Regenerated from build 0.0.528 of the Apify actor `apify/facebook-pages-scraper` (was 0.0.524).

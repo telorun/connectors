@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.9.0 - 2026-11-16
+### Changed
+* Regenerated from build 1.7.21 of the Apify actor `curious_coder/linkedin-jobs-scraper` (was 1.8.0).
+
 ## 1.8.0 - 2026-11-03
 ### Changed
 * Regenerated from build 1.7.18 of the Apify actor `curious_coder/linkedin-jobs-scraper` (was 1.7.18).

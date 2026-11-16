@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.2.0 - 2026-11-16
+### Changed
+* Regenerated from build 0.0.480 of the Apify actor `lukaskrivka/google-maps-with-contact-details` (was 0.1.0).
+
 ## 0.1.0 - 2026-11-03
 ### Changed
 * Regenerated from build 0.0.470 of the Apify actor `lukaskrivka/google-maps-with-contact-details` (was 0.0.466).

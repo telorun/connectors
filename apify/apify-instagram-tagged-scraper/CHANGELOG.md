@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.2.0 - 2026-11-16
+### Changed
+* Regenerated from build 0.0.621 of the Apify actor `apify/instagram-tagged-scraper` (was 0.1.0).
+
 ## 0.1.0 - 2026-11-03
 ### Changed
 * Regenerated from build 0.0.596 of the Apify actor `apify/instagram-tagged-scraper` (was 0.0.588).

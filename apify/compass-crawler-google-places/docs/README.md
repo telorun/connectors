@@ -2,7 +2,7 @@
 
 # Google Maps Scraper
 
-The Apify actor [`compass/crawler-google-places`](https://apify.com/compass/crawler-google-places) as typed Telo kinds, generated from its default build **0.14.782** (module version **0.15.0**). Runs use whatever build the actor has as default when they start, so they keep working as Apify retires old builds; the input types below are refreshed weekly and can lag an actor that changed its input since.
+The Apify actor [`compass/crawler-google-places`](https://apify.com/compass/crawler-google-places) as typed Telo kinds, generated from its default build **0.14.793** (module version **0.16.0**). Runs use whatever build the actor has as default when they start, so they keep working as Apify retires old builds; the input types below are refreshed weekly and can lag an actor that changed its input since.
 
 Extract data from thousands of Google Maps locations and businesses, including reviews, reviewer details, images, contact info, including full name, email, and job title, opening hours, prices & more. Export data, run via API, schedule and monitor runs, or integrate with other tools.
 
@@ -16,7 +16,7 @@ Runs are charged to the Apify account whose token the `ApifyClient` holds. See t
 
 ```yaml
 imports:
-  Actor: oci://ghcr.io/telorun/apify/compass-crawler-google-places@0.15.0#sha256-…
+  Actor: oci://ghcr.io/telorun/apify/compass-crawler-google-places@0.16.0#sha256-…
 ```
 
 Pin the digest with `telo upgrade`. The module re-exports `ApifyClient`, so it is the only import needed.

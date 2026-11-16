@@ -2,9 +2,9 @@
 
 # Reddit Scraper Lite
 
-The Apify actor [`trudax/reddit-scraper-lite`](https://apify.com/trudax/reddit-scraper-lite) as typed Telo kinds, generated from its default build **5.8.7** (module version **5.9.0**). Runs use whatever build the actor has as default when they start, so they keep working as Apify retires old builds; the input types below are refreshed weekly and can lag an actor that changed its input since.
+The Apify actor [`trudax/reddit-scraper-lite`](https://apify.com/trudax/reddit-scraper-lite) as typed Telo kinds, generated from its default build **6.2.2** (module version **5.10.0**). Runs use whatever build the actor has as default when they start, so they keep working as Apify retires old builds; the input types below are refreshed weekly and can lag an actor that changed its input since.
 
-Pay Per Result, unlimited Reddit web scraper to crawl posts, comments, communities, and users without login. Limit web scraping by number of posts or items and extract all data in a dataset in multiple formats.
+Pay-per-result Reddit web scraper that crawls posts, comments, communities, and users. Limit web scraping to a set number of posts or items, and extract all data into a dataset in multiple formats.
 
 ## Pricing
 
@@ -16,7 +16,7 @@ Runs are charged to the Apify account whose token the `ApifyClient` holds. See t
 
 ```yaml
 imports:
-  Actor: oci://ghcr.io/telorun/apify/trudax-reddit-scraper-lite@5.9.0#sha256-…
+  Actor: oci://ghcr.io/telorun/apify/trudax-reddit-scraper-lite@5.10.0#sha256-…
 ```
 
 Pin the digest with `telo upgrade`. The module re-exports `ApifyClient`, so it is the only import needed.
@@ -50,11 +50,8 @@ Only these fields are accepted — `telo check` rejects any other.
 
 | Field | Type | Required | Default | Description |
 | --- | --- | --- | --- | --- |
+| `sessionToken` | string |  |  | Reddit Session Token — Provide the value of your 'reddit_session' cookie from a dedicated Reddit account (found in Browser DevTools -> Application -> Cookies -> https://www.reddit.com). Also accepts exported Cookie-Editor JSON or Cookie header strings. When omitted, the scraper runs in HTML-only mod |
 | `startUrls` | object[] |  |  | Start URLs — If you already have URL(s) of page(s) you wish to scrape, you can set them here. If you want to use the search field below, remove all startUrls here. |
-| `skipComments` | boolean |  | `false` | Skip comments — This will skip scrapping comments when going through posts |
-| `skipUserPosts` | boolean |  | `false` | Skip user posts — This will skip scrapping user posts when going through user activity |
-| `skipCommunity` | boolean |  | `false` | Skip community — This will skip scrapping community info but will still get community posts if they were not skipped. |
-| `includeMediaLinks` | boolean |  | `false` | Include media links, up votes and comment count — This will include upVotes, upVoteRatio, imageUrls, videoUrls, and numberOfComments when scraping posts. Enabling this will use a more detailed extraction method, which may affect performance. |
 | `searches` | array |  |  | Search Term — Here you can provide a search query which will be used to search Reddit`s topics. |
 | `searchCommunityName` | string |  |  | Community (optional) — If provided, the search will be performed only inside this community (e.g., 'programming'). |
 | `ignoreStartUrls` | boolean |  | `false` | Ignore start URLs — Mainly used as a fix for ignoring starUrl on Zapier |
@@ -65,6 +62,10 @@ Only these fields are accepted — `telo check` rejects any other.
 | `searchMedia` | boolean |  | `false` | Search for media — Will search for media with the provided search |
 | `sort` | string |  | `"new"` | Sort search — Sort search by Relevance, Hot, Top, New or Comments |
 | `time` | string |  |  | Filter by date (Posts only) — Filter posts by last hour, week, day, month or year |
+| `skipComments` | boolean |  | `false` | Skip comments — This will skip scrapping comments when going through posts (both from Start URLs and search results) |
+| `skipUserPosts` | boolean |  | `false` | Skip user posts — This will skip scrapping user posts when going through user activity or community posts |
+| `skipCommunity` | boolean |  | `false` | Skip community — This will skip scrapping community info but will still get community posts if they were not skipped. |
+| `includeMediaLinks` | boolean |  | `false` | Include media links, up votes and comment count — This will include upVotes, upVoteRatio, imageUrls, videoUrls, and numberOfComments when scraping posts. Enabling this will use a more detailed extraction method, which may affect performance. |
 | `includeNSFW` | boolean |  | `true` | Include NSFW content — You can choose to include or exclude NSFW content from your search |
 | `maxItems` | integer |  | `10` | Maximum number of items to be saved — The maximum number of items that will be saved in the dataset. If you are scrapping for Communities&Users, remember to consider that each category inside a community is saved as a separated item. |
 | `maxPostCount` | integer |  | `10` | Limit of posts scraped inside a single page — The maximum number of posts that will be scraped for each Posts Page or Communities&Users URL |
@@ -75,7 +76,7 @@ Only these fields are accepted — `telo check` rejects any other.
 | `maxUserCount` | integer |  | `2` | Limit of `Users`'s pages scraped — The maximum number of `Users`'s pages that will be scraped. |
 | `scrollTimeout` | integer |  | `40` | Page scroll timeout (seconds) — Set the timeout in seconds in which the page will stop scrolling down to load new items |
 | `navigationTimeout` | integer |  | `60` | Navigation timeout (seconds) — Set the navigation timeout in seconds for page loading |
-| `proxy` | object |  | `{"useApifyProxy":true,"apifyProxyGroups":["RESIDENTIAL"]}` | Proxy configuration — Either use Apify proxy, or provide your own proxy servers. |
+| `maxRequestRetries` | integer |  | `6` | Maximum request retries — The maximum number of times the crawler will retry a failed request. |
 | `debugMode` | boolean |  | `false` | Debug Mode — Activate to see detailed logs |
 
 ## Output

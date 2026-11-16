@@ -2,7 +2,7 @@
 
 # LinkedIn Company Search Scraper (No Cookies)
 
-The Apify actor [`harvestapi/linkedin-company-search`](https://apify.com/harvestapi/linkedin-company-search) as typed Telo kinds, generated from its default build **0.0.21** (module version **0.1.0**). Runs use whatever build the actor has as default when they start, so they keep working as Apify retires old builds; the input types below are refreshed weekly and can lag an actor that changed its input since.
+The Apify actor [`harvestapi/linkedin-company-search`](https://apify.com/harvestapi/linkedin-company-search) as typed Telo kinds, generated from its default build **0.0.21** (module version **0.2.0**). Runs use whatever build the actor has as default when they start, so they keep working as Apify retires old builds; the input types below are refreshed weekly and can lag an actor that changed its input since.
 
 Search for LinkedIn companies with filters and extract detailed company information. No cookies or account required. Fast and reliable actor
 
@@ -16,7 +16,7 @@ Runs are charged to the Apify account whose token the `ApifyClient` holds. See t
 
 ```yaml
 imports:
-  Actor: oci://ghcr.io/telorun/apify/harvestapi-linkedin-company-search@0.1.0#sha256-…
+  Actor: oci://ghcr.io/telorun/apify/harvestapi-linkedin-company-search@0.2.0#sha256-…
 ```
 
 Pin the digest with `telo upgrade`. The module re-exports `ApifyClient`, so it is the only import needed.

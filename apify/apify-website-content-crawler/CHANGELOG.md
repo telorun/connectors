@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.5.0 - 2026-11-16
+### Changed
+* Regenerated from build 0.3.106 of the Apify actor `apify/website-content-crawler` (was 0.4.0).
+
 ## 0.4.0 - 2026-11-03
 ### Changed
 * Regenerated from build 0.3.102 of the Apify actor `apify/website-content-crawler` (was 0.3.101).

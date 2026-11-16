@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.3.0 - 2026-11-16
+### Changed
+* Regenerated from build 0.1.136 of the Apify actor `apimaestro/linkedin-profile-batch-scraper-no-cookies-required` (was 0.2.0).
+
 ## 0.2.0 - 2026-11-03
 ### Changed
 * Regenerated from build 0.1.135 of the Apify actor `apimaestro/linkedin-profile-batch-scraper-no-cookies-required` (was 0.1.135).

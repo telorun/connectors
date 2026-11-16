@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.2.0 - 2026-11-16
+### Changed
+* Regenerated from build 1.0.58 of the Apify actor `x_guru/Leads-Scraper-apollo-zoominfo` (was 1.1.0).
+
 ## 1.1.0 - 2026-11-03
 ### Changed
 * Regenerated from build 1.0.54 of the Apify actor `x_guru/Leads-Scraper-apollo-zoominfo` (was 1.0.54).
