@@ -2,7 +2,7 @@
 
 # Website Content Crawler
 
-The Apify actor [`apify/website-content-crawler`](https://apify.com/apify/website-content-crawler) as typed Telo kinds, generated from its default build **0.3.102** (module version **0.4.0**). Runs use whatever build the actor has as default when they start, so they keep working as Apify retires old builds; the input types below are refreshed weekly and can lag an actor that changed its input since.
+The Apify actor [`apify/website-content-crawler`](https://apify.com/apify/website-content-crawler) as typed Telo kinds, generated from its default build **0.3.107** (module version **0.5.0**). Runs use whatever build the actor has as default when they start, so they keep working as Apify retires old builds; the input types below are refreshed weekly and can lag an actor that changed its input since.
 
 Crawl websites and extract text content to feed AI models, LLM applications, vector databases, or RAG pipelines. The Actor supports rich formatting using Markdown, cleans the HTML, downloads files, and integrates well with 🦜🔗 LangChain, LlamaIndex, and the wider LLM ecosystem.
 
@@ -16,7 +16,7 @@ Runs are charged to the Apify account whose token the `ApifyClient` holds. See t
 
 ```yaml
 imports:
-  Actor: oci://ghcr.io/telorun/apify/apify-website-content-crawler@0.4.0#sha256-…
+  Actor: oci://ghcr.io/telorun/apify/apify-website-content-crawler@0.5.0#sha256-…
 ```
 
 Pin the digest with `telo upgrade`. The module re-exports `ApifyClient`, so it is the only import needed.
@@ -64,8 +64,8 @@ Only these fields are accepted — `telo check` rejects any other.
 | `keepUrlFragments` | boolean |  | `false` | URL #fragments identify unique pages — Indicates that URL fragments (e.g. http://example.com#fragment) should be included when checking whether a URL has already been visited or not. Typically, URL fragments are used for page navigation only and therefore they should be ignored, as they don't identi |
 | `ignoreCanonicalUrl` | boolean |  | `false` | Ignore canonical URLs — If enabled, the Actor will ignore the canonical URL or the `ETag` header reported by the page, and use the actual URL instead. You can use this feature for websites that report invalid canonical URLs, which causes the Actor to skip those pages in results. |
 | `proxyConfiguration` | object | yes | `{"useApifyProxy":true}` | Proxy configuration — Enables loading the websites from IP addresses in specific geographies and to circumvent blocking. |
-| `initialCookies` | array |  |  | Custom cookies — Cookies that will be pre-set to all pages the scraper opens. This is useful for pages that require login. The value is expected to be a JSON array of objects with `name` and `value` properties. For example: ```json [   {     "name": "cookieName",     "value": "cookieValue",     "pat |
-| `customHttpHeaders` | object |  | `{}` | Custom HTTP headers — HTTP headers that will be added to all requests made by the crawler. This is useful for setting custom authentication headers or other headers required by the target website. The value is expected to be a JSON object with `name` and `value` properties pairs. For example: `{ "na |
+| `initialCookies` | array |  |  | Custom cookies — Cookies that will be pre-set to all pages the scraper opens. This is useful for pages that require login. A cookie without a `domain` is sent only to the hosts of the Start URLs. The value is expected to be a JSON array of objects with `name` and `value` properties. For example: ``` |
+| `customHttpHeaders` | object |  |  | Custom HTTP headers — HTTP headers that will be added to all requests made by the crawler. This is useful for setting custom authentication headers or other headers required by the target website. The value is expected to be a JSON object with `name` and `value` properties pairs. For example: `{ "na |
 | `signHttpRequests` | boolean |  | `false` | Sign HTTP requests (experimental) — If enabled, the crawler will sign all HTTP requests using its Web Bot Auth private key. This is necessary if you want to use Website Content Crawler as a Cloudflare Signed Agent. |
 | `initialConcurrency` | integer |  | `0` | Initial concurrency — The initial number of web browsers or HTTP clients running in parallel. The system scales the concurrency up and down based on the current CPU and memory load. If the value is set to 0 (default), the Actor uses the default setting for the specific crawler type. Note that if you |
 | `maxConcurrency` | integer |  | `200` | Max concurrency — The maximum number of web browsers or HTTP clients running in parallel. This setting is useful to avoid overloading the target websites and to avoid getting blocked. |
@@ -92,7 +92,7 @@ Only these fields are accepted — `telo check` rejects any other.
 | `debugMode` | boolean |  | `false` | Debug mode (stores output of all HTML transformers) — If enabled, the Actor will store the output of all types of HTML transformers, including the ones that are not used by default, and it will also store the HTML to Key-value Store with a link. All this data is stored under the `debug` field in the |
 | `debugLog` | boolean |  | `false` | Debug log — If enabled, the actor log will include debug messages. Beware that this can be quite verbose. |
 | `storeSkippedUrls` | boolean |  | `false` | Store skipped URLs — If enabled, the crawler will store all URLs that were skipped during the crawl in a Key-Value Store record named `SKIPPED_URLS`. The record will contain a JSON object with reasons for skipping and the URLs that were skipped for each reason. This is useful for debugging and under |
-| `saveHtml` | boolean |  | `false` | Save HTML to dataset (deprecated) — If enabled, the crawler stores full transformed HTML of all pages found to the output dataset under the `html` field. **This option has been deprecated** in favor of the `saveHtmlAsFile` option, because the dataset records have a size of approximately 10MB and it' |
+| `saveHtml` | boolean |  | `false` | Save HTML to dataset (deprecated) — **This option has been deprecated** in favor of the `saveHtmlAsFile` option, because the dataset records have a size limit of 9MB. If enabled, the crawler stores full transformed HTML of all pages found to the output dataset under the `html` field. |
 | `saveHtmlAsFile` | boolean |  | `false` | Save HTML to key-value store — If enabled, the crawler stores full transformed HTML of all pages found to the default key-value store and saves links to the files as `htmlUrl` field in the output dataset. Storing HTML in key-value store is preferred to storing it into the dataset with the `saveHtml` |
 | `saveMarkdown` | boolean |  | `true` | Save Markdown — If enabled, the crawler converts the transformed HTML of all pages found to Markdown, and stores it under the `markdown` field in the output dataset. |
 | `summarize` | boolean |  | `false` | Summarize pages with AI (experimental) ($) — If enabled, the crawler generates a one-sentence AI summary of each crawled web page and stores it under the `summary` field in the output dataset. This helps downstream LLM processing by describing what each page is about without reading the full content |

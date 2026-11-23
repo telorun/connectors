@@ -3,7 +3,7 @@
 kind: Telo.Library
 metadata:
   name: DevFusionLinkedinProfileScraper
-  version: 0.1.0
+  version: 0.2.0
   description: >-
     ✨Mass Linkedin Profile Scraper with Email 📧 (No Cookies): the Apify actor
     dev_fusion/Linkedin-Profile-Scraper as typed Telo kinds. `Run` runs it and waits for its results
@@ -17,7 +17,7 @@ metadata:
   license: MIT
 imports:
   Apify: ../apify
-  Flow: oci://ghcr.io/telorun/run@0.32.1#sha256-kV5CLg3aUn7XH49UnwIQ1f1UmnA7s1XGvJyX67GfJN8
+  Flow: oci://ghcr.io/telorun/run@0.28.0#sha256-CoPkA-u8-m4kjQAOTDr_TmsfA72HDpnoZI-hHz8N7kE
 exports:
   kinds:
     - Run
@@ -205,7 +205,7 @@ resources:
           waitForFinish: 60
     outputs:
       run: !cel "steps.poll.result.body.data"
-  - kind: Flow.Sequence
+  - kind: Telo.Sequence
     metadata:
       name: seq
     inputType:

@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.3.0 - 2026-11-23
+### Changed
+* Regenerated from build 0.1.694 of the Apify actor `compass/google-maps-extractor` (was 0.2.0).
+
 ## 0.2.0 - 2026-11-03
 ### Changed
 * Regenerated from build 0.1.682 of the Apify actor `compass/google-maps-extractor` (was 0.1.678).

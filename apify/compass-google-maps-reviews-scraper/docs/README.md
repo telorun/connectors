@@ -2,7 +2,7 @@
 
 # Google Maps Reviews Scraper
 
-The Apify actor [`compass/Google-Maps-Reviews-Scraper`](https://apify.com/compass/Google-Maps-Reviews-Scraper) as typed Telo kinds, generated from its default build **0.0.544** (module version **0.1.0**). Runs use whatever build the actor has as default when they start, so they keep working as Apify retires old builds; the input types below are refreshed weekly and can lag an actor that changed its input since.
+The Apify actor [`compass/Google-Maps-Reviews-Scraper`](https://apify.com/compass/Google-Maps-Reviews-Scraper) as typed Telo kinds, generated from its default build **0.0.556** (module version **0.2.0**). Runs use whatever build the actor has as default when they start, so they keep working as Apify retires old builds; the input types below are refreshed weekly and can lag an actor that changed its input since.
 
 Extract all reviews of Google Maps places using place URLs. Get review text, published date, response from owner, review URL, and reviewer's details. Download scraped data, run the scraper via API, schedule and monitor runs or integrate with other tools.
 
@@ -16,7 +16,7 @@ Runs are charged to the Apify account whose token the `ApifyClient` holds. See t
 
 ```yaml
 imports:
-  Actor: oci://ghcr.io/telorun/apify/compass-google-maps-reviews-scraper@0.1.0#sha256-…
+  Actor: oci://ghcr.io/telorun/apify/compass-google-maps-reviews-scraper@0.2.0#sha256-…
 ```
 
 Pin the digest with `telo upgrade`. The module re-exports `ApifyClient`, so it is the only import needed.

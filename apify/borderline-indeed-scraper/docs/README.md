@@ -2,7 +2,7 @@
 
 # 🚀 Indeed jobs scraper [PPR]
 
-The Apify actor [`borderline/indeed-scraper`](https://apify.com/borderline/indeed-scraper) as typed Telo kinds, generated from its default build **0.0.188** (module version **0.1.0**). Runs use whatever build the actor has as default when they start, so they keep working as Apify retires old builds; the input types below are refreshed weekly and can lag an actor that changed its input since.
+The Apify actor [`borderline/indeed-scraper`](https://apify.com/borderline/indeed-scraper) as typed Telo kinds, generated from its default build **0.0.189** (module version **0.2.0**). Runs use whatever build the actor has as default when they start, so they keep working as Apify retires old builds; the input types below are refreshed weekly and can lag an actor that changed its input since.
 
 Pay per result - Fast and reliable Indeed Job Scraper! 🚀 Extract job listings with company details effortlessly with advanced filters, avoid blocking, and enjoy lightning-speed execution. Build your analytics, automate searches, or benchmark salaries—all with seamless outputs. Try it now for free
 
@@ -16,7 +16,7 @@ Runs are charged to the Apify account whose token the `ApifyClient` holds. See t
 
 ```yaml
 imports:
-  Actor: oci://ghcr.io/telorun/apify/borderline-indeed-scraper@0.1.0#sha256-…
+  Actor: oci://ghcr.io/telorun/apify/borderline-indeed-scraper@0.2.0#sha256-…
 ```
 
 Pin the digest with `telo upgrade`. The module re-exports `ApifyClient`, so it is the only import needed.

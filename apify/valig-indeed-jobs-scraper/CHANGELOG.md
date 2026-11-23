@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.2.0 - 2026-11-23
+### Changed
+* Regenerated from build 0.0.18 of the Apify actor `valig/indeed-jobs-scraper` (was 0.1.0).
+
 ## 0.1.0 - 2026-11-03
 ### Changed
 * Regenerated from build 0.0.17 of the Apify actor `valig/indeed-jobs-scraper` (was 0.0.16).

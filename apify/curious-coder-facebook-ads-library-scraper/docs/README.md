@@ -2,7 +2,7 @@
 
 # Facebook Ad Library Scraper
 
-The Apify actor [`curious_coder/facebook-ads-library-scraper`](https://apify.com/curious_coder/facebook-ads-library-scraper) as typed Telo kinds, generated from its default build **2.7.28** (module version **2.8.0**). Runs use whatever build the actor has as default when they start, so they keep working as Apify retires old builds; the input types below are refreshed weekly and can lag an actor that changed its input since.
+The Apify actor [`curious_coder/facebook-ads-library-scraper`](https://apify.com/curious_coder/facebook-ads-library-scraper) as typed Telo kinds, generated from its default build **2.7.29** (module version **2.9.0**). Runs use whatever build the actor has as default when they start, so they keep working as Apify retires old builds; the input types below are refreshed weekly and can lag an actor that changed its input since.
 
 Scrape ads from facebook ads library search results and facebook pages. Cost: $0.75 per 1K ads
 
@@ -16,7 +16,7 @@ Runs are charged to the Apify account whose token the `ApifyClient` holds. See t
 
 ```yaml
 imports:
-  Actor: oci://ghcr.io/telorun/apify/curious-coder-facebook-ads-library-scraper@2.8.0#sha256-…
+  Actor: oci://ghcr.io/telorun/apify/curious-coder-facebook-ads-library-scraper@2.9.0#sha256-…
 ```
 
 Pin the digest with `telo upgrade`. The module re-exports `ApifyClient`, so it is the only import needed.

@@ -2,13 +2,13 @@
 
 # LinkedIn Jobs Scraper | Remove Duplicate Jobs | Pay Per Result
 
-The Apify actor [`cheap_scraper/linkedin-job-scraper`](https://apify.com/cheap_scraper/linkedin-job-scraper) as typed Telo kinds, generated from its default build **0.0.53** (module version **0.1.0**). Runs use whatever build the actor has as default when they start, so they keep working as Apify retires old builds; the input types below are refreshed weekly and can lag an actor that changed its input since.
+The Apify actor [`cheap_scraper/linkedin-job-scraper`](https://apify.com/cheap_scraper/linkedin-job-scraper) as typed Telo kinds, generated from its default build **0.0.54** (module version **0.2.0**). Runs use whatever build the actor has as default when they start, so they keep working as Apify retires old builds; the input types below are refreshed weekly and can lag an actor that changed its input since.
 
 Scrape LinkedIn jobs by keywords and location or by LinkedIn search URLs, or both. Export to JSON, CSV or Excel. No login or cookies needed. Filter jobs, filter with AI, remove duplicates, add company data, and automate with n8n, Make, Zapier or AI agents.
 
 ## Pricing
 
-Pay per event — result $0.0007, Actor Start $0.005 (Free-plan prices; paid plans pay less). Cap the spend with `maxTotalChargeUsd`.
+Pay per event — Job Result $0.0007, AI job analysis $0.0005, Actor Start $0.005 (Free-plan prices; paid plans pay less). Cap the spend with `maxTotalChargeUsd`.
 
 Runs are charged to the Apify account whose token the `ApifyClient` holds. See the [Store page](https://apify.com/cheap_scraper/linkedin-job-scraper) for current prices.
 
@@ -16,7 +16,7 @@ Runs are charged to the Apify account whose token the `ApifyClient` holds. See t
 
 ```yaml
 imports:
-  Actor: oci://ghcr.io/telorun/apify/cheap-scraper-linkedin-job-scraper@0.1.0#sha256-…
+  Actor: oci://ghcr.io/telorun/apify/cheap-scraper-linkedin-job-scraper@0.2.0#sha256-…
 ```
 
 Pin the digest with `telo upgrade`. The module re-exports `ApifyClient`, so it is the only import needed.

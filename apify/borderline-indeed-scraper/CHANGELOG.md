@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.2.0 - 2026-11-23
+### Changed
+* Regenerated from build 0.0.189 of the Apify actor `borderline/indeed-scraper` (was 0.1.0).
+
 ## 0.1.0 - 2026-11-03
 ### Changed
 * Regenerated from build 0.0.188 of the Apify actor `borderline/indeed-scraper` (was 0.0.187).

@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.2.0 - 2026-11-23
+### Changed
+* Regenerated from build 0.0.573 of the Apify actor `clockworks/free-tiktok-scraper` (was 0.1.0).
+
 ## 0.1.0 - 2026-11-03
 ### Changed
 * Regenerated from build 0.0.558 of the Apify actor `clockworks/free-tiktok-scraper` (was 0.0.538).

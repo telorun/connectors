@@ -2,7 +2,7 @@
 
 # Instagram Scraper
 
-The Apify actor [`apify/instagram-scraper`](https://apify.com/apify/instagram-scraper) as typed Telo kinds, generated from its default build **0.0.838** (module version **0.1.0**). Runs use whatever build the actor has as default when they start, so they keep working as Apify retires old builds; the input types below are refreshed weekly and can lag an actor that changed its input since.
+The Apify actor [`apify/instagram-scraper`](https://apify.com/apify/instagram-scraper) as typed Telo kinds, generated from its default build **0.0.871** (module version **0.2.0**). Runs use whatever build the actor has as default when they start, so they keep working as Apify retires old builds; the input types below are refreshed weekly and can lag an actor that changed its input since.
 
 Extract Instagram posts, reels, profiles, places, hashtags, carousels, and comments. Get data from Instagram using one or more Instagram URLs or search queries: content, context, metrics, metadata. Export scraped data, run the scraper via API, schedule and monitor runs or integrate with other tools.
 
@@ -16,7 +16,7 @@ Runs are charged to the Apify account whose token the `ApifyClient` holds. See t
 
 ```yaml
 imports:
-  Actor: oci://ghcr.io/telorun/apify/apify-instagram-scraper@0.1.0#sha256-…
+  Actor: oci://ghcr.io/telorun/apify/apify-instagram-scraper@0.2.0#sha256-…
 ```
 
 Pin the digest with `telo upgrade`. The module re-exports `ApifyClient`, so it is the only import needed.

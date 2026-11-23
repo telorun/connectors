@@ -2,7 +2,7 @@
 
 # Tiktok Scraper (Pay Per Result)
 
-The Apify actor [`apidojo/tiktok-scraper`](https://apify.com/apidojo/tiktok-scraper) as typed Telo kinds, generated from its default build **0.0.1150** (module version **0.1.0**). Runs use whatever build the actor has as default when they start, so they keep working as Apify retires old builds; the input types below are refreshed weekly and can lag an actor that changed its input since.
+The Apify actor [`apidojo/tiktok-scraper`](https://apify.com/apidojo/tiktok-scraper) as typed Telo kinds, generated from its default build **0.0.1177** (module version **0.2.0**). Runs use whatever build the actor has as default when they start, so they keep working as Apify retires old builds; the input types below are refreshed weekly and can lag an actor that changed its input since.
 
 Extract TikTok profiles, videos, hashtags, comments at 600 posts/sec. No proxy, 98% success rate. Scrape music, locations & user data with query builder. Export JSON/CSV, API integration. Perfect for influencer discovery, lead gen, market research. $0.30 per 1K posts.
 
@@ -16,7 +16,7 @@ Runs are charged to the Apify account whose token the `ApifyClient` holds. See t
 
 ```yaml
 imports:
-  Actor: oci://ghcr.io/telorun/apify/apidojo-tiktok-scraper@0.1.0#sha256-…
+  Actor: oci://ghcr.io/telorun/apify/apidojo-tiktok-scraper@0.2.0#sha256-…
 ```
 
 Pin the digest with `telo upgrade`. The module re-exports `ApifyClient`, so it is the only import needed.
@@ -50,14 +50,24 @@ Only these fields are accepted — `telo check` rejects any other.
 
 | Field | Type | Required | Default | Description |
 | --- | --- | --- | --- | --- |
-| `startUrls` | array |  |  | Start URLs — Paste the TikTok URLs, and get the results immediately. Video, Photo, User, Search, Tag, Music and Location URLs are supported. |
-| `maxItems` | integer |  |  | Maximum number of items on output — Maximum number of items that you want as output. |
-| `keywords` | array |  |  | Search Keywords — Search keywords/terms you want to search from TikTok. |
-| `dateRange` | string |  |  | Date Range (Only works in Search) — Date range for search. It uses the standard date filtering of TikTok search. |
-| `location` | string |  |  | Location / Region — Enables the actor to retrieve the results from that specific region/location, given by an ISO 3166-1 alpha-2 country code. |
-| `sortType` | string |  |  | Sort Type — Sort type for search. Only works with keyword search — does not apply to startUrls or other input methods. |
+| `hashtags` | array \| null |  | `null` | Videos with this hashtag — Hashtags to scrape videos from. The leading # is optional. |
+| `resultsPerPage` | integer \| null |  | `null` | Number of videos per hashtag, profile or search — Optional. Maximum number of items to scrape per source (hashtag, profile, search query, URL). Leave empty for no per-source limit. Maximum number of items in total still caps the whole run. |
+| `profiles` | array \| null |  | `null` | Usernames — TikTok usernames (with or without @) or numeric user IDs to scrape videos from. |
+| `profileSorting` | string \| null |  |  | Profile video sorting — Order of posts scraped from profiles (profile URLs and profiles). Leave empty to use the default order (latest). |
+| `excludePinnedPosts` | boolean \| null |  | `null` | Exclude pinned posts — Skip posts pinned to the top of the profile. |
+| `oldestPostDateUnified` | string \| null |  | `null` | Date filter: profile videos published after — Only keep profile posts uploaded on or after this date. Accepts a date (YYYY-MM-DD) or a number of days (e.g. 30 or "30 days"). Ignored with Popular sorting. |
+| `newestPostDate` | string \| null |  | `null` | Date filter: profile videos published before — Only keep profile posts uploaded on or before this date. Accepts a date (YYYY-MM-DD) or a number of days (e.g. 7 or "7 days"). Ignored with Popular sorting. |
+| `leastDiggs` | integer \| null |  | `null` | Popularity filter: hearts at least — Only keep profile posts with at least this many likes. Ignored when a date filter is set. |
+| `mostDiggs` | integer \| null |  | `null` | Popularity filter: hearts below — Only keep profile posts with at most this many likes. Ignored when a date filter is set. |
+| `keywords` | array |  |  | Search queries — Search keywords/terms you want to search from TikTok. |
+| `sortType` | string |  |  | Video search sorting (keyword search only) — Sort type for search. Only works with keyword search — does not apply to startUrls or other input methods. |
+| `dateRange` | string |  |  | Video search date filter — Date range for search. It uses the standard date filtering of TikTok search. |
+| `startUrls` | array |  |  | Direct URLs (video, photo, profile, hashtag, music, location, search) — Paste the TikTok URLs, and get the results immediately. Video, Photo, User, Search, Tag, Music and Location URLs are supported. |
+| `postURLs` | array \| null |  | `null` | Direct URLs for specific posts (video, photo) — TikTok video or photo URLs to scrape directly. |
+| `location` | string |  |  | Country — Enables the actor to retrieve the results from that specific region/location, given by an ISO 3166-1 alpha-2 country code. |
+| `maxItems` | integer |  |  | Maximum number of items in total — Maximum number of items that you want as output. |
+| `includeSearchKeywords` | boolean |  |  | Add search keyword to each item — If selected, a `keyword` field is added to each post found by keyword search, containing the search query that returned it. |
 | `customMapFunction` | string \| null |  |  | Custom map function — JavaScript function to transform each output video. Use to add computed fields, modify values, or remove unnecessary data. NOT intended for filtering - filtering may result in automatic bans. Must be a single synchronous function, e.g. (object) => { return {...object} }. It run |
-| `includeSearchKeywords` | boolean |  |  | Include Search Keywords — If selected, a field will be added to each tweets about the search keyword that was used to find it. |
 | `outputConnector` | string |  |  | Send results to Notion, Todoist, … (optional) — Pick an MCP connector you authorized in Console → Settings → API & Integrations → MCP connectors (e.g. Notion, Todoist — any service whose MCP server offers non-destructive write tools works best-effort). The scraped results are written through your ow |
 | `deliverTarget` | string |  |  | Destination target — Where to write into the connector — paste the URL or ID. Notion example: https://www.notion.so/My-Posts-24f8a1b2c3d44e5f8a9b0c1d2e3f4a5b. Leave empty for services that need no target (e.g. Todoist Inbox, Slack). For Notion, share the page or database with your connector first (N |
 | `deliverMode` | string |  | `"perPost"` | Write mode — perPost writes one record per scraped item; summary writes a single roll-up for the run. |
