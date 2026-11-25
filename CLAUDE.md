@@ -424,7 +424,7 @@ ledger: changie and changesets are both retired here.
 
 **One release workspace per vendor directory.** `telo release` derives a module's
 publish destination as `<registry>/<directory name>` and records one registry base
-per workspace, so the anchor sits at `<vendor>/telo-workspace.yaml` (`modules: ["*"]`)
+per workspace, so the anchor sits at `<vendor>/telo-workspace.yaml` (`units: [{ path: "*", ecosystem: telo }]`)
 with base `oci://ghcr.io/telorun/<vendor>` — which is what keeps published refs
 vendor-nested (`oci://ghcr.io/telorun/aws/s3`). Each vendor owns its
 `<vendor>/.changes/ledger.yaml` (a cache of what the registry serves, so the PR gate

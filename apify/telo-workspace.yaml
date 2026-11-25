@@ -10,5 +10,5 @@
 # is written by the generator and it is published by scripts/publish-modules.mjs
 # directly. See apify/README.md.
 release:
-  modules:
-    - "apify"
+  units:
+    - { path: apify, ecosystem: telo }
