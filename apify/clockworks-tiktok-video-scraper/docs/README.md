@@ -2,7 +2,7 @@
 
 # TikTok Video Scraper
 
-The Apify actor [`clockworks/tiktok-video-scraper`](https://apify.com/clockworks/tiktok-video-scraper) as typed Telo kinds, generated from its default build **0.0.499** (module version **0.1.0**). Runs use whatever build the actor has as default when they start, so they keep working as Apify retires old builds; the input types below are refreshed weekly and can lag an actor that changed its input since.
+The Apify actor [`clockworks/tiktok-video-scraper`](https://apify.com/clockworks/tiktok-video-scraper) as typed Telo kinds, generated from its default build **0.0.514** (module version **0.2.0**). Runs use whatever build the actor has as default when they start, so they keep working as Apify retires old builds; the input types below are refreshed weekly and can lag an actor that changed its input since.
 
 Scrape TikTok video metadata and details from any TikTok URL: views, likes, comments, shares, saves, captions, hashtags, music, upload date, and creator info. Add subtitles, AI transcripts, video downloads, and related videos. Use it for video analytics, trend research, and competitor tracking.
 
@@ -16,7 +16,7 @@ Runs are charged to the Apify account whose token the `ApifyClient` holds. See t
 
 ```yaml
 imports:
-  Actor: oci://ghcr.io/telorun/apify/clockworks-tiktok-video-scraper@0.1.0#sha256-…
+  Actor: oci://ghcr.io/telorun/apify/clockworks-tiktok-video-scraper@0.2.0#sha256-…
 ```
 
 Pin the digest with `telo upgrade`. The module re-exports `ApifyClient`, so it is the only import needed.

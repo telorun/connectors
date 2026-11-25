@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.2.0 - 2026-11-23
+### Changed
+* Regenerated from build 0.0.1097 of the Apify actor `apidojo/youtube-scraper` (was 0.1.0).
+
 ## 0.1.0 - 2026-11-03
 ### Changed
 * Regenerated from build 0.0.1077 of the Apify actor `apidojo/youtube-scraper` (was 0.0.1068).

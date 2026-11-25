@@ -2,7 +2,7 @@
 
 # Link Prospecting Tool
 
-The Apify actor [`apify/link-prospecting-tool`](https://apify.com/apify/link-prospecting-tool) as typed Telo kinds, generated from its default build **0.0.14** (module version **0.1.0**). Runs use whatever build the actor has as default when they start, so they keep working as Apify retires old builds; the input types below are refreshed weekly and can lag an actor that changed its input since.
+The Apify actor [`apify/link-prospecting-tool`](https://apify.com/apify/link-prospecting-tool) as typed Telo kinds, generated from its default build **0.0.14** (module version **0.2.0**). Runs use whatever build the actor has as default when they start, so they keep working as Apify retires old builds; the input types below are refreshed weekly and can lag an actor that changed its input since.
 
 Monitor your brand visibility across AI and organic search platforms (ChatGPT, Google AI Mode, Google AI Overviews, and Perplexity). Check if quoted sources include your brand, and find link outreach opportunities.
 
@@ -16,7 +16,7 @@ Runs are charged to the Apify account whose token the `ApifyClient` holds. See t
 
 ```yaml
 imports:
-  Actor: oci://ghcr.io/telorun/apify/apify-link-prospecting-tool@0.1.0#sha256-…
+  Actor: oci://ghcr.io/telorun/apify/apify-link-prospecting-tool@0.2.0#sha256-…
 ```
 
 Pin the digest with `telo upgrade`. The module re-exports `ApifyClient`, so it is the only import needed.

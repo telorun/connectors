@@ -2,7 +2,7 @@
 
 # Traffic Generator (Youtube, Web, Etsy, Behance and many more!)
 
-The Apify actor [`epctex/traffic-generator`](https://apify.com/epctex/traffic-generator) as typed Telo kinds, generated from its default build **0.0.2037** (module version **0.1.0**). Runs use whatever build the actor has as default when they start, so they keep working as Apify retires old builds; the input types below are refreshed weekly and can lag an actor that changed its input since.
+The Apify actor [`epctex/traffic-generator`](https://apify.com/epctex/traffic-generator) as typed Telo kinds, generated from its default build **0.0.2060** (module version **0.2.0**). Runs use whatever build the actor has as default when they start, so they keep working as Apify retires old builds; the input types below are refreshed weekly and can lag an actor that changed its input since.
 
 Maximize your website's performance and visibility with our Traffic Generator. Drive targeted traffic, simulate page views, and stress-test against potential threats. With the power to generate millions of visits, it's the ultimate solution for boosting your online presence.
 
@@ -16,7 +16,7 @@ Runs are charged to the Apify account whose token the `ApifyClient` holds. See t
 
 ```yaml
 imports:
-  Actor: oci://ghcr.io/telorun/apify/epctex-traffic-generator@0.1.0#sha256-…
+  Actor: oci://ghcr.io/telorun/apify/epctex-traffic-generator@0.2.0#sha256-…
 ```
 
 Pin the digest with `telo upgrade`. The module re-exports `ApifyClient`, so it is the only import needed.

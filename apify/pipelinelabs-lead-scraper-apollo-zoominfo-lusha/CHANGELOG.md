@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.6.0 - 2026-11-23
+### Changed
+* Regenerated from build 1.4.74 of the Apify actor `pipelinelabs/lead-scraper-apollo-zoominfo-lusha` (was 1.5.0).
+
 ## 1.5.0 - 2026-11-03
 ### Changed
 * Regenerated from build 1.4.73 of the Apify actor `pipelinelabs/lead-scraper-apollo-zoominfo-lusha` (was 1.4.72).

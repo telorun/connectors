@@ -2,7 +2,7 @@
 
 # Monitoring Runner
 
-The Apify actor [`apify/monitoring-runner`](https://apify.com/apify/monitoring-runner) as typed Telo kinds, generated from its default build **0.0.217** (module version **0.1.0**). Runs use whatever build the actor has as default when they start, so they keep working as Apify retires old builds; the input types below are refreshed weekly and can lag an actor that changed its input since.
+The Apify actor [`apify/monitoring-runner`](https://apify.com/apify/monitoring-runner) as typed Telo kinds, generated from its default build **0.0.220** (module version **0.2.0**). Runs use whatever build the actor has as default when they start, so they keep working as Apify retires old builds; the input types below are refreshed weekly and can lag an actor that changed its input since.
 
 The monitoring runner is a part of the Apify Monitoring Suite (apify/monitoring). See its readme for more information and how to use this.
 
@@ -16,7 +16,7 @@ Runs are charged to the Apify account whose token the `ApifyClient` holds. See t
 
 ```yaml
 imports:
-  Actor: oci://ghcr.io/telorun/apify/apify-monitoring-runner@0.1.0#sha256-…
+  Actor: oci://ghcr.io/telorun/apify/apify-monitoring-runner@0.2.0#sha256-…
 ```
 
 Pin the digest with `telo upgrade`. The module re-exports `ApifyClient`, so it is the only import needed.
@@ -67,7 +67,14 @@ Only these fields are accepted — `telo check` rejects any other.
 | `emailReporter` | boolean |  |  | Email — Sends report to mail inbox. LINK TO PA for input |
 | `slackReporter` | boolean |  |  | Slack — Sends report to custom slack channel. LINK TO PA for input |
 | `reporters` | array |  | `[]` | Reporters — Id of reporter actors or tasks |
-| `reportersInput` | object |  |  | Checkers input — Pass input to checkers |
+| `emailReporterTo` | string |  |  | Email to — Email address the Email reporter sends the report to, empty means the account email. Has priority over the deprecated "Reporters input". |
+| `emailReporterSubject` | string |  |  | Email subject — Subject of the report email. |
+| `slackReporterChannel` | string |  |  | Slack channel — Slack channel the Slack reporter posts to, such as #monitoring. Has priority over the deprecated "Reporters input". |
+| `slackReporterToken` | string |  |  | Slack API token — OAuth access token for the Slack API (https://api.slack.com/authentication). Stored encrypted. |
+| `dashboardNotifyOnUpdate` | boolean |  |  | Notify on dashboard update — Send a notification when the dashboard is updated. Has priority over the deprecated "Reporters input". |
+| `dashboardGroupBy` | array |  |  | Dashboard group by — Name patterns to group dashboard targets by. |
+| `reportersInput` | object |  |  | Reporters input (deprecated) — Deprecated JSON config of reporters. Use the reporter fields above instead, they have priority over this input. Stored encrypted. |
+| `errorHandlerForRunId` | string |  |  | Error handler for run — Internal. Set by the error webhook: report errors of this failed runner run instead of monitoring. |
 | `frequency` | string |  |  | The frequency of task — If passed the resources will be filtered by the frequency of the task. For example if you pass MONTHLY only resources modified last month will be collected. |
 
 ## Output

@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.2.0 - 2026-11-23
+### Changed
+* Regenerated from build 0.0.273 of the Apify actor `streamers/youtube-comments-scraper` (was 0.1.0).
+
 ## 0.1.0 - 2026-11-03
 ### Changed
 * Regenerated from build 0.0.261 of the Apify actor `streamers/youtube-comments-scraper` (was 0.0.255).
