@@ -1,3 +1,0 @@
-modules:
-  drive: Fixed
-body: "The upload kinds' base64 `content` decoding now passes `telo check` on telo 0.141, which rejects `bytesFromBase64` on the `string|bytes|Stream` content union."

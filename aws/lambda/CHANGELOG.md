@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.14.0 - 2026-11-28
+### Added
+* Upgraded standard-module imports to their latest published versions.
+
 ## 0.13.2 - 2026-11-14
 ### Fixed
 * Refer to the built-in Telo.Sequence rather than the deprecated Run.Sequence in the Direct handler comment. Behavior is unchanged.

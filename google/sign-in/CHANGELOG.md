@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.2.0 - 2026-11-28
+### Added
+* Upgraded standard-module imports to their latest published versions.
+
 ## 0.1.3 - 2026-11-14
 ### Fixed
 * Use the built-in Telo.Sequence in place of the deprecated Run.Sequence, and drop the run import. Behavior is unchanged.

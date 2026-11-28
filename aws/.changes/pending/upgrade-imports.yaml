@@ -1,4 +1,0 @@
-modules:
-  lambda: Added
-  s3: Added
-body: "Upgraded standard-module imports to their latest published versions."

@@ -1,3 +1,0 @@
-modules:
-  apify: Fixed
-body: "`RunActorSync` and `RunActor` now pass `telo check` on telo 0.141, which stopped narrowing a nullable `timeout`/`memory`/`maxItems`/`maxTotalChargeUsd` after its null guard."

@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.6.0 - 2026-11-28
+### Added
+* Upgraded standard-module imports to their latest published versions.
+
 ## 0.5.2 - 2026-11-14
 ### Fixed
 * Declare the minimum telo runtime (requires.telo >=0.88.0), and pass GoogleClient's retry initialDelay and maxDelay to http-client as CEL durations, which the current Telo.Duration schema requires.

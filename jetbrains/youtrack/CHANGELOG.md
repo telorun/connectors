@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.5.0 - 2026-11-28
+### Added
+* Upgraded standard-module imports to their latest published versions.
+
 ## 0.4.1 - 2026-11-03
 ### Fixed
 * Templates name their internal resources with literals and dispatch with '!ref', replacing the deprecated computed names and '{ kind, name }' invoke form. No change to the public kinds.
