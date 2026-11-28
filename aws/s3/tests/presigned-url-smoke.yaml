@@ -12,8 +12,8 @@ metadata:
     expiry, and contentType-on-get raise ERR_INVALID_INPUT.
 imports:
   S3: ../
-  JS: oci://ghcr.io/telorun/javascript@0.12.3#sha256-iUQQQDhaz0vY_ILjBbmwieUFhgVG8HXtPq-bwtcDWdA
-  Assert: oci://ghcr.io/telorun/assert@0.18.0#sha256-mSy7HGMq_UoQUvt4WbQCIO_uqXcRZwRlmROp6DfLDjY
+  JS: oci://ghcr.io/telorun/javascript@0.14.2#sha256-DDkoguHieiZwCQOEc3F8fTBv-Ouw5CDC8qM_WKs0ERQ
+  Assert: oci://ghcr.io/telorun/assert@0.23.0#sha256-CT1vdPTra9haCPntji5sJG0qG_acnTaeYxg0roNgZGI
 # The two negative cases feed their invalid values through variables: the
 # analyzer statically rejects an out-of-contract literal at a dispatch site, but
 # these tests exist to prove the RUNTIME raises ERR_INVALID_INPUT.

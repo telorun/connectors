@@ -5,7 +5,7 @@ metadata: { name: InvalidAuthFixture, version: 1.0.0 }
 # `telo check` with exactly two SCHEMA_VIOLATIONs.
 imports:
   GoogleAuth: ../../
-  Http: oci://ghcr.io/telorun/http-client@0.22.0#sha256-UyC8nQDnKHXyPpPPHC7TS8MicesLsgDUKWBYObf5oQ4
+  Http: oci://ghcr.io/telorun/http-client@0.25.1#sha256-yODGL4HqbynR4aaPrcN1I2RIsmNBDn3ciL1uobA8nqA
 targets: []
 ---
 # no auth at all

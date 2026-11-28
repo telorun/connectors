@@ -2,7 +2,7 @@
 
 # Tweet Scraper V2 - X Scraper / Twitter Scraper / X.com Scraper
 
-The Apify actor [`apidojo/tweet-scraper`](https://apify.com/apidojo/tweet-scraper) as typed Telo kinds, generated from its default build **0.0.1595** (module version **0.2.0**). Runs use whatever build the actor has as default when they start, so they keep working as Apify retires old builds; the input types below are refreshed weekly and can lag an actor that changed its input since.
+The Apify actor [`apidojo/tweet-scraper`](https://apify.com/apidojo/tweet-scraper) as typed Telo kinds, generated from its default build **0.0.1602** (module version **0.3.0**). Runs use whatever build the actor has as default when they start, so they keep working as Apify retires old builds; the input types below are refreshed weekly and can lag an actor that changed its input since.
 
 Lightning-fast search, URL, list, and profile scraping, with customizable filters. At $0.40 per 1000 tweets, and 30-80 tweets per second, it is ideal for researchers, entrepreneurs, and businesses! Get comprehensive insights from Twitter (X) now!
 
@@ -16,7 +16,7 @@ Runs are charged to the Apify account whose token the `ApifyClient` holds. See t
 
 ```yaml
 imports:
-  Actor: oci://ghcr.io/telorun/apify/apidojo-tweet-scraper@0.2.0#sha256-…
+  Actor: oci://ghcr.io/telorun/apify/apidojo-tweet-scraper@0.3.0#sha256-…
 ```
 
 Pin the digest with `telo upgrade`. The module re-exports `ApifyClient`, so it is the only import needed.
@@ -75,7 +75,7 @@ Only these fields are accepted — `telo check` rejects any other.
 | `start` | string |  |  | Start date — Returns tweets sent after the given date. |
 | `end` | string |  |  | End date — Returns tweets sent before the given date. |
 | `includeSearchTerms` | boolean |  |  | Include Search Terms — If selected, a field will be added to each tweets about the search term that was used to find it. |
-| `customMapFunction` | string \| null |  |  | Custom map function — Function that takes each of the objects as argument and returns data that will be mapped by the function itself. This function is not intended for filtering, please don't use it for filtering purposes or you will get banned automatically. |
+| `customMapFunction` | string \| null |  |  | Custom map function — JavaScript function to transform each output tweet. Use to add computed fields, modify values, or remove unnecessary data. NOT intended for filtering - filtering may result in automatic bans. Must be a single synchronous function, e.g. (object) => { return {...object} }. It run |
 | `outputConnector` | string |  |  | Send results to Notion, Todoist, … (optional) — Pick an MCP connector you authorized in Console → Settings → API & Integrations → MCP connectors (e.g. Notion, Todoist — any service whose MCP server offers non-destructive write tools works best-effort). The scraped results are written through your ow |
 | `deliverTarget` | string |  |  | Destination target — Where to write into the connector — paste the URL or ID. Notion example: https://www.notion.so/My-Posts-24f8a1b2c3d44e5f8a9b0c1d2e3f4a5b. Leave empty for services that need no target (e.g. Todoist Inbox, Slack). For Notion, share the page or database with your connector first (N |
 | `deliverMode` | string |  | `"perPost"` | Write mode — perPost writes one record per scraped item; summary writes a single roll-up for the run. |

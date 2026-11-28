@@ -2,7 +2,7 @@
 
 # LinkedIn Profile Posts Scraper (No Cookies)
 
-The Apify actor [`harvestapi/linkedin-profile-posts`](https://apify.com/harvestapi/linkedin-profile-posts) as typed Telo kinds, generated from its default build **0.0.87** (module version **0.2.0**). Runs use whatever build the actor has as default when they start, so they keep working as Apify retires old builds; the input types below are refreshed weekly and can lag an actor that changed its input since.
+The Apify actor [`harvestapi/linkedin-profile-posts`](https://apify.com/harvestapi/linkedin-profile-posts) as typed Telo kinds, generated from its default build **0.0.88** (module version **0.3.0**). Runs use whatever build the actor has as default when they start, so they keep working as Apify retires old builds; the input types below are refreshed weekly and can lag an actor that changed its input since.
 
 Extract posts from LinkedIn profiles, including content, media, engagement, reactions, comments, and more. No cookies or account required.
 
@@ -16,7 +16,7 @@ Runs are charged to the Apify account whose token the `ApifyClient` holds. See t
 
 ```yaml
 imports:
-  Actor: oci://ghcr.io/telorun/apify/harvestapi-linkedin-profile-posts@0.2.0#sha256-…
+  Actor: oci://ghcr.io/telorun/apify/harvestapi-linkedin-profile-posts@0.3.0#sha256-…
 ```
 
 Pin the digest with `telo upgrade`. The module re-exports `ApifyClient`, so it is the only import needed.

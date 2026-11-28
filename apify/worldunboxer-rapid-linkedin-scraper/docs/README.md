@@ -2,7 +2,7 @@
 
 # Linkedin Jobs Scraper
 
-The Apify actor [`worldunboxer/rapid-linkedin-scraper`](https://apify.com/worldunboxer/rapid-linkedin-scraper) as typed Telo kinds, generated from its default build **1.2.161** (module version **1.4.0**). Runs use whatever build the actor has as default when they start, so they keep working as Apify retires old builds; the input types below are refreshed weekly and can lag an actor that changed its input since.
+The Apify actor [`worldunboxer/rapid-linkedin-scraper`](https://apify.com/worldunboxer/rapid-linkedin-scraper) as typed Telo kinds, generated from its default build **1.2.161** (module version **1.5.0**). Runs use whatever build the actor has as default when they start, so they keep working as Apify retires old builds; the input types below are refreshed weekly and can lag an actor that changed its input since.
 
 Scrape LinkedIn jobs with powerful search and advanced filters using keywords, search URLs and locations.🔥$0.10/1K jobs. Extract job listing, full job details, and company details directly from LinkedIn job search results.
 
@@ -16,7 +16,7 @@ Runs are charged to the Apify account whose token the `ApifyClient` holds. See t
 
 ```yaml
 imports:
-  Actor: oci://ghcr.io/telorun/apify/worldunboxer-rapid-linkedin-scraper@1.4.0#sha256-…
+  Actor: oci://ghcr.io/telorun/apify/worldunboxer-rapid-linkedin-scraper@1.5.0#sha256-…
 ```
 
 Pin the digest with `telo upgrade`. The module re-exports `ApifyClient`, so it is the only import needed.

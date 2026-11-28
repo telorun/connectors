@@ -2,7 +2,7 @@
 
 # 💎 Leads Scraper $1/1K With EMAILS | 300M base | Like Apollo
 
-The Apify actor [`x_guru/Leads-Scraper-apollo-zoominfo`](https://apify.com/x_guru/Leads-Scraper-apollo-zoominfo) as typed Telo kinds, generated from its default build **1.0.58** (module version **1.2.0**). Runs use whatever build the actor has as default when they start, so they keep working as Apify retires old builds; the input types below are refreshed weekly and can lag an actor that changed its input since.
+The Apify actor [`x_guru/Leads-Scraper-apollo-zoominfo`](https://apify.com/x_guru/Leads-Scraper-apollo-zoominfo) as typed Telo kinds, generated from its default build **1.0.58** (module version **1.3.0**). Runs use whatever build the actor has as default when they start, so they keep working as Apify retires old builds; the input types below are refreshed weekly and can lag an actor that changed its input since.
 
 Extract up to 100K leads per run with Emails, LinkedIn URLs, Phone Numbers & More! Similar to Apollo, ZoomInfo, Lusha. 300M+ Verified Database! Only $1 per 1,000 leads. 🚀 Powered by Dievio.com
 
@@ -16,7 +16,7 @@ Runs are charged to the Apify account whose token the `ApifyClient` holds. See t
 
 ```yaml
 imports:
-  Actor: oci://ghcr.io/telorun/apify/x-guru-leads-scraper-apollo-zoominfo@1.2.0#sha256-…
+  Actor: oci://ghcr.io/telorun/apify/x-guru-leads-scraper-apollo-zoominfo@1.3.0#sha256-…
 ```
 
 Pin the digest with `telo upgrade`. The module re-exports `ApifyClient`, so it is the only import needed.

@@ -2,7 +2,7 @@
 
 # Reddit Scraper Lite
 
-The Apify actor [`trudax/reddit-scraper-lite`](https://apify.com/trudax/reddit-scraper-lite) as typed Telo kinds, generated from its default build **6.3.2** (module version **5.10.0**). Runs use whatever build the actor has as default when they start, so they keep working as Apify retires old builds; the input types below are refreshed weekly and can lag an actor that changed its input since.
+The Apify actor [`trudax/reddit-scraper-lite`](https://apify.com/trudax/reddit-scraper-lite) as typed Telo kinds, generated from its default build **6.3.2** (module version **5.11.0**). Runs use whatever build the actor has as default when they start, so they keep working as Apify retires old builds; the input types below are refreshed weekly and can lag an actor that changed its input since.
 
 Pay-per-result Reddit web scraper that crawls posts, comments, communities, and users. Limit web scraping to a set number of posts or items, and extract all data into a dataset in multiple formats.
 
@@ -16,7 +16,7 @@ Runs are charged to the Apify account whose token the `ApifyClient` holds. See t
 
 ```yaml
 imports:
-  Actor: oci://ghcr.io/telorun/apify/trudax-reddit-scraper-lite@5.10.0#sha256-…
+  Actor: oci://ghcr.io/telorun/apify/trudax-reddit-scraper-lite@5.11.0#sha256-…
 ```
 
 Pin the digest with `telo upgrade`. The module re-exports `ApifyClient`, so it is the only import needed.

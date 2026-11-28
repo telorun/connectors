@@ -14,7 +14,7 @@ metadata:
     control-plane option placed on an agent.
 requires: { telo: ">=0.128.0" }
 imports:
-  Shell: oci://ghcr.io/telorun/shell@0.13.2#sha256-Kn6rjKno79QZjBSMbjgQNNEAeg4AR7bPnchryZ4sOYk
+  Shell: oci://ghcr.io/telorun/shell@0.13.3#sha256-AXRHgGrsKfJpClRdRpdA5KDPtgrBohQeJ1JJmKuJ_xg
 exports:
   kinds:
     - Node

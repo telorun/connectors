@@ -3,7 +3,7 @@
 kind: Telo.Library
 metadata:
   name: ApifyLegacyPhantomjsCrawler
-  version: 0.2.0
+  version: 0.3.0
   description: >-
     Legacy PhantomJS Crawler: the Apify actor apify/legacy-phantomjs-crawler as typed Telo kinds.
     `Run` runs it and waits for its results (Apify allows up to 5 minutes); `Start` runs it in the
@@ -17,7 +17,7 @@ metadata:
   license: MIT
 imports:
   Apify: ../apify
-  Flow: oci://ghcr.io/telorun/run@0.28.0#sha256-CoPkA-u8-m4kjQAOTDr_TmsfA72HDpnoZI-hHz8N7kE
+  Flow: oci://ghcr.io/telorun/run@0.35.1#sha256-m6oA-tLMj4v0JvzkvRt17CBuWzXSYpumtxyNRb3qVz8
 exports:
   kinds:
     - Run
@@ -424,8 +424,6 @@ schema:
 
         For more information about finish webhooks, please see the actor README.
       maxLength: 1000
-      pattern: >-
-        ^(?:(?:[hH][tT][tT][pP][sS]?):\/\/)(?:\S+(?::\S*)?@)?(?:(?!10(?:\.\d{1,3}){3})(?!127(?:\.\d{1,3}){3})(?!169\.254(?:\.\d{1,3}){2})(?!192\.168(?:\.\d{1,3}){2})(?!172\.(?:1[6-9]|2\d|3[0-1])(?:\.\d{1,3}){2})(?:[1-9]\d?|1\d\d|2[01]\d|22[0-3])(?:\.(?:1?\d{1,2}|2[0-4]\d|25[0-5])){2}(?:\.(?:[1-9]\d?|1\d\d|2[0-4]\d|25[0-4]))|(?:(?:[a-zA-Z\u00a1-\uffff0-9]+-?)*[a-zA-Z\u00a1-\uffff0-9]+)(?:\.(?:[a-zA-Z\u00a1-\uffff0-9]+-?)*[a-zA-Z\u00a1-\uffff0-9]+)*(?:\.(?:[a-zA-Z\u00a1-\uffff]{2,})))(?::\d{2,5})?(?:\/[^\s]*)?$
     finishWebhookData:
       type:
         - string

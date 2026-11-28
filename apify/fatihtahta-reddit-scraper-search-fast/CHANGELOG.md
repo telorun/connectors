@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.12.0 - 2026-11-28
+### Changed
+* Regenerated from build 1.17.6 of the Apify actor `fatihtahta/reddit-scraper-search-fast` (was 1.11.0).
+
 ## 1.11.0 - 2026-11-23
 ### Changed
 * Regenerated from build 1.17.6 of the Apify actor `fatihtahta/reddit-scraper-search-fast` (was 1.10.0).

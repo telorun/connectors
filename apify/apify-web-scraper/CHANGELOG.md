@@ -1,5 +1,9 @@
 # Changelog
 
+## 3.3.0 - 2026-11-28
+### Changed
+* Regenerated from build 3.0.28 of the Apify actor `apify/web-scraper` (was 3.2.0).
+
 ## 3.2.0 - 2026-11-23
 ### Changed
 * Regenerated from build 3.0.28 of the Apify actor `apify/web-scraper` (was 3.1.0).

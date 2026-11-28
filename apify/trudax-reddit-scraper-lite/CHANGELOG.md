@@ -1,5 +1,9 @@
 # Changelog
 
+## 5.11.0 - 2026-11-28
+### Changed
+* Regenerated from build 6.3.2 of the Apify actor `trudax/reddit-scraper-lite` (was 5.10.0).
+
 ## 5.10.0 - 2026-11-23
 ### Changed
 * Regenerated from build 6.3.2 of the Apify actor `trudax/reddit-scraper-lite` (was 5.9.0).

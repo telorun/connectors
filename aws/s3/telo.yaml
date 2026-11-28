@@ -12,7 +12,7 @@ metadata:
     the storage-neutral `Blob.Put`, `Blob.Get`, `Blob.Head` and `Blob.Delete`
     work against it unchanged.
 imports:
-  Blob: oci://ghcr.io/telorun/blob@0.2.2#sha256-lJvbxbd_NbxN0Ye3CYsT_FI6yCAAaohHcJuzOgf079c
+  Blob: oci://ghcr.io/telorun/blob@0.2.3#sha256-w6nN0Ccr9ySjYmagNseiAbPO7kAvpEsSn7M-whg248k
 exports:
   kinds:
     - Bucket

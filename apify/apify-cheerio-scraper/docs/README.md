@@ -2,7 +2,7 @@
 
 # Cheerio Scraper
 
-The Apify actor [`apify/cheerio-scraper`](https://apify.com/apify/cheerio-scraper) as typed Telo kinds, generated from its default build **3.0.24** (module version **3.2.0**). Runs use whatever build the actor has as default when they start, so they keep working as Apify retires old builds; the input types below are refreshed weekly and can lag an actor that changed its input since.
+The Apify actor [`apify/cheerio-scraper`](https://apify.com/apify/cheerio-scraper) as typed Telo kinds, generated from its default build **3.0.24** (module version **3.3.0**). Runs use whatever build the actor has as default when they start, so they keep working as Apify retires old builds; the input types below are refreshed weekly and can lag an actor that changed its input since.
 
 Crawls websites using raw HTTP requests, parses the HTML with the Cheerio library, and extracts data from the pages using a Node.js code. Supports both recursive crawling and lists of URLs. This actor is a high-performance alternative to apify/web-scraper for websites that do not require JavaScript.
 
@@ -16,7 +16,7 @@ Runs are charged to the Apify account whose token the `ApifyClient` holds. See t
 
 ```yaml
 imports:
-  Actor: oci://ghcr.io/telorun/apify/apify-cheerio-scraper@3.2.0#sha256-…
+  Actor: oci://ghcr.io/telorun/apify/apify-cheerio-scraper@3.3.0#sha256-…
 ```
 
 Pin the digest with `telo upgrade`. The module re-exports `ApifyClient`, so it is the only import needed.

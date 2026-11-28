@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.6.0 - 2026-11-28
+### Changed
+* Regenerated from build 1.3.64 of the Apify actor `supreme_coder/linkedin-post` (was 1.5.0).
+
 ## 1.5.0 - 2026-11-23
 ### Changed
 * Regenerated from build 1.3.64 of the Apify actor `supreme_coder/linkedin-post` (was 1.4.0).

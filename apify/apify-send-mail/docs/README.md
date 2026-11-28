@@ -2,7 +2,7 @@
 
 # Send Email
 
-The Apify actor [`apify/send-mail`](https://apify.com/apify/send-mail) as typed Telo kinds, generated from its default build **0.3.26** (module version **0.5.0**). Runs use whatever build the actor has as default when they start, so they keep working as Apify retires old builds; the input types below are refreshed weekly and can lag an actor that changed its input since.
+The Apify actor [`apify/send-mail`](https://apify.com/apify/send-mail) as typed Telo kinds, generated from its default build **0.3.26** (module version **0.6.0**). Runs use whatever build the actor has as default when they start, so they keep working as Apify retires old builds; the input types below are refreshed weekly and can lag an actor that changed its input since.
 
 Send a custom email to one or more recipients. This Actor is useful for notifications and reporting. It can be invoked directly from code or via webhook integration after another Actor finishes.
 
@@ -16,7 +16,7 @@ Runs are charged to the Apify account whose token the `ApifyClient` holds. See t
 
 ```yaml
 imports:
-  Actor: oci://ghcr.io/telorun/apify/apify-send-mail@0.5.0#sha256-…
+  Actor: oci://ghcr.io/telorun/apify/apify-send-mail@0.6.0#sha256-…
 ```
 
 Pin the digest with `telo upgrade`. The module re-exports `ApifyClient`, so it is the only import needed.

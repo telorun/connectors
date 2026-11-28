@@ -21,8 +21,8 @@ metadata:
 requires: { telo: ">=0.135.0" }
 imports:
   GoogleAuth: ../auth
-  Http: oci://ghcr.io/telorun/http-client@0.25.0#sha256-bkm9YuaTBexTNH0QDyW8_O3h9Msg5vQZl9c62NIboLE
-  Multipart: oci://ghcr.io/telorun/multipart@0.5.0#sha256-HYqZbfzXOf-YAU7TMyZEFFDBDxeMdyRAoNf4_lAj-Zo
+  Http: oci://ghcr.io/telorun/http-client@0.25.1#sha256-yODGL4HqbynR4aaPrcN1I2RIsmNBDn3ciL1uobA8nqA
+  Multipart: oci://ghcr.io/telorun/multipart@0.5.1#sha256--OhpMFza_rR_wv4zycWaAF3kinh0Z_7jCxqYrYntoRc
 exports:
   kinds:
     - GmailClient

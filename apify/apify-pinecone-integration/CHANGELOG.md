@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.4.0 - 2026-11-28
+### Changed
+* Regenerated from build 0.1.6 of the Apify actor `apify/pinecone-integration` (was 0.3.0).
+
 ## 0.3.0 - 2026-11-23
 ### Changed
 * Regenerated from build 0.1.6 of the Apify actor `apify/pinecone-integration` (was 0.2.0).

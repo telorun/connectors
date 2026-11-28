@@ -2,7 +2,7 @@
 
 # Monitoring
 
-The Apify actor [`apify/monitoring`](https://apify.com/apify/monitoring) as typed Telo kinds, generated from its default build **0.0.220** (module version **0.2.0**). Runs use whatever build the actor has as default when they start, so they keep working as Apify retires old builds; the input types below are refreshed weekly and can lag an actor that changed its input since.
+The Apify actor [`apify/monitoring`](https://apify.com/apify/monitoring) as typed Telo kinds, generated from its default build **0.0.220** (module version **0.3.0**). Runs use whatever build the actor has as default when they start, so they keep working as Apify retires old builds; the input types below are refreshed weekly and can lag an actor that changed its input since.
 
 This actor monitors your actors' statuses, validates their datasets' data, and displays useful information in an interactive dashboard. And if something happens, you'll get notified via email or Slack.
 
@@ -16,7 +16,7 @@ Runs are charged to the Apify account whose token the `ApifyClient` holds. See t
 
 ```yaml
 imports:
-  Actor: oci://ghcr.io/telorun/apify/apify-monitoring@0.2.0#sha256-…
+  Actor: oci://ghcr.io/telorun/apify/apify-monitoring@0.3.0#sha256-…
 ```
 
 Pin the digest with `telo upgrade`. The module re-exports `ApifyClient`, so it is the only import needed.

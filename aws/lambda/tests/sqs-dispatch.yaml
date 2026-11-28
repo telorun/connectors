@@ -6,9 +6,9 @@ kind: Telo.Application
 metadata: { name: LambdaSqsDispatchTest, version: 1.0.0 }
 imports:
   Lambda: ..
-  JavaScript: oci://ghcr.io/telorun/javascript@0.12.3#sha256-iUQQQDhaz0vY_ILjBbmwieUFhgVG8HXtPq-bwtcDWdA
-  Type: oci://ghcr.io/telorun/type@0.12.1#sha256-tKywEmG8dPFv9UhLgvWmpcDk_FdLDZVORhEIKMFxpVM
-  Assert: oci://ghcr.io/telorun/assert@0.18.0#sha256-mSy7HGMq_UoQUvt4WbQCIO_uqXcRZwRlmROp6DfLDjY
+  JavaScript: oci://ghcr.io/telorun/javascript@0.14.2#sha256-DDkoguHieiZwCQOEc3F8fTBv-Ouw5CDC8qM_WKs0ERQ
+  Type: oci://ghcr.io/telorun/type@0.13.4#sha256-KeeAFbQ9qY0P7mM4MQHyxrhxIWiLeGu76p58Q_mNWRQ
+  Assert: oci://ghcr.io/telorun/assert@0.23.0#sha256-CT1vdPTra9haCPntji5sJG0qG_acnTaeYxg0roNgZGI
 targets:
   - !ref TestSqsDispatch
 ---

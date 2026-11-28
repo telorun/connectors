@@ -8,6 +8,9 @@ importers:
 
   .:
     devDependencies:
+      re2js:
+        specifier: 2.8.3
+        version: 2.8.3
       yaml:
         specifier: ^2.9.1
         version: 2.9.1
@@ -1197,6 +1200,10 @@ packages:
 
   pump@3.0.4:
     resolution: {integrity: sha512-VS7sjc6KR7e1ukRFhQSY5LM2uBWAUPiOPa/A3mkKmiMwSmRFUITt0xuj+/lesgnCv+dPIEYlkzrcyXgquIHMcA==}
+
+  re2js@2.8.3:
+    resolution: {integrity: sha512-lUKeXVwMqU302DM/WaOm33XF2hhzjGUZ8CbLg4zSAMpW2PPkJ2+is25AROevNiw+DytFmKU5gsQ92cB1Kxy+fA==}
+    engines: {node: '>=18.0.0'}
 
   re2js@2.8.6:
     resolution: {integrity: sha512-xLgQil4kIUCrAzVk9fRSkxkFNwmygLFjVxXrLc65aE1F0+Zsb8rxumFBy4XKyvgMCTL6kilDq3EZ0piE2dP/Dg==}
@@ -2569,6 +2576,8 @@ snapshots:
     dependencies:
       end-of-stream: 1.4.5
       once: 1.4.0
+
+  re2js@2.8.3: {}
 
   re2js@2.8.6: {}
 

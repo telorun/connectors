@@ -2,7 +2,7 @@
 
 # Instagram Profile Scraper (Bio & Posts)
 
-The Apify actor [`coderx/instagram-profile-scraper-bio-posts`](https://apify.com/coderx/instagram-profile-scraper-bio-posts) as typed Telo kinds, generated from its default build **0.0.213** (module version **0.1.0**). Runs use whatever build the actor has as default when they start, so they keep working as Apify retires old builds; the input types below are refreshed weekly and can lag an actor that changed its input since.
+The Apify actor [`coderx/instagram-profile-scraper-bio-posts`](https://apify.com/coderx/instagram-profile-scraper-bio-posts) as typed Telo kinds, generated from its default build **0.0.219** (module version **0.2.0**). Runs use whatever build the actor has as default when they start, so they keep working as Apify retires old builds; the input types below are refreshed weekly and can lag an actor that changed its input since.
 
 Instagram Profile Insights Scraper is a lightweight tool that collects detailed public data from a list of Instagram usernames. It fetches profile info and recent posts to help you analyze accounts at scale.
 
@@ -16,7 +16,7 @@ Runs are charged to the Apify account whose token the `ApifyClient` holds. See t
 
 ```yaml
 imports:
-  Actor: oci://ghcr.io/telorun/apify/coderx-instagram-profile-scraper-bio-posts@0.1.0#sha256-…
+  Actor: oci://ghcr.io/telorun/apify/coderx-instagram-profile-scraper-bio-posts@0.2.0#sha256-…
 ```
 
 Pin the digest with `telo upgrade`. The module re-exports `ApifyClient`, so it is the only import needed.

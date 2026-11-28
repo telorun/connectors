@@ -20,7 +20,7 @@ metadata:
       POST /v2/acts/acme~broken/run-sync-get-dataset-items — HTTP 400, the way
                                         Apify reports a failed synchronous run
 imports:
-  Server: oci://ghcr.io/telorun/http-server@0.38.0#sha256-QUCZmb_cvTor4YhWUAj3YdRj-kacNkmkXLnycjXLBtA
+  Server: oci://ghcr.io/telorun/http-server@0.46.0#sha256-fUX2g5GkhkLTptgJBKpZX5tBcPIUtrc7eKNRnfofUtI
 exports:
   resources:
     - api

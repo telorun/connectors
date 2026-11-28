@@ -2,7 +2,7 @@
 
 # Amazon Product Scraper
 
-The Apify actor [`junglee/Amazon-crawler`](https://apify.com/junglee/Amazon-crawler) as typed Telo kinds, generated from its default build **0.0.454** (module version **0.2.0**). Runs use whatever build the actor has as default when they start, so they keep working as Apify retires old builds; the input types below are refreshed weekly and can lag an actor that changed its input since.
+The Apify actor [`junglee/Amazon-crawler`](https://apify.com/junglee/Amazon-crawler) as typed Telo kinds, generated from its default build **0.0.454** (module version **0.3.0**). Runs use whatever build the actor has as default when they start, so they keep working as Apify retires old builds; the input types below are refreshed weekly and can lag an actor that changed its input since.
 
 Use this Amazon scraper to collect data based on URL and country from the Amazon website. Extract product information without using the Amazon API, including reviews, prices, descriptions, and Amazon Standard Identification Numbers (ASINs). Download data in various structured formats.
 
@@ -16,7 +16,7 @@ Runs are charged to the Apify account whose token the `ApifyClient` holds. See t
 
 ```yaml
 imports:
-  Actor: oci://ghcr.io/telorun/apify/junglee-amazon-crawler@0.2.0#sha256-…
+  Actor: oci://ghcr.io/telorun/apify/junglee-amazon-crawler@0.3.0#sha256-…
 ```
 
 Pin the digest with `telo upgrade`. The module re-exports `ApifyClient`, so it is the only import needed.

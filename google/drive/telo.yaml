@@ -17,8 +17,8 @@ metadata:
 requires: { telo: ">=0.128.0" }
 imports:
   GoogleAuth: ../auth
-  Http: oci://ghcr.io/telorun/http-client@0.25.0#sha256-bkm9YuaTBexTNH0QDyW8_O3h9Msg5vQZl9c62NIboLE
-  Multipart: oci://ghcr.io/telorun/multipart@0.5.0#sha256-HYqZbfzXOf-YAU7TMyZEFFDBDxeMdyRAoNf4_lAj-Zo
+  Http: oci://ghcr.io/telorun/http-client@0.25.1#sha256-yODGL4HqbynR4aaPrcN1I2RIsmNBDn3ciL1uobA8nqA
+  Multipart: oci://ghcr.io/telorun/multipart@0.5.1#sha256--OhpMFza_rR_wv4zycWaAF3kinh0Z_7jCxqYrYntoRc
 exports:
   kinds:
     - GoogleDriveClient
@@ -1304,7 +1304,7 @@ resources:
           parts:
             - content: !cel "json(inputs.?metadata.orValue({}))"
               contentType: application/json; charset=UTF-8
-            - content: !cel "inputs.?contentEncoding.orValue('utf8') == 'base64' ? bytesFromBase64(inputs.content) : inputs.content"
+            - content: !cel "inputs.?contentEncoding.orValue('utf8') == 'base64' ? bytesFromBase64(dyn(inputs.content)) : inputs.content"
               contentType: !cel "inputs.?contentType.orValue('application/octet-stream')"
       - name: send
         invoke: !ref req
@@ -1465,7 +1465,7 @@ resources:
           parts:
             - content: !cel "json(inputs.?metadata.orValue({}))"
               contentType: application/json; charset=UTF-8
-            - content: !cel "inputs.?contentEncoding.orValue('utf8') == 'base64' ? bytesFromBase64(inputs.content) : inputs.content"
+            - content: !cel "inputs.?contentEncoding.orValue('utf8') == 'base64' ? bytesFromBase64(dyn(inputs.content)) : inputs.content"
               contentType: !cel "inputs.?contentType.orValue('application/octet-stream')"
       - name: send
         invoke: !ref req
@@ -1697,7 +1697,7 @@ invoke: !ref req
 inputs:
   method: PUT
   url: !cel "inputs.uploadUri"
-  body: !cel "inputs.?contentEncoding.orValue('utf8') == 'base64' ? bytesFromBase64(inputs.content) : inputs.content"
+  body: !cel "inputs.?contentEncoding.orValue('utf8') == 'base64' ? bytesFromBase64(dyn(inputs.content)) : inputs.content"
   headers: !cel >-
     has(inputs.contentRange)
       ? (inputs.?contentLength.orValue(0) > 0
@@ -1869,7 +1869,7 @@ resources:
         inputs:
           method: PUT
           url: !cel "steps.start.result.headers.location"
-          body: !cel "inputs.?contentEncoding.orValue('utf8') == 'base64' ? bytesFromBase64(inputs.content) : inputs.content"
+          body: !cel "inputs.?contentEncoding.orValue('utf8') == 'base64' ? bytesFromBase64(dyn(inputs.content)) : inputs.content"
           headers: !cel >-
             inputs.?contentLength.orValue(0) > 0
               ? {'Content-Type': inputs.?contentType.orValue('application/octet-stream'),

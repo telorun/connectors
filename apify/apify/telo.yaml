@@ -12,7 +12,7 @@ metadata:
   repository: https://github.com/telorun/connectors
   license: MIT
 imports:
-  Http: oci://ghcr.io/telorun/http-client@0.25.0#sha256-bkm9YuaTBexTNH0QDyW8_O3h9Msg5vQZl9c62NIboLE
+  Http: oci://ghcr.io/telorun/http-client@0.25.1#sha256-yODGL4HqbynR4aaPrcN1I2RIsmNBDn3ciL1uobA8nqA
 exports:
   kinds:
     - ApifyClient
@@ -136,10 +136,10 @@ inputs:
   url: !cel >-
     trimSuffix('/acts/' + replace(inputs.actorId, '/', '~') + '/run-sync-get-dataset-items?' + join([
       {'k': 'build', 'v': inputs.?build.orValue('')},
-      {'k': 'timeout', 'v': inputs.?timeout.orValue(null) != null ? string(inputs.timeout) : ''},
-      {'k': 'memory', 'v': inputs.?memory.orValue(null) != null ? string(inputs.memory) : ''},
-      {'k': 'maxItems', 'v': inputs.?maxItems.orValue(null) != null ? string(inputs.maxItems) : ''},
-      {'k': 'maxTotalChargeUsd', 'v': inputs.?maxTotalChargeUsd.orValue(null) != null ? string(inputs.maxTotalChargeUsd) : ''}
+      {'k': 'timeout', 'v': inputs.?timeout.orValue(null) != null ? string(dyn(inputs.timeout)) : ''},
+      {'k': 'memory', 'v': inputs.?memory.orValue(null) != null ? string(dyn(inputs.memory)) : ''},
+      {'k': 'maxItems', 'v': inputs.?maxItems.orValue(null) != null ? string(dyn(inputs.maxItems)) : ''},
+      {'k': 'maxTotalChargeUsd', 'v': inputs.?maxTotalChargeUsd.orValue(null) != null ? string(dyn(inputs.maxTotalChargeUsd)) : ''}
     ].filter(p, p.v != '').map(p, p.k + '=' + urlEncode(p.v)), '&'), '?')
 ---
 # POST /v2/acts/{actorId}/runs — start a run and return it without waiting for
@@ -224,10 +224,10 @@ inputs:
   url: !cel >-
     trimSuffix('/acts/' + replace(inputs.actorId, '/', '~') + '/runs?' + join([
       {'k': 'build', 'v': inputs.?build.orValue('')},
-      {'k': 'timeout', 'v': inputs.?timeout.orValue(null) != null ? string(inputs.timeout) : ''},
-      {'k': 'memory', 'v': inputs.?memory.orValue(null) != null ? string(inputs.memory) : ''},
-      {'k': 'maxItems', 'v': inputs.?maxItems.orValue(null) != null ? string(inputs.maxItems) : ''},
-      {'k': 'maxTotalChargeUsd', 'v': inputs.?maxTotalChargeUsd.orValue(null) != null ? string(inputs.maxTotalChargeUsd) : ''},
+      {'k': 'timeout', 'v': inputs.?timeout.orValue(null) != null ? string(dyn(inputs.timeout)) : ''},
+      {'k': 'memory', 'v': inputs.?memory.orValue(null) != null ? string(dyn(inputs.memory)) : ''},
+      {'k': 'maxItems', 'v': inputs.?maxItems.orValue(null) != null ? string(dyn(inputs.maxItems)) : ''},
+      {'k': 'maxTotalChargeUsd', 'v': inputs.?maxTotalChargeUsd.orValue(null) != null ? string(dyn(inputs.maxTotalChargeUsd)) : ''},
       {'k': 'waitForFinish', 'v': inputs.?waitForFinish.hasValue() ? string(inputs.waitForFinish) : ''}
     ].filter(p, p.v != '').map(p, p.k + '=' + urlEncode(p.v)), '&'), '?')
 ---

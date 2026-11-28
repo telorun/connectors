@@ -2,7 +2,7 @@
 
 # Website Content Crawler
 
-The Apify actor [`apify/website-content-crawler`](https://apify.com/apify/website-content-crawler) as typed Telo kinds, generated from its default build **0.3.107** (module version **0.5.0**). Runs use whatever build the actor has as default when they start, so they keep working as Apify retires old builds; the input types below are refreshed weekly and can lag an actor that changed its input since.
+The Apify actor [`apify/website-content-crawler`](https://apify.com/apify/website-content-crawler) as typed Telo kinds, generated from its default build **0.3.110** (module version **0.6.0**). Runs use whatever build the actor has as default when they start, so they keep working as Apify retires old builds; the input types below are refreshed weekly and can lag an actor that changed its input since.
 
 Crawl websites and extract text content to feed AI models, LLM applications, vector databases, or RAG pipelines. The Actor supports rich formatting using Markdown, cleans the HTML, downloads files, and integrates well with 🦜🔗 LangChain, LlamaIndex, and the wider LLM ecosystem.
 
@@ -16,7 +16,7 @@ Runs are charged to the Apify account whose token the `ApifyClient` holds. See t
 
 ```yaml
 imports:
-  Actor: oci://ghcr.io/telorun/apify/apify-website-content-crawler@0.5.0#sha256-…
+  Actor: oci://ghcr.io/telorun/apify/apify-website-content-crawler@0.6.0#sha256-…
 ```
 
 Pin the digest with `telo upgrade`. The module re-exports `ApifyClient`, so it is the only import needed.
@@ -66,7 +66,7 @@ Only these fields are accepted — `telo check` rejects any other.
 | `proxyConfiguration` | object | yes | `{"useApifyProxy":true}` | Proxy configuration — Enables loading the websites from IP addresses in specific geographies and to circumvent blocking. |
 | `initialCookies` | array |  |  | Custom cookies — Cookies that will be pre-set to all pages the scraper opens. This is useful for pages that require login. A cookie without a `domain` is sent only to the hosts of the Start URLs. The value is expected to be a JSON array of objects with `name` and `value` properties. For example: ``` |
 | `customHttpHeaders` | object |  |  | Custom HTTP headers — HTTP headers that will be added to all requests made by the crawler. This is useful for setting custom authentication headers or other headers required by the target website. The value is expected to be a JSON object with `name` and `value` properties pairs. For example: `{ "na |
-| `signHttpRequests` | boolean |  | `false` | Sign HTTP requests (experimental) — If enabled, the crawler will sign all HTTP requests using its Web Bot Auth private key. This is necessary if you want to use Website Content Crawler as a Cloudflare Signed Agent. |
+| `signHttpRequests` | boolean |  | `false` | Sign HTTP requests (experimental) — If enabled, the crawler will sign the HTTPS requests for the crawled pages using its Web Bot Auth private key. This is necessary if you want to use Website Content Crawler as a Cloudflare Signed Agent. The requests are not signed when custom proxies or the Ignore  |
 | `initialConcurrency` | integer |  | `0` | Initial concurrency — The initial number of web browsers or HTTP clients running in parallel. The system scales the concurrency up and down based on the current CPU and memory load. If the value is set to 0 (default), the Actor uses the default setting for the specific crawler type. Note that if you |
 | `maxConcurrency` | integer |  | `200` | Max concurrency — The maximum number of web browsers or HTTP clients running in parallel. This setting is useful to avoid overloading the target websites and to avoid getting blocked. |
 | `requestTimeoutSecs` | integer |  | `60` | Page request timeout — Timeout in seconds for making the request and processing its response. Defaults to 60s. |

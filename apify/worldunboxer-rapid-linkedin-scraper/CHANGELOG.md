@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.5.0 - 2026-11-28
+### Changed
+* Regenerated from build 1.2.161 of the Apify actor `worldunboxer/rapid-linkedin-scraper` (was 1.4.0).
+
 ## 1.4.0 - 2026-11-23
 ### Changed
 * Regenerated from build 1.2.161 of the Apify actor `worldunboxer/rapid-linkedin-scraper` (was 1.3.0).

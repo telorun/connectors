@@ -2,7 +2,7 @@
 
 # Google Search Results (~$0.05/1K Results)
 
-The Apify actor [`scraperlink/google-search-results-serp-scraper`](https://apify.com/scraperlink/google-search-results-serp-scraper) as typed Telo kinds, generated from its default build **0.0.92** (module version **0.2.0**). Runs use whatever build the actor has as default when they start, so they keep working as Apify retires old builds; the input types below are refreshed weekly and can lag an actor that changed its input since.
+The Apify actor [`scraperlink/google-search-results-serp-scraper`](https://apify.com/scraperlink/google-search-results-serp-scraper) as typed Telo kinds, generated from its default build **0.0.92** (module version **0.3.0**). Runs use whatever build the actor has as default when they start, so they keep working as Apify retires old builds; the input types below are refreshed weekly and can lag an actor that changed its input since.
 
 🔥 ~$0.05/1K results ($0.50/1,000 SERPs) 🔥 **CHEAPEST** Google Search Results (SERP) Scraper with real-time SERP data and support for multiple countries. Billed per 1 full SERP page (~10 results) — making it ~10× cheaper than others.
 
@@ -16,7 +16,7 @@ Runs are charged to the Apify account whose token the `ApifyClient` holds. See t
 
 ```yaml
 imports:
-  Actor: oci://ghcr.io/telorun/apify/scraperlink-google-search-results-serp-scraper@0.2.0#sha256-…
+  Actor: oci://ghcr.io/telorun/apify/scraperlink-google-search-results-serp-scraper@0.3.0#sha256-…
 ```
 
 Pin the digest with `telo upgrade`. The module re-exports `ApifyClient`, so it is the only import needed.

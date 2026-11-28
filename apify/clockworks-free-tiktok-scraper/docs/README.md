@@ -2,7 +2,7 @@
 
 # TikTok Data Extractor
 
-The Apify actor [`clockworks/free-tiktok-scraper`](https://apify.com/clockworks/free-tiktok-scraper) as typed Telo kinds, generated from its default build **0.0.573** (module version **0.2.0**). Runs use whatever build the actor has as default when they start, so they keep working as Apify retires old builds; the input types below are refreshed weekly and can lag an actor that changed its input since.
+The Apify actor [`clockworks/free-tiktok-scraper`](https://apify.com/clockworks/free-tiktok-scraper) as typed Telo kinds, generated from its default build **0.0.580** (module version **0.3.0**). Runs use whatever build the actor has as default when they start, so they keep working as Apify retires old builds; the input types below are refreshed weekly and can lag an actor that changed its input since.
 
 Extract data about videos, users, and channels based on hashtags or scrape full user profiles including posts, total likes, name, nickname, numbers of comments, shares, followers, following, and more.
 
@@ -16,7 +16,7 @@ Runs are charged to the Apify account whose token the `ApifyClient` holds. See t
 
 ```yaml
 imports:
-  Actor: oci://ghcr.io/telorun/apify/clockworks-free-tiktok-scraper@0.2.0#sha256-…
+  Actor: oci://ghcr.io/telorun/apify/clockworks-free-tiktok-scraper@0.3.0#sha256-…
 ```
 
 Pin the digest with `telo upgrade`. The module re-exports `ApifyClient`, so it is the only import needed.
@@ -65,8 +65,8 @@ Only these fields are accepted — `telo check` rejects any other.
 | `searchQueries` | array |  |  | Search queries — Your keyword will apply to both videos and profiles. Use the Search sorting field below to specify whether you want your search to apply to top content, videos or users.  As for your query's format, you can use any query that works on TikTok. |
 | `searchSection` | string |  | `""` | Top/Video/Profile section — By default, this scraper will sort the search results by whatever shows up in the Top section of TikTok search.  But you can narrow it down: if you want to apply your search query to just videos, use Video, just profiles - Profile. |
 | `maxProfilesPerQuery` | integer |  | `10` | Number of profiles per query — Only applies to profile searches. In this case ignore the  💯 Number of videos  section and choose the number of profiles you want to scrape here. |
-| `videoSearchSorting` | string |  | `"MOST_RELEVANT"` | 🎯 Video search sorting ($) — Optional charged filter. Select how you want the search results to be sorted when searching for videos. Only valid with `/video` search section. |
-| `videoSearchDateFilter` | string |  | `"ALL_TIME"` | 📅 Video search date filter ($) — Optional charged filter. Select a date range in which to search for videos. Only valid with `/video` search section. |
+| `videoSearchSorting` | string |  | `"MOST_RELEVANT"` | 🎯 Video search sorting ($) — Optional charged filter. Select how you want the search results to be sorted when searching for videos. Only valid with the "Top" and "Video" search sections. |
+| `videoSearchDateFilter` | string |  | `"ALL_TIME"` | 📅 Video search date filter ($) — Optional charged filter. Select a date range in which to search for videos. Only valid with the "Top" and "Video" search sections. |
 | `postURLs` | array |  |  | Direct URLs for scraping specific tiktoks — Add the URLs of tiktok videos you want to scrape. You can paste video URLs one by one, or use the Bulk edit section to add a prepared list. |
 | `scrapeRelatedVideos` | boolean |  | `false` | Scrape related videos — Tick to scrape related videos for the post URLs you provide. - The maximum number of scraped related videos is set by the `resultsPerPage` count. - Note that this only works for direct video URLs from the `postURLs` field. |
 | `shouldDownloadVideos` | boolean |  | `false` | ⬇️ Add-on: video download ($) — This is a charged add-on. Tick to download TikTok videos. |
