@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.10.0 - 2026-11-28
+### Added
+* Upgraded standard-module imports to their latest published versions.
+
 ## 0.9.0 - 2026-10-22
 ### Added
 * S3.Bucket now extends Blob.Store, so the storage-neutral Blob.Put, Blob.Get, Blob.Head and Blob.Delete run against an S3-compatible bucket. Puts stream as multipart uploads that are aborted on failure; reads are pinned to the described object by ETag; every request honours cancellation. Existing S3.* kinds are unchanged.

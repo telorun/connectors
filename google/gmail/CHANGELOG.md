@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.4.0 - 2026-11-28
+### Added
+* Upgraded standard-module imports to their latest published versions.
+
 ## 0.3.0 - 2026-11-14
 ### Added
 * Use the built-in Telo.Sequence and Telo.Value in place of the deprecated Run.Sequence and Run.Value, and drop the run import. Behavior is unchanged, but the built-ins need a newer runtime: requires.telo rises to >=0.128.0 for drive and >=0.135.0 for gmail.
