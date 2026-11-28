@@ -10,7 +10,7 @@ import { moduleDirName, moduleName } from "./lib.mjs";
 // The `run` module the Start kind's poll loop is built from. Bump with
 // `telo upgrade` on the sample fixture, then copy the pinned line here.
 export const RUN_IMPORT =
-  "oci://ghcr.io/telorun/run@0.28.0#sha256-CoPkA-u8-m4kjQAOTDr_TmsfA72HDpnoZI-hHz8N7kE";
+  "oci://ghcr.io/telorun/run@0.35.1#sha256-m6oA-tLMj4v0JvzkvRt17CBuWzXSYpumtxyNRb3qVz8";
 
 const TERMINAL = ["SUCCEEDED", "FAILED", "TIMED-OUT", "ABORTED"];
 

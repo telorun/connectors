@@ -3,7 +3,7 @@ metadata:
   name: ConnectorsTestSuite
   version: 1.0.0
 imports:
-  Test: oci://ghcr.io/telorun/test@0.10.0#sha256-I3lFBu1iEcrCn155RRNRrPX-U6AUBg59Q-dBUEw-ZtM
+  Test: oci://ghcr.io/telorun/test@0.14.2#sha256-GzE4lsmvSNKt0MUwI2ZBTwLpF7lgAEDBJ33AwZK6fw8
 targets:
   - !ref runAll
 ---

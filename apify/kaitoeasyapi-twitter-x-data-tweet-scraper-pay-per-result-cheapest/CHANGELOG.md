@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.3.0 - 2026-11-28
+### Changed
+* Regenerated from build 1.1.176 of the Apify actor `kaitoeasyapi/twitter-x-data-tweet-scraper-pay-per-result-cheapest` (was 1.2.0).
+
 ## 1.2.0 - 2026-11-23
 ### Changed
 * Regenerated from build 1.1.117 of the Apify actor `kaitoeasyapi/twitter-x-data-tweet-scraper-pay-per-result-cheapest` (was 1.1.0).

@@ -2,7 +2,7 @@
 
 # Facebook Search Scraper
 
-The Apify actor [`danek/facebook-search-ppr`](https://apify.com/danek/facebook-search-ppr) as typed Telo kinds, generated from its default build **1.8.1** (module version **1.9.0**). Runs use whatever build the actor has as default when they start, so they keep working as Apify retires old builds; the input types below are refreshed weekly and can lag an actor that changed its input since.
+The Apify actor [`danek/facebook-search-ppr`](https://apify.com/danek/facebook-search-ppr) as typed Telo kinds, generated from its default build **1.8.1** (module version **1.10.0**). Runs use whatever build the actor has as default when they start, so they keep working as Apify retires old builds; the input types below are refreshed weekly and can lag an actor that changed its input since.
 
 Scrap Facebook search results fast and easy. It is designed to be fast and efficient, so it can extract a large number of results for low price. It is also less likely to be blocked by Facebook.
 
@@ -16,7 +16,7 @@ Runs are charged to the Apify account whose token the `ApifyClient` holds. See t
 
 ```yaml
 imports:
-  Actor: oci://ghcr.io/telorun/apify/danek-facebook-search-ppr@1.9.0#sha256-…
+  Actor: oci://ghcr.io/telorun/apify/danek-facebook-search-ppr@1.10.0#sha256-…
 ```
 
 Pin the digest with `telo upgrade`. The module re-exports `ApifyClient`, so it is the only import needed.

@@ -3,7 +3,7 @@
 kind: Telo.Library
 metadata:
   name: ApifyAiWebAgent
-  version: 0.4.0
+  version: 0.5.0
   description: >-
     AI Web Agent: the Apify actor apify/ai-web-agent as typed Telo kinds. `Run` runs it and waits
     for its results (Apify allows up to 5 minutes); `Start` runs it in the background and polls
@@ -16,7 +16,7 @@ metadata:
   license: MIT
 imports:
   Apify: ../apify
-  Flow: oci://ghcr.io/telorun/run@0.28.0#sha256-CoPkA-u8-m4kjQAOTDr_TmsfA72HDpnoZI-hHz8N7kE
+  Flow: oci://ghcr.io/telorun/run@0.35.1#sha256-m6oA-tLMj4v0JvzkvRt17CBuWzXSYpumtxyNRb3qVz8
 exports:
   kinds:
     - Run

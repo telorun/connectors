@@ -13,8 +13,8 @@ imports:
     source: ../../sign-in
     needs:
       site: !ref site
-  Mem: oci://ghcr.io/telorun/kv-store-memory@0.8.0#sha256-GmMDeJ2eYatJ0_ewaUI6A6bnfkqlphjd4YKWtqZ5d2Y
-  Server: oci://ghcr.io/telorun/http-server@0.38.0#sha256-QUCZmb_cvTor4YhWUAj3YdRj-kacNkmkXLnycjXLBtA
+  Mem: oci://ghcr.io/telorun/kv-store-memory@0.8.3#sha256-p183toK3ilaEAcXujwcf1d0F5-eD6Eu_jVkAXX5EA7A
+  Server: oci://ghcr.io/telorun/http-server@0.46.0#sha256-fUX2g5GkhkLTptgJBKpZX5tBcPIUtrc7eKNRnfofUtI
 variables:
   googleClientId:
     env: GOOGLE_CLIENT_ID

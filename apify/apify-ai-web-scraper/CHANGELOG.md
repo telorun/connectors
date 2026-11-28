@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.5.0 - 2026-11-28
+### Changed
+* Regenerated from build 0.2.27 of the Apify actor `apify/ai-web-scraper` (was 0.4.0).
+
 ## 0.4.0 - 2026-11-23
 ### Changed
 * Regenerated from build 0.2.27 of the Apify actor `apify/ai-web-scraper` (was 0.3.0).

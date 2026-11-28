@@ -14,6 +14,8 @@
 // kept for typing what IS declared, but every type admits null, nothing is
 // required and every object stays open.
 
+import { RE2JS } from "re2js";
+
 /** Strip the HTML Apify descriptions are written in down to plain text. */
 export function plainText(html) {
   if (typeof html !== "string") return undefined;
@@ -73,10 +75,14 @@ function matchesType(value, types) {
 
 const containsLegacyExpr = (v) => JSON.stringify(v ?? null).includes("${{");
 
+// A pattern must compile both as an ECMAScript `u` regex (JSON Schema's dialect)
+// and in RE2, which `telo check` validates schema patterns with (re2js, pinned to
+// the version telo uses). RE2 has no lookaround, back-references or `\u` escapes.
 function validPattern(p) {
   if (typeof p !== "string") return false;
   try {
     new RegExp(p, "u");
+    RE2JS.compile(p);
     return true;
   } catch {
     return false;

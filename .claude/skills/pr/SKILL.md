@@ -1,0 +1,253 @@
+---
+name: pr
+description: Run only when the user types /pr. Never invoke it yourself otherwise.
+argument-hint: nothing (every change in the working tree), or which part of the working tree to land (`for phase 1`, `the stdlib changes`), plus anything the commit message or PR body should say
+---
+
+The user has a change in the working tree and is away. You carry it to "a green PR", alone. The
+user's `/pr` is the authorization for this skill's branch creation, staging, commit, rebase onto
+the branch's base and its own remote, push, amend and force-push — for this change and its branch
+only. Merging is never yours.
+
+## 1. Establish the change
+
+- **Start from current refs:** `git fetch origin`, before anything below is judged. Whether a
+  branch fits, what it is behind and what a new one starts from are all read off what the remote
+  holds now.
+- **The branch is the current one only when it fits the code being delivered.** Judge the fit
+  against the change itself — read the diff (`git status`, `git diff HEAD`, untracked files) and
+  say in one sentence what it does — never against the fact that you are standing on the branch.
+  It fits only when all of these hold:
+  - it is not `main`;
+  - its name, and the title and body of its open pull request when it has one, describe **all** of
+    what the change does. A branch about one thing does not fit a change that does that thing and
+    another: work the name and the pull request do not mention is work for a branch of its own;
+  - no pull request from it was already merged or closed
+    (`gh pr list --head <branch> --state all`) — a branch whose work has landed is finished,
+    whatever it is called.
+
+  **An open pull request from the current branch is not by itself a fit.** The change joins it,
+  and no second pull request is opened, only when the change is that pull request's own work: a
+  fix to it, a review round, the next step of what its description says. Standing on a branch
+  while building something else does not make that something part of its pull request.
+
+  **A pull request carries one commit.** A change that is the pull request's own work is folded
+  into its commit, never stacked on top of it as a second one — see step 2. Two commits in one
+  pull request are two pieces of work reviewed and reverted as one, which is the thing a branch
+  of its own exists to prevent.
+
+  **When in doubt, it does not fit.** A second pull request costs a reviewer little; unrelated
+  work folded into an open one cannot be reviewed or reverted apart from it.
+- **When the branch does not fit, create one named for the change** and carry the working tree
+  onto it. Where it starts depends on what the change stands on:
+  - **On `main` alone** — the usual case: `git switch -c <type>/<short-kebab-name> origin/main`.
+    The pull request is opened against `main`.
+  - **On the current branch's unmerged commits** — git refuses the switch above because the
+    working tree does not apply to `origin/main`, or the change edits what those commits
+    introduced. When the current branch has an open pull request, stack on it:
+    `git switch -c <type>/<short-kebab-name>` from where you stand, and open the pull request
+    against **that branch**, so its diff is this change alone. The body's first line says what it
+    is stacked on. When the current branch has unmerged commits and no open pull request, stop and
+    report: there is nothing to open the pull request against without publishing that other work.
+
+    CI runs for a stacked pull request too (`ci.yml` triggers on every pull request), so it goes
+    through step 3 like any other. Once its base merges, the next `/pr` on that branch rebases it
+    onto `origin/main` (`git rebase --onto origin/main <the base's last commit>`) and retargets it
+    (`gh pr edit <n> --base main`).
+
+  Never put the change on `origin/main` by leaving part of it behind, and never guess which of
+  the current branch's commits it needs. The report names the branch you created, what it starts
+  from and why the old one did not fit.
+- **Without an argument naming a scope, the change is everything in the working tree:** staged,
+  unstaged and untracked alike. Stage all of it (`git add -A`). What is already staged says
+  nothing about what the user meant to leave out. With a clean tree, say so and stop.
+- **With an argument naming a scope** (`for phase 1`, `the stdlib changes`), stage exactly that
+  scope yourself:
+  - **Work out what the scope means** from what the repo records about the work — the plan it
+    follows (`<vendor>/<module>/plans/`) and the conversation. Then work out which changed files
+    (`git status`, untracked included) belong to it.
+  - **Reset the index first,** so what was staged before cannot leak into the scope: unstage
+    everything. Then stage the scope's files, and only them.
+  - **A file you cannot attribute with confidence** is never guessed into or out of the scope.
+    That includes a file whose changes belong to both scopes, which cannot be split without an
+    interactive hunk picker. Stop and report the file and why, with nothing committed and the
+    index as you found it.
+  - **Working files ride along with every scope.** The user edits them in parallel with whatever
+    is being built and needs them committed each time, so stage every changed one — modified,
+    deleted and untracked alike — whatever the scope names and whether or not it relates to it:
+    - every `CLAUDE.md`, at any depth;
+    - everything under `.claude/` that git does not ignore (skills, agents, hooks,
+      `settings.json`);
+    - everything under any `plans/` directory, at any depth.
+
+    They are never attributed, never a reason to stop, and exempt from the stand-alone check
+    below. What git ignores is never forced in.
+  - **Files that belong to no scope of the work** stay out, and the report names them. Examples:
+    scratch files, tool configuration outside `.claude/`.
+  - **Check the split by reading it.** The staged scope must stand on its own. If a staged file
+    references something only a left-out file provides (an import, a kind, a function, a route),
+    the split is wrong: report it and stop.
+- **Never stage anything outside the change**, except the working files above and a fix this
+  skill makes to that change.
+
+## 2. Commit, push, open the PR
+
+- **One commit per pull request.** Count what the branch already holds beyond its base
+  (`git rev-list --count origin/<base>..HEAD`):
+  - **0** — a new commit, as below.
+  - **1, and the change is that pull request's own work** — fold the change into it:
+    `git commit --amend`, with the message reworded only when the commit now does more than its
+    subject says. It is pushed with `--force-with-lease`.
+  - **1, and the change is other work** — step 1 was misjudged: the branch does not fit. Go back
+    and give the change a branch of its own.
+  - **More than 1** — stop and report. The branch already holds stacked commits, and which of
+    them the change belongs with is not yours to guess.
+- **Commit** with a short conventional message (`feat(scope,scope): what changed`) that describes
+  the staged change. Working files that rode along do not shape the subject; they name the commit
+  only when they are all of it (`chore(claude): …`, `docs(plans): …`). Add **no** `Co-Authored-By`
+  footer.
+- **Bring the branch up to date before every push** — the first one, and each force-push after
+  it. `git fetch origin`, then, in this order:
+  - **its own remote**, when the branch already exists there and holds commits the local one
+    lacks (`git rev-list --count HEAD..origin/<branch>` is not 0): `git rebase origin/<branch>`.
+    Someone pushed to it since this checkout last saw it, and a push over that is lost work.
+  - **its base**: `git rebase origin/main`, or `git rebase origin/<base>` for a branch stacked on
+    another. A branch that already contains the base's head needs nothing.
+
+  Then check it, never assume it: `git rev-list --count HEAD..origin/<base>` must print 0 before
+  the push. A pull request that is behind its base is tested against code that no longer exists,
+  and one that conflicts cannot be merged at all.
+  - **A conflict whose resolution is not in doubt** (both sides added different entries to the
+    same list, a lockfile to regenerate with `pnpm install`) is resolved, and the report says
+    which files. Re-run what the conflicted files' tests cover before pushing.
+  - **Any other conflict:** `git rebase --abort`, then stop and report the files and the two
+    sides. Never pick a side to get past it.
+- **Run the release gate before every push**, after the branch is up to date:
+  `pnpm -r run build && pnpm run release:check`. Controller bytes are part of a module's payload
+  digest, so build first, as CI does. It runs `telo release check` in every vendor workspace
+  against `origin/main` — for a stacked branch too, since that is what CI compares with — and must
+  exit 0. Run it after the commit, and again after each amend.
+  - **A module the change touched with no fragment** passes the gate: it shows as
+    `payload changed, unattributed` and would ship as a silent patch. It is still fixed inside the
+    change, because every change to a published module file ships a fragment. From inside its
+    vendor directory, write one with
+    `telo release add --unit <module-dir> --kind <Added|Deprecated|Fixed|Security> --body "…"`,
+    repeating `--unit` for every module of that vendor the work changed. A module listed only as
+    `imports <x>` was not touched and needs none; neither does a generated Apify actor module
+    (`apify/<user>-<actor>/`). Fold the fragment into the commit (`git commit --amend --no-edit`)
+    and run the gate again.
+  - **Any failure it reports** (a fragment naming an unknown module, a `Changed`/`Removed` kind, a
+    manifest version that disagrees with its ledger entry) is fixed the same way when the change
+    caused it, and reported when it did not.
+
+  A push the gate would fail costs a full CI round to learn what one local command says.
+- **Push** with `git push -u origin <branch>`; once the branch has been rebased after a push,
+  `git push --force-with-lease origin <branch>`.
+- **Open the PR** against its base — `main`, or the branch it is stacked on — with
+  `gh pr create --base <base>`. The body is:
+  - what the change does, stated as behaviour;
+  - when working files rode along with a named scope, one closing line saying so (`Also carries
+    unrelated updates to plans and Claude guidance.`), so a reviewer does not look for their
+    connection to the change.
+
+  Add **no** attribution line (no "Generated with Claude Code" footer).
+
+## 3. Keep CI green
+
+- **Watch the PR's checks, and wake on the first failure.** The first poll is **10 minutes**
+  after the push, then every **minute**, until a check fails or none is pending. Use a background
+  watch that wakes you, never a foreground sleep. Run this in the background
+  (`run_in_background`), with the PR's number in place of `<n>`; it prints the checks and exits,
+  which is what wakes you:
+
+  ```sh
+  sleep 600; while true; do out=$(gh pr checks <n> --json name,bucket,link 2>&1); echo "$out" | jq -e 'any(.[]; .bucket == "fail") or all(.[]; .bucket != "pending")' >/dev/null; s=$?; if [ $s -ne 1 ]; then echo "$out"; break; fi; sleep 60; done
+  ```
+
+  It also exits when `gh` itself fails; read the output, and restart the watch after a
+  transient error.
+- **A failing check is fixed as soon as it appears**, while the rest of the run is still going —
+  never wait for the other checks to finish first.
+- **Read a failing check's log**, even while its run is in progress: the run id is in the check's
+  `link` (`…/actions/runs/<run-id>/job/…`); list its failed jobs with
+  `gh run view <run-id> --json jobs --jq '.jobs[] | select(.conclusion == "failure") | {name, databaseId}'`
+  and read each with `gh run view --job <databaseId> --log-failed`. Find the cause.
+  - **A fix inside this change:** make it, re-run the failing suite locally (see *CI checks*
+    below), then
+    `git commit --amend --no-edit` (still no footer). **Never add a new commit** to fix CI. Do
+    not push yet — sweep first (below).
+  - **Sweep CI before every push.** Bring the branch up to date and run the release gate as in
+    step 2; then, as the last thing before the push, read the checks once more
+    (`gh pr checks <n> --json name,bucket,link`). Every failing check there must be either fixed
+    in the commit you are about to push or an infrastructure error awaiting its re-run (below). One that is
+    neither — it failed while you were fixing the last — is read, fixed, re-run locally and
+    amended the same way, and the sweep runs again. Push only when a sweep finds no failure left
+    unfixed locally.
+  - **Checks still running do not hold the push.** Push as soon as the sweep is clean —
+    `git push --force-with-lease origin <branch>` — and restart the watch from the 10-minute
+    first poll. The push starts a fresh run.
+  - **A flaky test** — one that fails, then passes on a re-run of the same commit, whether or not
+    this change touched it — is fixed in this PR, not re-run until it happens to pass. Find why it
+    is non-deterministic (a timing window, shared state between cases, a port or file two tests
+    both use, an order it assumes). Fix the test, or the code when the race is real, and run it
+    locally enough times to show it now holds. Then amend and force-push with lease like any other
+    fix, and say what the flake was in the report. A flake you cannot make deterministic is
+    reported with its failing log line and your finding; do not paper over it with retries or
+    longer timeouts alone.
+  - **A failure this change did not cause is still fixed in this PR.** Only an infrastructure
+    error (a runner, network or GitHub outage, no test failing) is re-run instead: once, with
+    `gh run rerun <run-id> --failed` after its run has finished (GitHub refuses to re-run a run in
+    progress); a push carrying a fix for another check re-runs it anyway, and counts as that
+    re-run. A failing test — one that also fails on `main`, or that you believe is unrelated — is
+    found and fixed like any other, and the report says it predates the change.
+  - **The same check failing after three amend rounds:** stop and report. Grinding is not
+    progress.
+- **A pull request that reports conflicts with `main`, or falls behind it while its checks run,**
+  is brought up to date as in step 2 and force-pushed with lease; then restart the watch. The
+  same goes for a stacked pull request and the branch it is stacked on.
+- **Stop once every check is green**, skipped ones included, and the pull request has no conflict
+  with its base and is not behind it.
+
+### CI checks and their local runs
+
+Run `pnpm install --frozen-lockfile && pnpm -r run build` first; every check below needs built
+controllers.
+
+| Check | Local run |
+| --- | --- |
+| Check & manifest tests | `telo check */*/telo.yaml apify/examples/*.yaml`; `node scripts/apify/generate.mjs --fixture && git diff --exit-code -- apify/apify/tests/__fixtures__/acme-sample`; `telo ./test-suite.yaml` |
+| Release hygiene | `pnpm run release:check` |
+| Lambda E2E (RIE) — only for changes under `aws/lambda/` | `pnpm run test:e2e:lambda` (needs Docker) |
+
+## Report
+
+End with one message:
+- the PR URL;
+- the branch, what it is based on, and when you created it, why the one you started on did not
+  fit; when you stayed on the current one, the sentence that says why the change is its work;
+- each rebase that changed the branch — onto its own remote or onto its base — and any conflict
+  you resolved;
+- when you staged the scope yourself, the files you staged, the working files that rode along,
+  and the changed files you left out;
+- each CI round (what failed, what you amended, which failures each push carried fixes for);
+- the final state of every check.
+
+A stop for any other reason gets the same message, saying where it stopped and why.
+
+## Never
+
+- Merge a PR, or push to `main`.
+- Commit anything outside the change: the whole working tree, or the scope they named plus the
+  working files that ride along, plus fixes to it and to every failing test its CI exposes.
+- Leave a changed working file (`CLAUDE.md`, `.claude/`, `plans/`) uncommitted.
+- Guess a file into or out of a named scope.
+- Add a new commit to fix CI; amend instead.
+- Push a branch that does not contain its base's head, or over commits its own remote holds.
+- Push while `pnpm run release:check` fails, or with a touched module left unattributed.
+- Wait for the remaining checks before fixing a failed one, or push a CI fix while a check that
+  failed from this change is not yet fixed locally.
+- Commit onto a branch whose pull request has already been merged or closed.
+- Add a change to an open pull request whose description does not cover it.
+- Leave a pull request holding more than one commit: fold its own work into its commit, and give
+  other work its own branch.
+- Use `git stash`.

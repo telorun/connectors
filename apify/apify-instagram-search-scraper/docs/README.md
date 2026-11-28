@@ -2,7 +2,7 @@
 
 # Instagram Search Scraper
 
-The Apify actor [`apify/instagram-search-scraper`](https://apify.com/apify/instagram-search-scraper) as typed Telo kinds, generated from its default build **0.1.595** (module version **0.3.0**). Runs use whatever build the actor has as default when they start, so they keep working as Apify retires old builds; the input types below are refreshed weekly and can lag an actor that changed its input since.
+The Apify actor [`apify/instagram-search-scraper`](https://apify.com/apify/instagram-search-scraper) as typed Telo kinds, generated from its default build **0.1.608** (module version **0.4.0**). Runs use whatever build the actor has as default when they start, so they keep working as Apify retires old builds; the input types below are refreshed weekly and can lag an actor that changed its input since.
 
 Scrape Instagram search results: places, businesses, locations, users, popular reels, and hashtags. Add a keyword and extract search results like contact details, categories, metrics, recent posts, hashtag popularity. Export scraped data, schedule via API, integrate with other tools or AI workflows.
 
@@ -16,7 +16,7 @@ Runs are charged to the Apify account whose token the `ApifyClient` holds. See t
 
 ```yaml
 imports:
-  Actor: oci://ghcr.io/telorun/apify/apify-instagram-search-scraper@0.3.0#sha256-…
+  Actor: oci://ghcr.io/telorun/apify/apify-instagram-search-scraper@0.4.0#sha256-…
 ```
 
 Pin the digest with `telo upgrade`. The module re-exports `ApifyClient`, so it is the only import needed.
@@ -54,7 +54,6 @@ Only these fields are accepted — `telo check` rejects any other.
 | `search` | string | yes | `"restaurant, restaurant prague"` | 🔍 Search term — Provide a keyword which will be used to extract Instagram search results. A keyword can be one or more words. To scrape multiple search terms at once, submit them as a comma-separated list. |
 | `searchType` | string |  | `"place"` | 🧚 Search type — Choose the type of Instagram page to search for (places, profiles, or hashtags), or `Search popular reels` to scrape trending reels for the keyword. |
 | `searchLimit` | integer |  |  | 💯 Maximum results per search term — Set the maximum number of search results (hashtags, users, or places) you want to scrape. If you set it to 5, you'll get 5 results for each search term you've included. |
-| `enhanceUserSearchWithFacebookPage` | boolean |  |  | Enhance the user search (top 10) with Facebook page and email info when available (higher credit usage) — For each user from the top 10, the scraper will extract their Facebook page that sometimes contains their business email. Keep in mind that you're forbidden to collect personal data in certain j |
 | `liveSearch` | boolean |  |  | 🔎 Scrape with live search — Enable this option if you want to get data from a live Instagram search. Please note that the dataset will be slightly different than the one produced by standard search. |
 
 ## Output

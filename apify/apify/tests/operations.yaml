@@ -9,8 +9,8 @@ metadata:
 imports:
   Apify: ../
   Stub: ./__fixtures__/apify-stub.yaml
-  Assert: oci://ghcr.io/telorun/assert@0.21.1#sha256-9CCELeaW54ph9v7qtM1zBRq9-gqXK4fwF0NubWAhsN4
-  Server: oci://ghcr.io/telorun/http-server@0.38.0#sha256-QUCZmb_cvTor4YhWUAj3YdRj-kacNkmkXLnycjXLBtA
+  Assert: oci://ghcr.io/telorun/assert@0.23.0#sha256-CT1vdPTra9haCPntji5sJG0qG_acnTaeYxg0roNgZGI
+  Server: oci://ghcr.io/telorun/http-server@0.46.0#sha256-fUX2g5GkhkLTptgJBKpZX5tBcPIUtrc7eKNRnfofUtI
 ports:
   http:
     env: TEST_APIFY_OPERATIONS_PORT

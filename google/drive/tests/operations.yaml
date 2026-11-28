@@ -13,11 +13,11 @@ metadata:
 # bytes or a stream, and 308 Resume Incomplete is returned rather than thrown.
 imports:
   Gd: ../
-  Http: oci://ghcr.io/telorun/http-client@0.22.0#sha256-UyC8nQDnKHXyPpPPHC7TS8MicesLsgDUKWBYObf5oQ4
-  Multipart: oci://ghcr.io/telorun/multipart@0.2.2#sha256-RCqiT4UMwrVeRq1hU1xxkysRSxX4NC5DzsdrbbEBxv8
-  Ptc: oci://ghcr.io/telorun/plain-text-codec@0.10.4#sha256-Z1My-TDPdE13s63NSi5rT0Qg0CZf-7tAXbJBRcBGCOQ
-  Server: oci://ghcr.io/telorun/http-server@0.44.0#sha256-nW6yftlrG4eHd0e511nB8ArmN04Y2DKEkwRy5BaSldI
-  Assert: oci://ghcr.io/telorun/assert@0.18.0#sha256-mSy7HGMq_UoQUvt4WbQCIO_uqXcRZwRlmROp6DfLDjY
+  Http: oci://ghcr.io/telorun/http-client@0.25.1#sha256-yODGL4HqbynR4aaPrcN1I2RIsmNBDn3ciL1uobA8nqA
+  Multipart: oci://ghcr.io/telorun/multipart@0.5.1#sha256--OhpMFza_rR_wv4zycWaAF3kinh0Z_7jCxqYrYntoRc
+  Ptc: oci://ghcr.io/telorun/plain-text-codec@0.11.2#sha256-pyfbCDOILWCgCUznQGl6KY9XnmEdh9K8G1UcbrJWKJM
+  Server: oci://ghcr.io/telorun/http-server@0.46.0#sha256-fUX2g5GkhkLTptgJBKpZX5tBcPIUtrc7eKNRnfofUtI
+  Assert: oci://ghcr.io/telorun/assert@0.23.0#sha256-CT1vdPTra9haCPntji5sJG0qG_acnTaeYxg0roNgZGI
 ports:
   http:
     env: TEST_PORT
@@ -911,7 +911,7 @@ steps:
   - name: assertDownloadFileX1
     invoke: !ref Assert.equals
     inputs:
-      actual: !cel "string(steps.downloadFile.result.body)"
+      actual: !cel "string(dyn(steps.downloadFile.result.body))"
       expected: "bytes-of:/drive/v3/files/f1:bytes=0-3"
   - name: downloadFileStream
     invoke: !ref downloadFile
@@ -931,7 +931,7 @@ steps:
   - name: assertExportFileX0
     invoke: !ref Assert.equals
     inputs:
-      actual: !cel "string(steps.exportFile.result.body)"
+      actual: !cel "string(dyn(steps.exportFile.result.body))"
       expected: "bytes-of:/drive/v3/files/doc1/export:"
   - name: createFile
     invoke: !ref createFile
@@ -1260,7 +1260,7 @@ steps:
   - name: assertDownloadRevisionX0
     invoke: !ref Assert.equals
     inputs:
-      actual: !cel "string(steps.downloadRevision.result.body)"
+      actual: !cel "string(dyn(steps.downloadRevision.result.body))"
       expected: "bytes-of:/drive/v3/files/f1/revisions/r1:"
   - name: updateRevision
     invoke: !ref updateRevision

@@ -8,8 +8,8 @@ metadata:
 imports:
   Gmail: ../
   Stub: ./__fixtures__/gmail-stub.yaml
-  Assert: oci://ghcr.io/telorun/assert@0.18.0#sha256-mSy7HGMq_UoQUvt4WbQCIO_uqXcRZwRlmROp6DfLDjY
-  Server: oci://ghcr.io/telorun/http-server@0.44.0#sha256-nW6yftlrG4eHd0e511nB8ArmN04Y2DKEkwRy5BaSldI
+  Assert: oci://ghcr.io/telorun/assert@0.23.0#sha256-CT1vdPTra9haCPntji5sJG0qG_acnTaeYxg0roNgZGI
+  Server: oci://ghcr.io/telorun/http-server@0.46.0#sha256-fUX2g5GkhkLTptgJBKpZX5tBcPIUtrc7eKNRnfofUtI
 ports:
   http:
     env: TEST_GMAIL_LABELS_PORT

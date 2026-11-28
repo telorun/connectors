@@ -2,7 +2,7 @@
 
 # E-commerce Scraping Tool
 
-The Apify actor [`apify/e-commerce-scraping-tool`](https://apify.com/apify/e-commerce-scraping-tool) as typed Telo kinds, generated from its default build **0.0.157** (module version **0.2.0**). Runs use whatever build the actor has as default when they start, so they keep working as Apify retires old builds; the input types below are refreshed weekly and can lag an actor that changed its input since.
+The Apify actor [`apify/e-commerce-scraping-tool`](https://apify.com/apify/e-commerce-scraping-tool) as typed Telo kinds, generated from its default build **0.0.172** (module version **0.3.0**). Runs use whatever build the actor has as default when they start, so they keep working as Apify retires old builds; the input types below are refreshed weekly and can lag an actor that changed its input since.
 
 Scrape data from e-commerce websites with E-commerce Scraping Tool. Scrape almost any retail site in minutes, extract e-commerce data and use it to monitor price details over time or compare different e-commerce sites’ offerings.
 
@@ -16,7 +16,7 @@ Runs are charged to the Apify account whose token the `ApifyClient` holds. See t
 
 ```yaml
 imports:
-  Actor: oci://ghcr.io/telorun/apify/apify-e-commerce-scraping-tool@0.2.0#sha256-…
+  Actor: oci://ghcr.io/telorun/apify/apify-e-commerce-scraping-tool@0.3.0#sha256-…
 ```
 
 Pin the digest with `telo upgrade`. The module re-exports `ApifyClient`, so it is the only import needed.
@@ -58,10 +58,10 @@ Only these fields are accepted — `telo check` rejects any other.
 | `additionalProperties` | boolean |  |  | Include additional properties — Includes additional properties in the response. |
 | `fieldsToAnalyze` | string[] |  |  | AI summary - data points — Select the data point(s) you want to pass to ai. These selected data points will be used to generate a summary. |
 | `customPrompt` | string |  |  | AI summary - custom prompt — Enter a custom prompt to instruct ai how to process the data points. If left blank, Apify’s default prompt will be used. |
-| `maxProductResults` | integer |  |  | Total maximum products — Defines the total number of product results to collect during the entire run. |
+| `maxProductResults` | integer |  |  | Total maximum products — Defines the total number of product results to collect during the entire run. This is a cap on the run as a whole, not on each URL, so it is the reliable way to put a ceiling on cost. Examples: 50, 100, 1000. |
 | `deduplicateProducts` | boolean |  | `false` | Remove duplicate products — Saves each product only once per run, even when it appears under several URLs, on several pages or for several keywords. |
 | `searchEngineKeyword` | string |  |  | Keyword search — Search terms for finding products. Enter one keyword per line up to 50 keywords. Each keyword runs as an independent search. |
-| `scrapeModeSearchEngine` | string |  | `"Google Listing"` | Scrape mode — Select the type of data to scrape from Search engine results. |
+| `scrapeModeSearchEngine` | string |  | `"Google Listing"` | Scrape mode — Select the type of data to scrape from Search engine results. This is a single choice, not a set of switches: one run collects Google Listing results, or Products, or Reviews, or Sellers. Setting a maximum for sellers while leaving this on the default returns listings instead. ⚠️ This  |
 | `countryCode` | string |  | `"us"` | Country codes — Select the country/region to use for the Search Engine search context (affects currency, shipping, and availability). Default is United States (us). |
 | `citySearchEngine` | string |  |  | City — City name to localize Search Engine results (e.g. 'New York', 'London'). |
 | `regionSearchEngine` | string |  |  | Region — Region or state name to localize Search Engine results (e.g. 'California', 'Bavaria'). |
@@ -74,18 +74,18 @@ Only these fields are accepted — `telo check` rejects any other.
 | `deliveryDetailsUrls` | array |  |  | Delivery product detail URLs — Direct links to individual delivery product pages. Each URL will be processed separately to extract product and review data. |
 | `deliveryListingUrls` | array |  |  | Delivery listing URLs — Links to delivery category or listing pages. Products found on these pages will be processed automatically. |
 | `addressDelivery` | string |  |  | Delivery address or location — Delivery location (e.g. city, ZIP code, or full address) used to localize delivery product availability and results. |
-| `scrapeReviewsDelivery` | boolean |  |  | Include extended delivery review data — When enabled, reviews will be included in the output. |
+| `scrapeReviewsDelivery` | boolean |  |  | Include extended delivery review data — When enabled, reviews will be included in the output. ⚠️ This returns personal data. You're responsible for having a legal basis to collect and use it under privacy laws. |
 | `maxDeliveryResults` | integer |  |  | Total maximum results — Defines the maximum total number of delivery products or reviews to collect across the entire run. |
-| `reviewDetailsUrls` | array |  |  | Review detail URLs — Direct links to individual product detail pages. Each page will be visited separately to extract review information. |
-| `reviewListingUrls` | array |  |  | Review listing URLs — Links to pages with multiple product reviews. The scraper will collect all reviews from these listings. |
-| `keywordReviews` | string |  |  | Keyword for search — A keyword used to search for product reviews across marketplaces. |
+| `reviewDetailsUrls` | array |  |  | Review detail URLs — Direct links to individual product detail pages. Each page will be visited separately to extract review information. ⚠️ This returns personal data. You're responsible for having a legal basis to collect and use it under privacy laws. |
+| `reviewListingUrls` | array |  |  | Review listing URLs — Links to pages with multiple product reviews. The scraper will collect all reviews from these listings. ⚠️ This returns personal data. You're responsible for having a legal basis to collect and use it under privacy laws. |
+| `keywordReviews` | string |  |  | Keyword for search — A keyword used to search for product reviews across marketplaces. ⚠️ This returns personal data. You're responsible for having a legal basis to collect and use it under privacy laws. |
 | `marketplacesReviews` | string[] |  |  | Marketplaces for keyword search — Select the marketplaces where the keyword search should be performed for reviews. |
 | `sortReview` | string |  | `"Most recent"` | Review sort type — Select how product reviews should be sorted. Some marketplaces may not support all sorting options — in such cases, the scraper will fall back to the default. |
 | `additionalReviewProperties` | boolean |  |  | Include additional review properties — Includes additional properties in the response. |
 | `maxReviewResults` | integer |  |  | Total maximum reviews — Defines the total number of review results to collect during the entire run. |
-| `sellerUrls` | array |  |  | Seller profile URLs — Direct links to seller profile or store pages. Each URL will be visited to extract detailed seller information. |
+| `sellerUrls` | array |  |  | Seller profile URLs — Direct links to seller profile or store pages. Each URL will be visited to extract detailed seller information. ⚠️ This returns personal data. You're responsible for having a legal basis to collect and use it under privacy laws. |
 | `maxSellerResults` | integer |  |  | Total maximum sellers — Defines the total number of seller results to collect during the entire run. |
-| `influencerUrls` | array |  |  | Influencer URLs — Direct links to individual influencer pages. Each page will be visited separately to extract post information. |
+| `influencerUrls` | array |  |  | Influencer URLs — Direct links to individual influencer pages. Each page will be visited separately to extract post information. ⚠️ This returns personal data. You're responsible for having a legal basis to collect and use it under privacy laws. |
 | `scrapeInfluencerProducts` | boolean |  |  | Scrape influencer post products — Scrape products from influencer posts. |
 | `maxInfluencerResults` | integer |  |  | Total maximum influencer results — Limits the total number of influencer posts or items to collect during the run. |
 | `disableFallbacks` | boolean |  | `false` | Disable fallbacks — Internal: skip Zyte/Shopify/Oxylabs fallbacks; use marketplace standby only. |

@@ -1,0 +1,7 @@
+modules:
+  auth: Added
+  drive: Added
+  gmail: Added
+  sheets: Added
+  sign-in: Added
+body: "Upgraded standard-module imports to their latest published versions."

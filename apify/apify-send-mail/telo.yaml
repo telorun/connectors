@@ -3,7 +3,7 @@
 kind: Telo.Library
 metadata:
   name: ApifySendMail
-  version: 0.5.0
+  version: 0.6.0
   description: >-
     Send Email: the Apify actor apify/send-mail as typed Telo kinds. `Run` runs it and waits for its
     results (Apify allows up to 5 minutes); `Start` runs it in the background and polls until it
@@ -17,7 +17,7 @@ metadata:
   license: MIT
 imports:
   Apify: ../apify
-  Flow: oci://ghcr.io/telorun/run@0.28.0#sha256-CoPkA-u8-m4kjQAOTDr_TmsfA72HDpnoZI-hHz8N7kE
+  Flow: oci://ghcr.io/telorun/run@0.35.1#sha256-m6oA-tLMj4v0JvzkvRt17CBuWzXSYpumtxyNRb3qVz8
 exports:
   kinds:
     - Run

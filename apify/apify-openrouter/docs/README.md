@@ -2,7 +2,7 @@
 
 # OpenRouter
 
-The Apify actor [`apify/openrouter`](https://apify.com/apify/openrouter) as typed Telo kinds, generated from its default build **1.0.55** (module version **1.2.0**). Runs use whatever build the actor has as default when they start, so they keep working as Apify retires old builds; the input types below are refreshed weekly and can lag an actor that changed its input since.
+The Apify actor [`apify/openrouter`](https://apify.com/apify/openrouter) as typed Telo kinds, generated from its default build **1.0.57** (module version **1.3.0**). Runs use whatever build the actor has as default when they start, so they keep working as Apify retires old builds; the input types below are refreshed weekly and can lag an actor that changed its input since.
 
 You can use any AI LLM model without accounts in AI providers. Use this Actor as a proxy for all requests. Use pay-per-event pricing to pay only for the real credit used.
 
@@ -16,7 +16,7 @@ Runs are charged to the Apify account whose token the `ApifyClient` holds. See t
 
 ```yaml
 imports:
-  Actor: oci://ghcr.io/telorun/apify/apify-openrouter@1.2.0#sha256-…
+  Actor: oci://ghcr.io/telorun/apify/apify-openrouter@1.3.0#sha256-…
 ```
 
 Pin the digest with `telo upgrade`. The module re-exports `ApifyClient`, so it is the only import needed.

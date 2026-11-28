@@ -11,7 +11,7 @@ metadata:
     the docker-compose `storage` service; override via the `S3_*` env vars.
 imports:
   S3: ../../
-  Assert: oci://ghcr.io/telorun/assert@0.16.0#sha256-0a8uEwCZG2ElZ7CxeDYfL3gbDFLj-92_jHEOeJbI6m0
+  Assert: oci://ghcr.io/telorun/assert@0.23.0#sha256-CT1vdPTra9haCPntji5sJG0qG_acnTaeYxg0roNgZGI
 variables:
   s3Endpoint:
     env: S3_ENDPOINT

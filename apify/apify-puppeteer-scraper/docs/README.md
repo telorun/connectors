@@ -2,7 +2,7 @@
 
 # Puppeteer Scraper
 
-The Apify actor [`apify/puppeteer-scraper`](https://apify.com/apify/puppeteer-scraper) as typed Telo kinds, generated from its default build **3.0.20** (module version **3.2.0**). Runs use whatever build the actor has as default when they start, so they keep working as Apify retires old builds; the input types below are refreshed weekly and can lag an actor that changed its input since.
+The Apify actor [`apify/puppeteer-scraper`](https://apify.com/apify/puppeteer-scraper) as typed Telo kinds, generated from its default build **3.0.20** (module version **3.3.0**). Runs use whatever build the actor has as default when they start, so they keep working as Apify retires old builds; the input types below are refreshed weekly and can lag an actor that changed its input since.
 
 Crawls websites with the headless Chrome and Puppeteer library using a provided server-side Node.js code. This crawler is an alternative to apify/web-scraper that gives you finer control over the process. Supports both recursive crawling and list of URLs. Supports login to website.
 
@@ -16,7 +16,7 @@ Runs are charged to the Apify account whose token the `ApifyClient` holds. See t
 
 ```yaml
 imports:
-  Actor: oci://ghcr.io/telorun/apify/apify-puppeteer-scraper@3.2.0#sha256-…
+  Actor: oci://ghcr.io/telorun/apify/apify-puppeteer-scraper@3.3.0#sha256-…
 ```
 
 Pin the digest with `telo upgrade`. The module re-exports `ApifyClient`, so it is the only import needed.
